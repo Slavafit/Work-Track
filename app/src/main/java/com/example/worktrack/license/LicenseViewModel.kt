@@ -33,6 +33,7 @@ class LicenseViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = when (val result = LicenseManager.activate(getApplication(), email)) {
                 is ActivateResult.Active -> LicenseState.Active
                 is ActivateResult.Trial -> LicenseState.Trial(result.expiresAt)
+                is ActivateResult.Pending -> LicenseState.Pending(result.message)
                 is ActivateResult.TrialExpired -> LicenseState.Invalid("trial_expired")
                 is ActivateResult.Error -> LicenseState.Error(result.message)
             }
@@ -44,6 +45,7 @@ sealed class LicenseState {
     data object Loading : LicenseState()
     data object Active : LicenseState()
     data class Trial(val expiresAt: Long) : LicenseState()
+    data class Pending(val message: String) : LicenseState()
     data object NeedActivation : LicenseState()
     data class Invalid(val reason: String) : LicenseState()
     data class Error(val message: String) : LicenseState()

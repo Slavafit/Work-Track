@@ -40,9 +40,29 @@ fun LicenseGate(
         is LicenseState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         is LicenseState.Active -> content()
         is LicenseState.Trial -> content()
+        is LicenseState.Pending -> PendingScreen(state.message, viewModel)
         is LicenseState.NeedActivation -> ActivationScreen(viewModel)
         is LicenseState.Invalid -> InvalidScreen(state.reason, viewModel)
         is LicenseState.Error -> ErrorScreen(state.message, viewModel)
+    }
+}
+
+@Composable
+private fun PendingScreen(message: String, viewModel: LicenseViewModel) {
+    Column(
+        Modifier.fillMaxSize().padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(Icons.Outlined.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(16.dp))
+        Text("Заявка отправлена", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(8.dp))
+        Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(24.dp))
+        OutlinedButton(onClick = viewModel::checkLicense, modifier = Modifier.fillMaxWidth()) {
+            Text("Проверить снова")
+        }
     }
 }
 

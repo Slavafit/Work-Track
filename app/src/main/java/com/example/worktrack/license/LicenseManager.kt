@@ -9,6 +9,8 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -43,10 +45,12 @@ object LicenseManager {
             if (ok && token.isNotEmpty()) {
                 saveState(context, email, token, status, expiresAt)
                 if (status == "trial") ActivateResult.Trial(expiresAt) else ActivateResult.Active
+            } else if (status == "pending") {
+                ActivateResult.Pending(response.optString("message", "License request received. Contact developer to activate."))
             } else {
                 val reason = response.optString("reason", "")
                 if (reason == "trial_expired") ActivateResult.TrialExpired
-                else ActivateResult.Error(response.optString("error", "Unknown error"))
+                else ActivateResult.Error(response.optString("error", response.optString("message", "Unknown error")))
             }
         } catch (e: Exception) {
             ActivateResult.Error(e.message ?: "Network error")
@@ -115,7 +119,7 @@ object LicenseManager {
         }
     }
 
-    private fun post(url: String, body: JSONObject): JSONObject {
+    private suspend fun post(url: String, body: JSONObject): JSONObject = withContext(Dispatchers.IO) {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             setRequestProperty("Content-Type", "application/json")
@@ -123,15 +127,20 @@ object LicenseManager {
             connectTimeout = 10_000
             readTimeout = 10_000
         }
-        conn.outputStream.use { it.write(body.toString().toByteArray()) }
-        val stream = if (conn.responseCode in 200..299) conn.inputStream else conn.errorStream
-        return JSONObject(stream.bufferedReader().readText())
+        try {
+            conn.outputStream.use { it.write(body.toString().toByteArray()) }
+            val stream = if (conn.responseCode in 200..299) conn.inputStream else conn.errorStream
+            JSONObject(stream.bufferedReader().readText())
+        } finally {
+            conn.disconnect()
+        }
     }
 }
 
 sealed class ActivateResult {
     data object Active : ActivateResult()
     data class Trial(val expiresAt: Long) : ActivateResult()
+    data class Pending(val message: String) : ActivateResult()
     data object TrialExpired : ActivateResult()
     data class Error(val message: String) : ActivateResult()
 }
