@@ -52,11 +52,11 @@ private fun ActivationScreen(viewModel: LicenseViewModel) {
     var error by remember { mutableStateOf(false) }
     LicenseForm(
         title = "WorkTrack",
-        message = "Ð’Ð²ÐµÐ´Ð¸Ñ‚Ðµ email Ð´Ð»Ñ Ð½Ð°Ñ‡Ð°Ð»Ð° Ñ€Ð°Ð±Ð¾Ñ‚Ñ‹. ÐŸÑ€Ð¾Ð±Ð½Ñ‹Ð¹ Ð´Ð¾ÑÑ‚ÑƒÐ¿ Ð´ÐµÐ¹ÑÑ‚Ð²ÑƒÐµÑ‚ 3 Ð´Ð½Ñ.",
+        message = "Введите email для начала работы. Пробный доступ действует 3 дня.",
         email = email,
         error = error,
         onEmailChange = { email = it; error = false },
-        button = "ÐÐ°Ñ‡Ð°Ñ‚ÑŒ Ð¿Ñ€Ð¾Ð±Ð½Ñ‹Ð¹ Ð¿ÐµÑ€Ð¸Ð¾Ð´",
+        button = "Начать пробный период",
         onSubmit = {
             if (email.isValidEmail()) viewModel.activate(email.trim()) else error = true
         }
@@ -65,13 +65,13 @@ private fun ActivationScreen(viewModel: LicenseViewModel) {
 
 @Composable
 private fun InvalidScreen(reason: String, viewModel: LicenseViewModel) {
-    val title = if (reason == "trial_expired") "ÐŸÑ€Ð¾Ð±Ð½Ñ‹Ð¹ Ð¿ÐµÑ€Ð¸Ð¾Ð´ Ð·Ð°Ð²ÐµÑ€ÑˆÑ‘Ð½" else "ÐÐµÑ‚ Ð´Ð¾ÑÑ‚ÑƒÐ¿Ð°"
+    val title = if (reason == "trial_expired") "Пробный период завершён" else "Нет доступа"
     val message = when (reason) {
-        "trial_expired" -> "Ð—Ð°Ð¿Ñ€Ð¾ÑÐ¸Ñ‚Ðµ Ð¿Ð¾Ð»Ð½ÑƒÑŽ Ð»Ð¸Ñ†ÐµÐ½Ð·Ð¸ÑŽ Ñƒ Ñ€Ð°Ð·Ñ€Ð°Ð±Ð¾Ñ‚Ñ‡Ð¸ÐºÐ°."
-        "revoked" -> "Ð›Ð¸Ñ†ÐµÐ½Ð·Ð¸Ñ Ð¾Ñ‚Ð¾Ð·Ð²Ð°Ð½Ð°. ÐžÐ±Ñ€Ð°Ñ‚Ð¸Ñ‚ÐµÑÑŒ Ðº Ñ€Ð°Ð·Ñ€Ð°Ð±Ð¾Ñ‚Ñ‡Ð¸ÐºÑƒ."
-        "expired" -> "Ð¡Ñ€Ð¾Ðº Ð»Ð¸Ñ†ÐµÐ½Ð·Ð¸Ð¸ Ð¸ÑÑ‚Ñ‘Ðº. ÐžÐ±Ñ€Ð°Ñ‚Ð¸Ñ‚ÐµÑÑŒ Ðº Ñ€Ð°Ð·Ñ€Ð°Ð±Ð¾Ñ‚Ñ‡Ð¸ÐºÑƒ."
-        "device_mismatch" -> "Ð›Ð¸Ñ†ÐµÐ½Ð·Ð¸Ñ Ð¿Ñ€Ð¸Ð²ÑÐ·Ð°Ð½Ð° Ðº Ð´Ñ€ÑƒÐ³Ð¾Ð¼Ñƒ ÑƒÑÑ‚Ñ€Ð¾Ð¹ÑÑ‚Ð²Ñƒ."
-        else -> "Ð›Ð¸Ñ†ÐµÐ½Ð·Ð¸Ñ Ð½ÐµÐ´ÐµÐ¹ÑÑ‚Ð²Ð¸Ñ‚ÐµÐ»ÑŒÐ½Ð°. ÐžÐ±Ñ€Ð°Ñ‚Ð¸Ñ‚ÐµÑÑŒ Ðº Ñ€Ð°Ð·Ñ€Ð°Ð±Ð¾Ñ‚Ñ‡Ð¸ÐºÑƒ."
+        "trial_expired" -> "Запросите полную лицензию у разработчика."
+        "revoked" -> "Лицензия отозвана. Обратитесь к разработчику."
+        "expired" -> "Срок лицензии истёк. Обратитесь к разработчику."
+        "device_mismatch" -> "Лицензия привязана к другому устройству."
+        else -> "Лицензия недействительна. Обратитесь к разработчику."
     }
     Column(
         Modifier.fillMaxSize().padding(32.dp),
@@ -85,7 +85,7 @@ private fun InvalidScreen(reason: String, viewModel: LicenseViewModel) {
         Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = viewModel::checkLicense, modifier = Modifier.fillMaxWidth()) {
-            Text("ÐŸÑ€Ð¾Ð²ÐµÑ€Ð¸Ñ‚ÑŒ ÑÐ½Ð¾Ð²Ð°")
+            Text("Проверить снова")
         }
     }
 }
@@ -97,12 +97,12 @@ private fun ErrorScreen(message: String, viewModel: LicenseViewModel) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("ÐžÑˆÐ¸Ð±ÐºÐ° Ð¿Ð¾Ð´ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ñ", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+        Text("Ошибка подключения", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
         Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = viewModel::checkLicense, modifier = Modifier.fillMaxWidth()) {
-            Text("ÐŸÐ¾Ð²Ñ‚Ð¾Ñ€Ð¸Ñ‚ÑŒ")
+            Text("Повторить")
         }
     }
 }
@@ -131,7 +131,7 @@ private fun LicenseForm(
             onValueChange = onEmailChange,
             label = { Text("Email") },
             isError = error,
-            supportingText = if (error) ({ Text("Ð’Ð²ÐµÐ´Ð¸Ñ‚Ðµ ÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ñ‹Ð¹ email") }) else null,
+            supportingText = if (error) ({ Text("Введите корректный email") }) else null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()

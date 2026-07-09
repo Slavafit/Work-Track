@@ -10,11 +10,11 @@ import kotlinx.coroutines.flow.map
 private val Context.settingsDataStore by preferencesDataStore("settings")
 
 enum class ThemeMode { System, Light, Dark }
-enum class LanguageMode { RU, EN, ES }
+enum class LanguageMode { System, RU, EN, ES }
 
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.System,
-    val language: LanguageMode = LanguageMode.RU
+    val language: LanguageMode = LanguageMode.System
 )
 
 class SettingsStore(private val context: Context) {
@@ -24,7 +24,7 @@ class SettingsStore(private val context: Context) {
     val settings: Flow<AppSettings> = context.settingsDataStore.data.map { prefs ->
         AppSettings(
             themeMode = prefs[keyTheme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.System,
-            language = prefs[keyLanguage]?.let { runCatching { LanguageMode.valueOf(it) }.getOrNull() } ?: LanguageMode.RU
+            language = prefs[keyLanguage]?.let { runCatching { LanguageMode.valueOf(it) }.getOrNull() } ?: LanguageMode.System
         )
     }
 
