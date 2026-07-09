@@ -2,4 +2,5 @@
     <string name="app_name">WorkTrack</string>
     <string name="developer">Desarrollador: Slavafit</string>
     <string name="developer_contacts">Telegram: @Slavafit</string>
+    <string name="app_version">Versión: %1$s</string>
 </resources>
