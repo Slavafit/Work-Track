@@ -1,17 +1,22 @@
-Инструкция по интеграции лицензионного модуля
-1. Скопировать файлы в app/src/main/java/.../license/ и поменять package на свой.
-2. build.gradle:
-kotlinimplementation "androidx.datastore:datastore-preferences:1.1.1"
-3. AndroidManifest.xml:
-xml<uses-permission android:name="android.permission.INTERNET" />
-4. В LicenseManager.kt поменять две константы:
-kotlinprivate const val BASE_URL = "https://license-server.slavafit.workers.dev"
-private const val APP_ID   = "ИМЯ_ПРИЛОЖЕНИЯ"  // например: WorkTrack
-5. В MainActivity.kt обернуть контент:
-kotlinsetContent {
-    AppTheme {
-        LicenseGate {
-            // существующий код без изменений
-        }
-    }
-}
+WorkTrack: license module notes
+
+1. Active app files live in:
+   app/src/main/java/com/example/worktrack/license/
+
+2. Current license endpoint:
+   https://license-server.slavafit.workers.dev
+
+3. Current app id:
+   worktrack
+
+4. Android requirements:
+   - INTERNET permission in AndroidManifest.xml
+   - androidx.datastore:datastore-preferences dependency
+
+5. Activation flow:
+   - user enters email
+   - app sends email, device_id, app_id to /activate
+   - server may return active, trial, pending, or error
+   - pending is shown as a normal status, not as a connection error
+
+6. Do not keep duplicate license Kotlin files in the project root.

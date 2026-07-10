@@ -11,6 +11,8 @@ fun Long.formatDate(locale: Locale = Locale.getDefault()): String =
 fun Long.formatNumber(locale: Locale = Locale.getDefault()): String = 
     "%,d".format(locale, this).replace(',', ' ').replace('.', ' ')
 
+fun Long.money(locale: Locale = Locale.getDefault()): String = "${formatNumber(locale)} €"
+
 fun todayMillis(): Long = System.currentTimeMillis().startOfDay()
 
 fun Long.startOfDay(): Long {
