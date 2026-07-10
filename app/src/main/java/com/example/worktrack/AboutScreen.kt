@@ -39,6 +39,7 @@ fun AboutScreen(
 ) {
     val settings by vm.settings.collectAsState()
     val licenseState by licenseViewModel.state.collectAsState()
+    val licenseEmail by licenseViewModel.email.collectAsState()
     val uriHandler = LocalUriHandler.current
     LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
@@ -56,6 +57,11 @@ fun AboutScreen(
                 SectionTitle(stringResource(R.string.section_license))
                 Text(licenseState.title(), style = MaterialTheme.typography.bodyLarge)
                 Text(licenseState.detail(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = licenseEmail?.let { stringResource(R.string.license_email_format, it) }
+                        ?: stringResource(R.string.license_email_missing),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
         item {

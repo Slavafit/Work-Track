@@ -86,6 +86,8 @@
     <string name="license_status_invalid">Лицензия недействительна</string>
     <string name="license_status_checking">Проверка лицензии</string>
     <string name="license_active_detail">Срок действия не ограничен.</string>
+    <string name="license_email_format">Email лицензии: %1$s</string>
+    <string name="license_email_missing">Email лицензии пока не сохранён.</string>
     <string name="license_trial_days_format">Осталось дней: %1$d</string>
     <string name="license_pending_detail">Разработчик должен подтвердить доступ.</string>
     <string name="license_need_activation_detail">Введите email, чтобы запросить пробный доступ.</string>

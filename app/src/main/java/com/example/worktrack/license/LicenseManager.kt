@@ -96,6 +96,9 @@ object LicenseManager {
         context.licenseDataStore.edit { it.clear() }
     }
 
+    suspend fun savedEmail(context: Context): String? =
+        context.licenseDataStore.data.first()[KEY_EMAIL]?.takeIf { it.isNotBlank() }
+
     private fun getDeviceId(context: Context): String =
         Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
 

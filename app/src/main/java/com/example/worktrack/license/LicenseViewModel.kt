@@ -10,6 +10,8 @@ import kotlinx.coroutines.launch
 class LicenseViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow<LicenseState>(LicenseState.Loading)
     val state: StateFlow<LicenseState> = _state
+    private val _email = MutableStateFlow<String?>(null)
+    val email: StateFlow<String?> = _email
 
     init {
         checkLicense()
@@ -24,6 +26,7 @@ class LicenseViewModel(app: Application) : AndroidViewModel(app) {
                 is VerifyResult.NeedActivation -> LicenseState.NeedActivation
                 is VerifyResult.Invalid -> LicenseState.Invalid(result.reason)
             }
+            _email.value = LicenseManager.savedEmail(getApplication())
         }
     }
 
@@ -37,6 +40,7 @@ class LicenseViewModel(app: Application) : AndroidViewModel(app) {
                 is ActivateResult.TrialExpired -> LicenseState.Invalid("trial_expired")
                 is ActivateResult.Error -> LicenseState.Error(result.message)
             }
+            _email.value = LicenseManager.savedEmail(getApplication()) ?: email
         }
     }
 }
