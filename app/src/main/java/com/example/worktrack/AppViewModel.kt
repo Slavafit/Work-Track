@@ -1,7 +1,9 @@
 package com.example.worktrack
 
 import android.app.Application
+import android.content.Context
 import android.content.res.Configuration
+import android.os.LocaleList
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.worktrack.data.AppSettings
@@ -22,7 +24,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-class AppViewModel(private val app: Application) : AndroidViewModel(app) {
+class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = WorkTrackRepository(WorkTrackDatabase.get(app).dao())
     private val settingsStore = SettingsStore(app)
 
@@ -32,21 +34,6 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     val activeWorkers = repo.activeWorkers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val activeWorkTypes = repo.activeWorkTypes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val settings: StateFlow<AppSettings> = settingsStore.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettings())
-
-    private fun getLocale(): Locale {
-        return when (settings.value.language) {
-            LanguageMode.RU -> Locale("ru")
-            LanguageMode.EN -> Locale("en")
-            LanguageMode.ES -> Locale("es")
-            else -> Locale.getDefault()
-        }
-    }
-
-    private fun getString(resId: Int, vararg args: Any): String {
-        val config = Configuration(app.resources.configuration)
-        config.setLocale(getLocale())
-        return app.createConfigurationContext(config).getString(resId, *args)
-    }
 
     fun workDays(objectId: Long) = repo.workDays(objectId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     fun dayWorkerIds(dayId: Long) = repo.dayWorkerIds(dayId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -85,35 +72,36 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { settingsStore.setTheme(mode) }
     fun setLanguage(language: LanguageMode) = viewModelScope.launch { settingsStore.setLanguage(language) }
 
+    private fun text(id: Int, vararg args: Any): String =
+        getApplication<Application>().localized(settings.value.language).getString(id, *args)
+
     fun shareObjectReport(objectId: Long, share: (String) -> Unit) = viewModelScope.launch {
         val objectInfo = repo.objectById(objectId)
         val client = objectInfo?.let { repo.clientById(it.clientId) }
         val rows = repo.reportByObject(objectId)
         val total = rows.sumOf { it.amount }
-        val locale = getLocale()
         share(buildString {
-            appendLine(getString(R.string.report_object_header))
-            appendLine(getString(R.string.report_address, objectInfo?.address.orEmpty()))
-            appendLine(getString(R.string.report_client, client?.name.orEmpty()))
-            appendLine(getString(R.string.label_total, total.money(locale)))
+            appendLine(text(R.string.report_object_title))
+            appendLine(text(R.string.report_address_format, objectInfo?.address.orEmpty()))
+            appendLine(text(R.string.report_customer_format, client?.name.orEmpty()))
+            appendLine(text(R.string.report_total_format, total.money()))
             appendLine()
             rows.groupBy { it.date }.forEach { (date, items) ->
-                appendLine(date.formatDate(locale))
-                items.forEach { appendLine(" - ${it.workerName}: ${it.workTypeName}, ${it.amount.money(locale)}") }
+                appendLine(date.formatDate())
+                items.forEach { appendLine(" - ${it.workerName}: ${it.workTypeName}, ${it.amount.money()}") }
             }
         })
     }
 
     fun shareDateReport(date: Long, share: (String) -> Unit) = viewModelScope.launch {
         val rows = repo.reportByDate(date.startOfDay(), date.endOfDay())
-        val locale = getLocale()
         share(buildString {
-            appendLine(getString(R.string.report_date_header, date.formatDate(locale)))
-            appendLine(getString(R.string.label_total, rows.sumOf { it.amount }.money(locale)))
+            appendLine(text(R.string.report_date_title_format, date.formatDate()))
+            appendLine(text(R.string.report_total_format, rows.sumOf { it.amount }.money()))
             appendLine()
             rows.groupBy { it.objectAddress }.forEach { (objectAddress, items) ->
                 appendLine(objectAddress)
-                items.forEach { appendLine(" - ${it.workerName}: ${it.workTypeName}, ${it.amount.money(locale)}") }
+                items.forEach { appendLine(" - ${it.workerName}: ${it.workTypeName}, ${it.amount.money()}") }
             }
         })
     }
@@ -121,27 +109,33 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     fun shareWorkerReport(workerId: Long, from: Long, to: Long, share: (String) -> Unit) = viewModelScope.launch {
         val worker = workers.value.firstOrNull { it.id == workerId }
         val rows = repo.reportByWorker(workerId, from.startOfDay(), to.endOfDay())
-        val locale = getLocale()
         share(buildString {
-            appendLine(getString(R.string.report_worker_header, worker?.name.orEmpty()))
-            appendLine(getString(R.string.report_period, from.formatDate(locale), to.formatDate(locale)))
-            appendLine(getString(R.string.label_total, rows.sumOf { it.amount }.money(locale)))
+            appendLine(text(R.string.report_worker_title_format, worker?.name.orEmpty()))
+            appendLine(text(R.string.report_period_format, from.formatDate(), to.formatDate()))
+            appendLine(text(R.string.report_total_format, rows.sumOf { it.amount }.money()))
             appendLine()
             rows.groupBy { it.date }.forEach { (date, items) ->
-                appendLine(date.formatDate(locale))
-                items.forEach { appendLine(" - ${it.objectAddress}: ${it.workTypeName}, ${it.amount.money(locale)}") }
+                appendLine(date.formatDate())
+                items.forEach { appendLine(" - ${it.objectAddress}: ${it.workTypeName}, ${it.amount.money()}") }
             }
         })
     }
-
-    private fun Long.money(locale: Locale): String = getString(R.string.money_format, this.formatNumber(locale))
 }
 
-fun Long.formatDate(locale: Locale = Locale.getDefault()): String = 
-    SimpleDateFormat("dd.MM.yyyy", locale).format(Date(this))
+private fun Context.localized(language: LanguageMode): Context {
+    val locale = when (language) {
+        LanguageMode.System -> return this
+        LanguageMode.RU -> Locale("ru")
+        LanguageMode.EN -> Locale("en")
+        LanguageMode.ES -> Locale("es")
+    }
+    val config = Configuration(resources.configuration)
+    config.setLocales(LocaleList(locale))
+    return createConfigurationContext(config)
+}
 
-fun Long.formatNumber(locale: Locale = Locale.getDefault()): String = 
-    "%,d".format(locale, this).replace(',', ' ').replace('.', ' ')
+fun Long.formatDate(): String = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(this))
+fun Long.money(): String = "%,d ₽".format(this).replace(',', ' ')
 
 fun todayMillis(): Long = System.currentTimeMillis().startOfDay()
 

@@ -1,8 +1,10 @@
 package com.example.worktrack
 
-import android.content.Intent
+import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
+import android.os.LocaleList
+import androidx.annotation.StringRes
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -50,9 +52,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
@@ -75,12 +74,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.worktrack.data.LanguageMode
 import com.example.worktrack.data.ObjectSummary
@@ -96,29 +95,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             val vm: AppViewModel = viewModel()
             val settings by vm.settings.collectAsState()
-            
-            // Настройка темы
+            val localizedContext = LocalContext.current.withLanguage(settings.language)
+            val localizedConfiguration = localizedContext.resources.configuration
             val dark = when (settings.themeMode) {
                 ThemeMode.System -> androidx.compose.foundation.isSystemInDarkTheme()
                 ThemeMode.Light -> false
                 ThemeMode.Dark -> true
             }
-
-            // Динамическая настройка локали
-            val locale = when (settings.language) {
-                LanguageMode.RU -> Locale("ru")
-                LanguageMode.EN -> Locale("en")
-                LanguageMode.ES -> Locale("es")
-                else -> Locale.getDefault()
-            }
-            
-            // Устанавливаем локаль по умолчанию для форматирования в ViewModel
-            Locale.setDefault(locale)
-            
-            val configuration = Configuration(LocalConfiguration.current)
-            configuration.setLocale(locale)
-            
-            CompositionLocalProvider(LocalContext provides LocalContext.current.createConfigurationContext(configuration)) {
+            CompositionLocalProvider(
+                LocalContext provides localizedContext,
+                LocalConfiguration provides localizedConfiguration
+            ) {
                 MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
                     Surface(Modifier.fillMaxSize()) {
                         LicenseGate {
@@ -131,12 +118,24 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class MainTab(val titleRes: Int, val icon: ImageVector) {
-    Objects(R.string.tab_objects, Icons.Outlined.Work),
-    Workers(R.string.tab_workers, Icons.Outlined.People),
-    Types(R.string.tab_types, Icons.Outlined.Construction),
-    Reports(R.string.tab_reports, Icons.Outlined.Assessment),
-    About(R.string.tab_about, Icons.Outlined.Info)
+private fun Context.withLanguage(language: LanguageMode): Context {
+    val locale = when (language) {
+        LanguageMode.System -> return this
+        LanguageMode.RU -> Locale("ru")
+        LanguageMode.EN -> Locale("en")
+        LanguageMode.ES -> Locale("es")
+    }
+    val config = Configuration(resources.configuration)
+    config.setLocales(LocaleList(locale))
+    return createConfigurationContext(config)
+}
+
+private enum class MainTab(@StringRes val titleRes: Int, @StringRes val navLabelRes: Int, val icon: ImageVector) {
+    Objects(R.string.tab_objects, R.string.nav_objects, Icons.Outlined.Work),
+    Workers(R.string.tab_workers, R.string.nav_workers, Icons.Outlined.People),
+    Types(R.string.tab_types, R.string.nav_types, Icons.Outlined.Construction),
+    Reports(R.string.tab_reports, R.string.nav_reports, Icons.Outlined.Assessment),
+    About(R.string.tab_about, R.string.nav_about, Icons.Outlined.Info)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,7 +144,6 @@ private fun WorkTrackApp(vm: AppViewModel) {
     var tab by remember { mutableStateOf(MainTab.Objects) }
     var objectId by remember { mutableLongStateOf(0L) }
     var dayId by remember { mutableLongStateOf(0L) }
-    
     val title = when {
         dayId != 0L -> stringResource(R.string.title_work_day)
         objectId != 0L -> stringResource(R.string.title_object)
@@ -157,12 +155,19 @@ private fun WorkTrackApp(vm: AppViewModel) {
         bottomBar = {
             if (objectId == 0L && dayId == 0L) NavigationBar {
                 MainTab.entries.forEach { item ->
-                    val label = stringResource(item.titleRes)
                     NavigationBarItem(
                         selected = tab == item,
                         onClick = { tab = item },
-                        icon = { Icon(item.icon, contentDescription = label) },
-                        label = { Text(label) }
+                        icon = { Icon(item.icon, contentDescription = stringResource(item.titleRes)) },
+                        label = {
+                            Text(
+                                text = stringResource(item.navLabelRes),
+                                maxLines = 1,
+                                softWrap = false,
+                                fontSize = 10.sp,
+                                overflow = TextOverflow.Clip
+                            )
+                        }
                     )
                 }
             }
@@ -198,7 +203,7 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
         ExtendedFloatingActionButton(
             onClick = { showCreate = true },
             icon = { Icon(Icons.Outlined.Add, null) },
-            text = { Text(stringResource(R.string.btn_add_object)) },
+            text = { Text(stringResource(R.string.title_object)) },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         )
     }
@@ -220,8 +225,8 @@ private fun ObjectCard(item: ObjectSummary, onOpen: (Long) -> Unit) {
                 Text(item.address, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 2)
                 if (item.isCompleted) Text(stringResource(R.string.status_completed), color = MaterialTheme.colorScheme.primary)
             }
-            Text(stringResource(R.string.label_client, item.clientName), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("${item.totalAmount.money()} · ${stringResource(R.string.label_days, item.dayCount)}", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.customer_format, item.clientName), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.object_total_days_format, item.totalAmount.money(), item.dayCount), fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -237,34 +242,34 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                OutlinedButton(onClick = onBack) { Text(stringResource(R.string.btn_back)) }
+                OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Spacer(Modifier.height(12.dp))
                 Card(shape = RoundedCornerShape(8.dp)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(obj?.address.orEmpty(), style = MaterialTheme.typography.titleLarge)
-                        Text(stringResource(R.string.label_client, obj?.clientName.orEmpty()))
-                        Text(stringResource(R.string.label_total, obj?.totalAmount?.money().orEmpty()), fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.customer_format, obj?.clientName.orEmpty()))
+                        Text(stringResource(R.string.total_format, obj?.totalAmount?.money().orEmpty()), fontWeight = FontWeight.SemiBold)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = { showCreateDay = true }, enabled = obj?.isCompleted != true) { Text(stringResource(R.string.btn_add_day)) }
+                            Button(onClick = { showCreateDay = true }, enabled = obj?.isCompleted != true) { Text(stringResource(R.string.action_add_day)) }
                             OutlinedButton(onClick = { vm.shareObjectReport(objectId) { context.shareText(it) } }) {
                                 Icon(Icons.Outlined.Share, null)
                                 Spacer(Modifier.width(6.dp))
-                                Text(stringResource(R.string.btn_report))
+                                Text(stringResource(R.string.action_report))
                             }
                         }
                         if (obj?.isCompleted != true) {
-                            OutlinedButton(onClick = { confirmComplete = true }) { Text(stringResource(R.string.btn_complete_object)) }
+                            OutlinedButton(onClick = { confirmComplete = true }) { Text(stringResource(R.string.action_complete_object)) }
                         }
                     }
                 }
             }
-            if (days.isEmpty()) item { EmptyText(stringResource(R.string.empty_days)) }
+            if (days.isEmpty()) item { EmptyText(stringResource(R.string.empty_work_days)) }
             items(days, key = { it.id }) { day ->
                 Card(onClick = { onOpenDay(day.id) }, shape = RoundedCornerShape(8.dp)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(day.date.formatDate(), style = MaterialTheme.typography.titleMedium)
-                        Text("${stringResource(R.string.label_workers_count, day.workerCount)} · ${stringResource(R.string.label_entries_count, day.entryCount)}")
-                        Text(stringResource(R.string.label_total, day.totalAmount.money()), fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.day_counts_format, day.workerCount, day.entryCount))
+                        Text(stringResource(R.string.total_format, day.totalAmount.money()), fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -274,7 +279,7 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
         showCreateDay = false
         onOpenDay(id)
     })
-    if (confirmComplete) ConfirmDialog(stringResource(R.string.dialog_complete_title), stringResource(R.string.dialog_complete_msg), onDismiss = { confirmComplete = false }) {
+    if (confirmComplete) ConfirmDialog(stringResource(R.string.confirm_complete_object_title), stringResource(R.string.confirm_complete_object_message), onDismiss = { confirmComplete = false }) {
         vm.completeObject(objectId)
         confirmComplete = false
     }
@@ -291,23 +296,23 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                OutlinedButton(onClick = onBack) { Text(stringResource(R.string.btn_back)) }
+                OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.label_day_total, entries.sumOf { it.amount }.money()), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    Button(onClick = { showEntry = true }, enabled = workerIds.isNotEmpty() && types.isNotEmpty()) { Text(stringResource(R.string.btn_add)) }
+                    Text(stringResource(R.string.day_total_format, entries.sumOf { it.amount }.money()), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    Button(onClick = { showEntry = true }, enabled = workerIds.isNotEmpty() && types.isNotEmpty()) { Text(stringResource(R.string.action_add)) }
                 }
             }
-            if (entries.isEmpty()) item { EmptyText(stringResource(R.string.empty_work_entries)) }
+            if (entries.isEmpty()) item { EmptyText(stringResource(R.string.empty_entries)) }
             items(entries, key = { it.id }) { entry ->
                 Card(shape = RoundedCornerShape(8.dp)) {
                     ListItem(
-                        headlineContent = { Text("${entry.workerName} · ${entry.workTypeName}") },
+                        headlineContent = { Text(stringResource(R.string.entry_title_format, entry.workerName, entry.workTypeName)) },
                         supportingContent = { Text(entry.notes.orEmpty()) },
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(entry.amount.money(), fontWeight = FontWeight.SemiBold)
-                                IconButton(onClick = { deleteId = entry.id }) { Icon(Icons.Outlined.Delete, stringResource(R.string.btn_delete)) }
+                                IconButton(onClick = { deleteId = entry.id }) { Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete)) }
                             }
                         }
                     )
@@ -324,7 +329,7 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             showEntry = false
         }
     )
-    if (deleteId != 0L) ConfirmDialog(stringResource(R.string.dialog_delete_title), stringResource(R.string.dialog_delete_msg), onDismiss = { deleteId = 0L }) {
+    if (deleteId != 0L) ConfirmDialog(stringResource(R.string.confirm_delete_entry_title), stringResource(R.string.confirm_delete_entry_message), onDismiss = { deleteId = 0L }) {
         vm.deleteEntry(deleteId)
         deleteId = 0L
     }
@@ -349,7 +354,7 @@ private fun WorkersScreen(vm: AppViewModel, padding: PaddingValues) {
             }
         }
         FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
-            Icon(Icons.Outlined.Add, stringResource(R.string.btn_add))
+            Icon(Icons.Outlined.Add, stringResource(R.string.action_add))
         }
     }
     if (showAdd) WorkerDialog(null, onDismiss = { showAdd = false }, onSave = { name, phone, active ->
@@ -382,7 +387,7 @@ private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues) {
             }
         }
         FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
-            Icon(Icons.Outlined.Add, stringResource(R.string.btn_add))
+            Icon(Icons.Outlined.Add, stringResource(R.string.action_add))
         }
     }
     if (showAdd) WorkTypeDialog(null, onDismiss = { showAdd = false }, onSave = { name, active ->
@@ -422,7 +427,7 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
                     Button(onClick = { vm.shareDateReport(date) { context.shareText(it) } }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Share, null)
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.btn_share_report))
+                        Text(stringResource(R.string.action_share_report))
                     }
                 }
                 1 -> {
@@ -432,7 +437,7 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
                     Button(onClick = { vm.shareWorkerReport(workerId, from, to) { context.shareText(it) } }, enabled = workerId != 0L, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Share, null)
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.btn_share_report))
+                        Text(stringResource(R.string.action_share_report))
                     }
                 }
                 2 -> {
@@ -440,54 +445,8 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
                     Button(onClick = { vm.shareObjectReport(objectId) { context.shareText(it) } }, enabled = objectId != 0L, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Share, null)
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.btn_share_report))
+                        Text(stringResource(R.string.action_share_report))
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AboutScreen(vm: AppViewModel, padding: PaddingValues) {
-    val settings by vm.settings.collectAsState()
-    val uriHandler = LocalUriHandler.current
-    LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item {
-            Text("WorkTrack", style = MaterialTheme.typography.headlineMedium)
-            Text(stringResource(id = com.example.worktrack.R.string.developer))
-            TextButton(onClick = { uriHandler.openUri("https://t.me/Slavafit") }) {
-                Text(stringResource(id = com.example.worktrack.R.string.developer_contacts))
-            }
-            Text(stringResource(id = com.example.worktrack.R.string.app_version, BuildConfig.VERSION_NAME))
-        }
-        item {
-            SectionTitle(stringResource(R.string.section_theme))
-            SingleChoiceSegmentedButtonRow {
-                ThemeMode.entries.forEachIndexed { index, mode ->
-                    SegmentedButton(
-                        selected = settings.themeMode == mode,
-                        onClick = { vm.setTheme(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
-                        label = { Text(when (mode) {
-                            ThemeMode.System -> stringResource(R.string.theme_system)
-                            ThemeMode.Light -> stringResource(R.string.theme_light)
-                            ThemeMode.Dark -> stringResource(R.string.theme_dark)
-                        }) }
-                    )
-                }
-            }
-        }
-        item {
-            SectionTitle(stringResource(R.string.section_language))
-            SingleChoiceSegmentedButtonRow {
-                LanguageMode.entries.forEachIndexed { index, lang ->
-                    SegmentedButton(
-                        selected = settings.language == lang,
-                        onClick = { vm.setLanguage(lang) },
-                        shape = SegmentedButtonDefaults.itemShape(index, LanguageMode.entries.size),
-                        label = { Text(lang.title()) }
-                    )
                 }
             }
         }
@@ -501,16 +460,16 @@ private fun CreateObjectDialog(onDismiss: () -> Unit, onSave: (String, String, S
     var phone by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dialog_new_object_title)) },
+        title = { Text(stringResource(R.string.dialog_new_object)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(address, { address = it }, label = { Text(stringResource(R.string.hint_address)) }, singleLine = true)
-                OutlinedTextField(client, { client = it }, label = { Text(stringResource(R.string.hint_client)) }, singleLine = true)
-                OutlinedTextField(phone, { phone = it }, label = { Text(stringResource(R.string.hint_phone)) }, singleLine = true)
+                OutlinedTextField(address, { address = it }, label = { Text(stringResource(R.string.label_address)) }, singleLine = true)
+                OutlinedTextField(client, { client = it }, label = { Text(stringResource(R.string.label_customer)) }, singleLine = true)
+                OutlinedTextField(phone, { phone = it }, label = { Text(stringResource(R.string.label_phone)) }, singleLine = true)
             }
         },
-        confirmButton = { Button(onClick = { onSave(address, client, phone) }, enabled = address.isNotBlank() && client.isNotBlank()) { Text(stringResource(R.string.btn_create)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) } }
+        confirmButton = { Button(onClick = { onSave(address, client, phone) }, enabled = address.isNotBlank() && client.isNotBlank()) { Text(stringResource(R.string.action_create)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -523,11 +482,11 @@ private fun CreateDayDialog(vm: AppViewModel, objectId: Long, onDismiss: () -> U
     var notes by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dialog_new_day_title)) },
+        title = { Text(stringResource(R.string.dialog_new_work_day)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 DateButton(stringResource(R.string.label_date), date) { date = it }
-                Text(stringResource(R.string.label_workers_list), fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.tab_workers), fontWeight = FontWeight.SemiBold)
                 workers.forEach { worker ->
                     FilterChip(
                         selected = worker.id in selected,
@@ -536,11 +495,11 @@ private fun CreateDayDialog(vm: AppViewModel, objectId: Long, onDismiss: () -> U
                         leadingIcon = if (worker.id in selected) ({ Icon(Icons.Outlined.Check, null) }) else null
                     )
                 }
-                OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.hint_notes)) })
+                OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
             }
         },
-        confirmButton = { Button(onClick = { vm.createDay(objectId, date, selected, notes, onCreated) }, enabled = selected.isNotEmpty()) { Text(stringResource(R.string.btn_create)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) } }
+        confirmButton = { Button(onClick = { vm.createDay(objectId, date, selected, notes, onCreated) }, enabled = selected.isNotEmpty()) { Text(stringResource(R.string.action_create)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -552,23 +511,23 @@ private fun AddEntryDialog(workers: List<Worker>, types: List<WorkType>, onDismi
     var notes by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dialog_work_entry_title)) },
+        title = { Text(stringResource(R.string.dialog_work_entry)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.label_worker), fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.report_tab_worker), fontWeight = FontWeight.SemiBold)
                 EntityChips(workers, workerId, { it.id }, { it.name }) { workerId = it }
                 Text(stringResource(R.string.label_work_type), fontWeight = FontWeight.SemiBold)
                 EntityChips(types, typeId, { it.id }, { it.name }) { typeId = it }
-                OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text(stringResource(R.string.hint_amount)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.hint_notes)) })
+                OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text(stringResource(R.string.label_amount)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
             }
         },
         confirmButton = {
             Button(onClick = { onSave(workerId, typeId, amount.toLongOrNull() ?: 0L, notes) }, enabled = workerId != 0L && typeId != 0L && (amount.toLongOrNull() ?: 0L) > 0) {
-                Text(stringResource(R.string.btn_add))
+                Text(stringResource(R.string.action_add))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -579,19 +538,19 @@ private fun WorkerDialog(worker: Worker?, onDismiss: () -> Unit, onSave: (String
     var active by remember { mutableStateOf(worker?.isActive ?: true) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (worker == null) stringResource(R.string.dialog_new_worker_title) else stringResource(R.string.dialog_worker_title)) },
+        title = { Text(stringResource(if (worker == null) R.string.dialog_new_worker else R.string.report_tab_worker)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.hint_name)) }, singleLine = true)
-                OutlinedTextField(phone, { phone = it }, label = { Text(stringResource(R.string.hint_phone)) }, singleLine = true)
+                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.label_name)) }, singleLine = true)
+                OutlinedTextField(phone, { phone = it }, label = { Text(stringResource(R.string.label_phone)) }, singleLine = true)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.label_active), modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.status_active), modifier = Modifier.weight(1f))
                     Switch(checked = active, onCheckedChange = { active = it })
                 }
             }
         },
-        confirmButton = { Button(onClick = { onSave(name, phone, active) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.btn_save)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) } }
+        confirmButton = { Button(onClick = { onSave(name, phone, active) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -601,18 +560,18 @@ private fun WorkTypeDialog(type: WorkType?, onDismiss: () -> Unit, onSave: (Stri
     var active by remember { mutableStateOf(type?.isActive ?: true) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (type == null) stringResource(R.string.dialog_new_work_type_title) else stringResource(R.string.dialog_work_type_title)) },
+        title = { Text(stringResource(if (type == null) R.string.dialog_new_work_type else R.string.label_work_type)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.hint_name)) }, singleLine = true)
+                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.label_name)) }, singleLine = true)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.label_active), modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.status_active), modifier = Modifier.weight(1f))
                     Switch(checked = active, onCheckedChange = { active = it })
                 }
             }
         },
-        confirmButton = { Button(onClick = { onSave(name, active) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.btn_save)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) } }
+        confirmButton = { Button(onClick = { onSave(name, active) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -622,8 +581,8 @@ private fun ConfirmDialog(title: String, message: String, onDismiss: () -> Unit,
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(message) },
-        confirmButton = { Button(onClick = onConfirm) { Text(stringResource(R.string.btn_yes)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) } }
+        confirmButton = { Button(onClick = onConfirm) { Text(stringResource(R.string.action_yes)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -642,57 +601,11 @@ private fun DateButton(label: String, value: Long, onChange: (Long) -> Unit) {
                 Button(onClick = {
                     state.selectedDateMillis?.let(onChange)
                     show = false
-                }) { Text(stringResource(R.string.btn_ok)) }
+                }) { Text(stringResource(R.string.action_ok)) }
             },
-            dismissButton = { TextButton(onClick = { show = false }) { Text(stringResource(R.string.btn_cancel)) } }
+            dismissButton = { TextButton(onClick = { show = false }) { Text(stringResource(R.string.action_cancel)) } }
         ) {
             DatePicker(state = state)
         }
     }
-}
-
-@Composable
-private fun <T> EntityChips(items: List<T>, selectedId: Long, idOf: (T) -> Long, titleOf: (T) -> String, onSelect: (Long) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        items.forEach { item ->
-            val id = idOf(item)
-            FilterChip(
-                selected = selectedId == id,
-                onClick = { onSelect(id) },
-                label = { Text(titleOf(item), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                leadingIcon = if (selectedId == id) ({ Icon(Icons.Outlined.Check, null) }) else null
-            )
-        }
-    }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-}
-
-@Composable
-private fun EmptyText(text: String) {
-    Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun LanguageMode.title(): String = when (this) {
-    LanguageMode.System -> stringResource(R.string.theme_system)
-    LanguageMode.RU -> "Русский"
-    LanguageMode.EN -> "English"
-    LanguageMode.ES -> "Español"
-}
-
-@Composable
-private fun Long.money(): String = stringResource(R.string.money_format, this.formatNumber())
-
-private fun android.content.Context.shareText(text: String) {
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_TEXT, text)
-    }
-    startActivity(Intent.createChooser(intent, "Share"))
 }
