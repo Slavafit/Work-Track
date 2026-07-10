@@ -1,10 +1,12 @@
 package com.example.worktrack
 
-import android.content.Intent
+import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
+import android.os.LocaleList
+import androidx.annotation.StringRes
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,9 +25,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Assessment
-import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Construction
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Info
@@ -47,15 +47,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
@@ -65,6 +61,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -75,13 +72,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.worktrack.data.LanguageMode
 import com.example.worktrack.data.ObjectSummary
@@ -89,6 +87,7 @@ import com.example.worktrack.data.ThemeMode
 import com.example.worktrack.data.WorkType
 import com.example.worktrack.data.Worker
 import com.example.worktrack.license.LicenseGate
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,15 +95,22 @@ class MainActivity : ComponentActivity() {
         setContent {
             val vm: AppViewModel = viewModel()
             val settings by vm.settings.collectAsState()
+            val localizedContext = LocalContext.current.withLanguage(settings.language)
+            val localizedConfiguration = localizedContext.resources.configuration
             val dark = when (settings.themeMode) {
                 ThemeMode.System -> androidx.compose.foundation.isSystemInDarkTheme()
                 ThemeMode.Light -> false
                 ThemeMode.Dark -> true
             }
-            MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
-                Surface(Modifier.fillMaxSize()) {
-                    LicenseGate {
-                        WorkTrackApp(vm)
+            CompositionLocalProvider(
+                LocalContext provides localizedContext,
+                LocalConfiguration provides localizedConfiguration
+            ) {
+                MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
+                    Surface(Modifier.fillMaxSize()) {
+                        LicenseGate {
+                            WorkTrackApp(vm)
+                        }
                     }
                 }
             }
@@ -112,12 +118,24 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class MainTab(val title: String, val icon: ImageVector) {
-    Objects("Объекты", Icons.Outlined.Work),
-    Workers("Работники", Icons.Outlined.People),
-    Types("Виды работ", Icons.Outlined.Construction),
-    Reports("Отчёты", Icons.Outlined.Assessment),
-    About("О приложении", Icons.Outlined.Info)
+private fun Context.withLanguage(language: LanguageMode): Context {
+    val locale = when (language) {
+        LanguageMode.System -> return this
+        LanguageMode.RU -> Locale("ru")
+        LanguageMode.EN -> Locale("en")
+        LanguageMode.ES -> Locale("es")
+    }
+    val config = Configuration(resources.configuration)
+    config.setLocales(LocaleList(locale))
+    return createConfigurationContext(config)
+}
+
+private enum class MainTab(@StringRes val titleRes: Int, @StringRes val navLabelRes: Int, val icon: ImageVector) {
+    Objects(R.string.tab_objects, R.string.nav_objects, Icons.Outlined.Work),
+    Workers(R.string.tab_workers, R.string.nav_workers, Icons.Outlined.People),
+    Types(R.string.tab_types, R.string.nav_types, Icons.Outlined.Construction),
+    Reports(R.string.tab_reports, R.string.nav_reports, Icons.Outlined.Assessment),
+    About(R.string.tab_about, R.string.nav_about, Icons.Outlined.Info)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -127,9 +145,9 @@ private fun WorkTrackApp(vm: AppViewModel) {
     var objectId by remember { mutableLongStateOf(0L) }
     var dayId by remember { mutableLongStateOf(0L) }
     val title = when {
-        dayId != 0L -> "Рабочий день"
-        objectId != 0L -> "Объект"
-        else -> tab.title
+        dayId != 0L -> stringResource(R.string.title_work_day)
+        objectId != 0L -> stringResource(R.string.title_object)
+        else -> stringResource(tab.titleRes)
     }
 
     Scaffold(
@@ -140,8 +158,16 @@ private fun WorkTrackApp(vm: AppViewModel) {
                     NavigationBarItem(
                         selected = tab == item,
                         onClick = { tab = item },
-                        icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title) }
+                        icon = { Icon(item.icon, contentDescription = stringResource(item.titleRes)) },
+                        label = {
+                            Text(
+                                text = stringResource(item.navLabelRes),
+                                maxLines = 1,
+                                softWrap = false,
+                                fontSize = 10.sp,
+                                overflow = TextOverflow.Clip
+                            )
+                        }
                     )
                 }
             }
@@ -167,17 +193,17 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             val active = objects.filterNot { it.isCompleted }
             val completed = objects.filter { it.isCompleted }
-            if (active.isEmpty() && completed.isEmpty()) item { EmptyText("Добавьте первый объект") }
+            if (active.isEmpty() && completed.isEmpty()) item { EmptyText(stringResource(R.string.empty_objects)) }
             items(active, key = { it.id }) { ObjectCard(it, onOpen) }
             if (completed.isNotEmpty()) {
-                item { SectionTitle("Завершённые") }
+                item { SectionTitle(stringResource(R.string.section_completed)) }
                 items(completed, key = { it.id }) { ObjectCard(it, onOpen) }
             }
         }
         ExtendedFloatingActionButton(
             onClick = { showCreate = true },
             icon = { Icon(Icons.Outlined.Add, null) },
-            text = { Text("Объект") },
+            text = { Text(stringResource(R.string.title_object)) },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         )
     }
@@ -197,10 +223,10 @@ private fun ObjectCard(item: ObjectSummary, onOpen: (Long) -> Unit) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(item.address, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 2)
-                if (item.isCompleted) Text("Завершён", color = MaterialTheme.colorScheme.primary)
+                if (item.isCompleted) Text(stringResource(R.string.status_completed), color = MaterialTheme.colorScheme.primary)
             }
-            Text("Заказчик: ${item.clientName}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("${item.totalAmount.money()} · дней: ${item.dayCount}", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.customer_format, item.clientName), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.object_total_days_format, item.totalAmount.money(), item.dayCount), fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -216,34 +242,34 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                OutlinedButton(onClick = onBack) { Text("Назад") }
+                OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Spacer(Modifier.height(12.dp))
                 Card(shape = RoundedCornerShape(8.dp)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(obj?.address.orEmpty(), style = MaterialTheme.typography.titleLarge)
-                        Text("Заказчик: ${obj?.clientName.orEmpty()}")
-                        Text("Итого: ${obj?.totalAmount?.money().orEmpty()}", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.customer_format, obj?.clientName.orEmpty()))
+                        Text(stringResource(R.string.total_format, obj?.totalAmount?.money().orEmpty()), fontWeight = FontWeight.SemiBold)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = { showCreateDay = true }, enabled = obj?.isCompleted != true) { Text("Добавить день") }
+                            Button(onClick = { showCreateDay = true }, enabled = obj?.isCompleted != true) { Text(stringResource(R.string.action_add_day)) }
                             OutlinedButton(onClick = { vm.shareObjectReport(objectId) { context.shareText(it) } }) {
                                 Icon(Icons.Outlined.Share, null)
                                 Spacer(Modifier.width(6.dp))
-                                Text("Отчёт")
+                                Text(stringResource(R.string.action_report))
                             }
                         }
                         if (obj?.isCompleted != true) {
-                            OutlinedButton(onClick = { confirmComplete = true }) { Text("Завершить объект") }
+                            OutlinedButton(onClick = { confirmComplete = true }) { Text(stringResource(R.string.action_complete_object)) }
                         }
                     }
                 }
             }
-            if (days.isEmpty()) item { EmptyText("Рабочие дни пока не добавлены") }
+            if (days.isEmpty()) item { EmptyText(stringResource(R.string.empty_work_days)) }
             items(days, key = { it.id }) { day ->
                 Card(onClick = { onOpenDay(day.id) }, shape = RoundedCornerShape(8.dp)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(day.date.formatDate(), style = MaterialTheme.typography.titleMedium)
-                        Text("Работников: ${day.workerCount} · записей: ${day.entryCount}")
-                        Text("Итого: ${day.totalAmount.money()}", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.day_counts_format, day.workerCount, day.entryCount))
+                        Text(stringResource(R.string.total_format, day.totalAmount.money()), fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -253,7 +279,7 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
         showCreateDay = false
         onOpenDay(id)
     })
-    if (confirmComplete) ConfirmDialog("Завершить объект?", "После завершения объект считается read-only.", onDismiss = { confirmComplete = false }) {
+    if (confirmComplete) ConfirmDialog(stringResource(R.string.confirm_complete_object_title), stringResource(R.string.confirm_complete_object_message), onDismiss = { confirmComplete = false }) {
         vm.completeObject(objectId)
         confirmComplete = false
     }
@@ -270,23 +296,23 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                OutlinedButton(onClick = onBack) { Text("Назад") }
+                OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Итог дня: ${entries.sumOf { it.amount }.money()}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    Button(onClick = { showEntry = true }, enabled = workerIds.isNotEmpty() && types.isNotEmpty()) { Text("Добавить") }
+                    Text(stringResource(R.string.day_total_format, entries.sumOf { it.amount }.money()), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    Button(onClick = { showEntry = true }, enabled = workerIds.isNotEmpty() && types.isNotEmpty()) { Text(stringResource(R.string.action_add)) }
                 }
             }
-            if (entries.isEmpty()) item { EmptyText("Добавьте выполненные работы") }
+            if (entries.isEmpty()) item { EmptyText(stringResource(R.string.empty_entries)) }
             items(entries, key = { it.id }) { entry ->
                 Card(shape = RoundedCornerShape(8.dp)) {
                     ListItem(
-                        headlineContent = { Text("${entry.workerName} · ${entry.workTypeName}") },
+                        headlineContent = { Text(stringResource(R.string.entry_title_format, entry.workerName, entry.workTypeName)) },
                         supportingContent = { Text(entry.notes.orEmpty()) },
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(entry.amount.money(), fontWeight = FontWeight.SemiBold)
-                                IconButton(onClick = { deleteId = entry.id }) { Icon(Icons.Outlined.Delete, "Удалить") }
+                                IconButton(onClick = { deleteId = entry.id }) { Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete)) }
                             }
                         }
                     )
@@ -303,7 +329,7 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             showEntry = false
         }
     )
-    if (deleteId != 0L) ConfirmDialog("Удалить запись?", "Действие нельзя отменить.", onDismiss = { deleteId = 0L }) {
+    if (deleteId != 0L) ConfirmDialog(stringResource(R.string.confirm_delete_entry_title), stringResource(R.string.confirm_delete_entry_message), onDismiss = { deleteId = 0L }) {
         vm.deleteEntry(deleteId)
         deleteId = 0L
     }
@@ -316,19 +342,19 @@ private fun WorkersScreen(vm: AppViewModel, padding: PaddingValues) {
     var showAdd by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (workers.isEmpty()) item { EmptyText("Добавьте работников") }
+            if (workers.isEmpty()) item { EmptyText(stringResource(R.string.empty_workers)) }
             items(workers, key = { it.id }) { worker ->
                 Card(onClick = { editing = worker }, shape = RoundedCornerShape(8.dp)) {
                     ListItem(
                         headlineContent = { Text(worker.name) },
                         supportingContent = { Text(worker.phone.orEmpty()) },
-                        trailingContent = { Text(if (worker.isActive) "Активен" else "Скрыт") }
+                        trailingContent = { Text(if (worker.isActive) stringResource(R.string.status_active) else stringResource(R.string.status_hidden)) }
                     )
                 }
             }
         }
         FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
-            Icon(Icons.Outlined.Add, "Добавить")
+            Icon(Icons.Outlined.Add, stringResource(R.string.action_add))
         }
     }
     if (showAdd) WorkerDialog(null, onDismiss = { showAdd = false }, onSave = { name, phone, active ->
@@ -350,18 +376,18 @@ private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues) {
     var showAdd by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (types.isEmpty()) item { EmptyText("Добавьте виды работ") }
+            if (types.isEmpty()) item { EmptyText(stringResource(R.string.empty_work_types)) }
             items(types, key = { it.id }) { type ->
                 Card(onClick = { editing = type }, shape = RoundedCornerShape(8.dp)) {
                     ListItem(
                         headlineContent = { Text(type.name) },
-                        trailingContent = { Text(if (type.isActive) "Активен" else "Скрыт") }
+                        trailingContent = { Text(if (type.isActive) stringResource(R.string.status_active) else stringResource(R.string.status_hidden)) }
                     )
                 }
             }
         }
         FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
-            Icon(Icons.Outlined.Add, "Добавить")
+            Icon(Icons.Outlined.Add, stringResource(R.string.action_add))
         }
     }
     if (showAdd) WorkTypeDialog(null, onDismiss = { showAdd = false }, onSave = { name, active ->
@@ -390,28 +416,28 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
 
     Column(Modifier.fillMaxSize().padding(padding)) {
         TabRow(selectedTabIndex = tab) {
-            listOf("Дата", "Работник", "Объект").forEachIndexed { index, title ->
+            listOf(stringResource(R.string.report_tab_date), stringResource(R.string.report_tab_worker), stringResource(R.string.report_tab_object)).forEachIndexed { index, title ->
                 Tab(selected = tab == index, onClick = { tab = index }, text = { Text(title) })
             }
         }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             when (tab) {
                 0 -> {
-                    DateButton("Дата", date) { date = it }
+                    DateButton(stringResource(R.string.label_date), date) { date = it }
                     Button(onClick = { vm.shareDateReport(date) { context.shareText(it) } }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Share, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Поделиться отчётом")
+                        Text(stringResource(R.string.action_share_report))
                     }
                 }
                 1 -> {
                     EntityChips(workers, workerId, { it.id }, { it.name }) { workerId = it }
-                    DateButton("С", from) { from = it }
-                    DateButton("По", to) { to = it }
+                    DateButton(stringResource(R.string.label_from), from) { from = it }
+                    DateButton(stringResource(R.string.label_to), to) { to = it }
                     Button(onClick = { vm.shareWorkerReport(workerId, from, to) { context.shareText(it) } }, enabled = workerId != 0L, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Share, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Поделиться отчётом")
+                        Text(stringResource(R.string.action_share_report))
                     }
                 }
                 2 -> {
@@ -419,55 +445,8 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
                     Button(onClick = { vm.shareObjectReport(objectId) { context.shareText(it) } }, enabled = objectId != 0L, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Share, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Поделиться отчётом")
+                        Text(stringResource(R.string.action_share_report))
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AboutScreen(vm: AppViewModel, padding: PaddingValues) {
-    val settings by vm.settings.collectAsState()
-    val context = LocalContext.current
-    val uriHandler = LocalUriHandler.current
-    LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item {
-            Text("WorkTrack", style = MaterialTheme.typography.headlineMedium)
-            Text(stringResource(id = com.example.worktrack.R.string.developer))
-            TextButton(onClick = { uriHandler.openUri("https://t.me/Slavafit") }) {
-                Text(stringResource(id = com.example.worktrack.R.string.developer_contacts))
-            }
-            Text(stringResource(id = com.example.worktrack.R.string.app_version, BuildConfig.VERSION_NAME))
-        }
-        item {
-            SectionTitle("Тема")
-            SingleChoiceSegmentedButtonRow {
-                ThemeMode.entries.forEachIndexed { index, mode ->
-                    SegmentedButton(
-                        selected = settings.themeMode == mode,
-                        onClick = { vm.setTheme(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
-                        label = { Text(when (mode) {
-                            ThemeMode.System -> "Системная"
-                            ThemeMode.Light -> "Светлая"
-                            ThemeMode.Dark -> "Тёмная"
-                        }) }
-                    )
-                }
-            }
-        }
-        item {
-            SectionTitle("Язык")
-            SingleChoiceSegmentedButtonRow {
-                LanguageMode.entries.forEachIndexed { index, lang ->
-                    SegmentedButton(
-                        selected = settings.language == lang,
-                        onClick = { vm.setLanguage(lang) },
-                        shape = SegmentedButtonDefaults.itemShape(index, LanguageMode.entries.size),
-                        label = { Text(lang.title()) }
-                    )
                 }
             }
         }
@@ -481,16 +460,16 @@ private fun CreateObjectDialog(onDismiss: () -> Unit, onSave: (String, String, S
     var phone by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Новый объект") },
+        title = { Text(stringResource(R.string.dialog_new_object)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(address, { address = it }, label = { Text("Адрес") }, singleLine = true)
-                OutlinedTextField(client, { client = it }, label = { Text("Заказчик") }, singleLine = true)
-                OutlinedTextField(phone, { phone = it }, label = { Text("Телефон") }, singleLine = true)
+                OutlinedTextField(address, { address = it }, label = { Text(stringResource(R.string.label_address)) }, singleLine = true)
+                OutlinedTextField(client, { client = it }, label = { Text(stringResource(R.string.label_customer)) }, singleLine = true)
+                OutlinedTextField(phone, { phone = it }, label = { Text(stringResource(R.string.label_phone)) }, singleLine = true)
             }
         },
-        confirmButton = { Button(onClick = { onSave(address, client, phone) }, enabled = address.isNotBlank() && client.isNotBlank()) { Text("Создать") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        confirmButton = { Button(onClick = { onSave(address, client, phone) }, enabled = address.isNotBlank() && client.isNotBlank()) { Text(stringResource(R.string.action_create)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -503,11 +482,11 @@ private fun CreateDayDialog(vm: AppViewModel, objectId: Long, onDismiss: () -> U
     var notes by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Новый рабочий день") },
+        title = { Text(stringResource(R.string.dialog_new_work_day)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                DateButton("Дата", date) { date = it }
-                Text("Работники", fontWeight = FontWeight.SemiBold)
+                DateButton(stringResource(R.string.label_date), date) { date = it }
+                Text(stringResource(R.string.tab_workers), fontWeight = FontWeight.SemiBold)
                 workers.forEach { worker ->
                     FilterChip(
                         selected = worker.id in selected,
@@ -516,11 +495,11 @@ private fun CreateDayDialog(vm: AppViewModel, objectId: Long, onDismiss: () -> U
                         leadingIcon = if (worker.id in selected) ({ Icon(Icons.Outlined.Check, null) }) else null
                     )
                 }
-                OutlinedTextField(notes, { notes = it }, label = { Text("Заметки") })
+                OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
             }
         },
-        confirmButton = { Button(onClick = { vm.createDay(objectId, date, selected, notes, onCreated) }, enabled = selected.isNotEmpty()) { Text("Создать") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        confirmButton = { Button(onClick = { vm.createDay(objectId, date, selected, notes, onCreated) }, enabled = selected.isNotEmpty()) { Text(stringResource(R.string.action_create)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -532,23 +511,23 @@ private fun AddEntryDialog(workers: List<Worker>, types: List<WorkType>, onDismi
     var notes by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Запись работы") },
+        title = { Text(stringResource(R.string.dialog_work_entry)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Работник", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.report_tab_worker), fontWeight = FontWeight.SemiBold)
                 EntityChips(workers, workerId, { it.id }, { it.name }) { workerId = it }
-                Text("Вид работы", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.label_work_type), fontWeight = FontWeight.SemiBold)
                 EntityChips(types, typeId, { it.id }, { it.name }) { typeId = it }
-                OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text("Сумма") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                OutlinedTextField(notes, { notes = it }, label = { Text("Заметки") })
+                OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text(stringResource(R.string.label_amount)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
             }
         },
         confirmButton = {
             Button(onClick = { onSave(workerId, typeId, amount.toLongOrNull() ?: 0L, notes) }, enabled = workerId != 0L && typeId != 0L && (amount.toLongOrNull() ?: 0L) > 0) {
-                Text("Добавить")
+                Text(stringResource(R.string.action_add))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -559,19 +538,19 @@ private fun WorkerDialog(worker: Worker?, onDismiss: () -> Unit, onSave: (String
     var active by remember { mutableStateOf(worker?.isActive ?: true) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (worker == null) "Новый работник" else "Работник") },
+        title = { Text(stringResource(if (worker == null) R.string.dialog_new_worker else R.string.report_tab_worker)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Имя") }, singleLine = true)
-                OutlinedTextField(phone, { phone = it }, label = { Text("Телефон") }, singleLine = true)
+                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.label_name)) }, singleLine = true)
+                OutlinedTextField(phone, { phone = it }, label = { Text(stringResource(R.string.label_phone)) }, singleLine = true)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Активен", modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.status_active), modifier = Modifier.weight(1f))
                     Switch(checked = active, onCheckedChange = { active = it })
                 }
             }
         },
-        confirmButton = { Button(onClick = { onSave(name, phone, active) }, enabled = name.isNotBlank()) { Text("Сохранить") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        confirmButton = { Button(onClick = { onSave(name, phone, active) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -581,18 +560,18 @@ private fun WorkTypeDialog(type: WorkType?, onDismiss: () -> Unit, onSave: (Stri
     var active by remember { mutableStateOf(type?.isActive ?: true) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (type == null) "Новый вид работ" else "Вид работ") },
+        title = { Text(stringResource(if (type == null) R.string.dialog_new_work_type else R.string.label_work_type)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Название") }, singleLine = true)
+                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.label_name)) }, singleLine = true)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Активен", modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.status_active), modifier = Modifier.weight(1f))
                     Switch(checked = active, onCheckedChange = { active = it })
                 }
             }
         },
-        confirmButton = { Button(onClick = { onSave(name, active) }, enabled = name.isNotBlank()) { Text("Сохранить") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        confirmButton = { Button(onClick = { onSave(name, active) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -602,8 +581,8 @@ private fun ConfirmDialog(title: String, message: String, onDismiss: () -> Unit,
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(message) },
-        confirmButton = { Button(onClick = onConfirm) { Text("Да") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        confirmButton = { Button(onClick = onConfirm) { Text(stringResource(R.string.action_yes)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -622,53 +601,11 @@ private fun DateButton(label: String, value: Long, onChange: (Long) -> Unit) {
                 Button(onClick = {
                     state.selectedDateMillis?.let(onChange)
                     show = false
-                }) { Text("ОК") }
+                }) { Text(stringResource(R.string.action_ok)) }
             },
-            dismissButton = { TextButton(onClick = { show = false }) { Text("Отмена") } }
+            dismissButton = { TextButton(onClick = { show = false }) { Text(stringResource(R.string.action_cancel)) } }
         ) {
             DatePicker(state = state)
         }
     }
-}
-
-@Composable
-private fun <T> EntityChips(items: List<T>, selectedId: Long, idOf: (T) -> Long, titleOf: (T) -> String, onSelect: (Long) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        items.forEach { item ->
-            val id = idOf(item)
-            FilterChip(
-                selected = selectedId == id,
-                onClick = { onSelect(id) },
-                label = { Text(titleOf(item), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                leadingIcon = if (selectedId == id) ({ Icon(Icons.Outlined.Check, null) }) else null
-            )
-        }
-    }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-}
-
-@Composable
-private fun EmptyText(text: String) {
-    Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-private fun LanguageMode.title(): String = when (this) {
-    LanguageMode.System -> "Система"
-    LanguageMode.RU -> "Русский"
-    LanguageMode.EN -> "English"
-    LanguageMode.ES -> "Español"
-}
-
-private fun android.content.Context.shareText(text: String) {
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_TEXT, text)
-    }
-    startActivity(Intent.createChooser(intent, "Поделиться"))
 }

@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -56,12 +57,12 @@ private fun PendingScreen(message: String, viewModel: LicenseViewModel) {
     ) {
         Icon(Icons.Outlined.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(16.dp))
-        Text("Заявка отправлена", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+        Text(stringResource(com.example.worktrack.R.string.license_pending_title), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
         Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = viewModel::checkLicense, modifier = Modifier.fillMaxWidth()) {
-            Text("Проверить снова")
+            Text(stringResource(com.example.worktrack.R.string.action_check_again))
         }
     }
 }
@@ -71,12 +72,12 @@ private fun ActivationScreen(viewModel: LicenseViewModel) {
     var email by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(false) }
     LicenseForm(
-        title = "WorkTrack",
-        message = "Введите email для начала работы. Пробный доступ действует 3 дня.",
+        title = stringResource(com.example.worktrack.R.string.app_name),
+        message = stringResource(com.example.worktrack.R.string.license_activation_message),
         email = email,
         error = error,
         onEmailChange = { email = it; error = false },
-        button = "Начать пробный период",
+        button = stringResource(com.example.worktrack.R.string.license_start_trial),
         onSubmit = {
             if (email.isValidEmail()) viewModel.activate(email.trim()) else error = true
         }
@@ -85,13 +86,13 @@ private fun ActivationScreen(viewModel: LicenseViewModel) {
 
 @Composable
 private fun InvalidScreen(reason: String, viewModel: LicenseViewModel) {
-    val title = if (reason == "trial_expired") "Пробный период завершён" else "Нет доступа"
+    val title = stringResource(if (reason == "trial_expired") com.example.worktrack.R.string.license_trial_expired_title else com.example.worktrack.R.string.license_no_access_title)
     val message = when (reason) {
-        "trial_expired" -> "Запросите полную лицензию у разработчика."
-        "revoked" -> "Лицензия отозвана. Обратитесь к разработчику."
-        "expired" -> "Срок лицензии истёк. Обратитесь к разработчику."
-        "device_mismatch" -> "Лицензия привязана к другому устройству."
-        else -> "Лицензия недействительна. Обратитесь к разработчику."
+        "trial_expired" -> stringResource(com.example.worktrack.R.string.license_trial_expired_message)
+        "revoked" -> stringResource(com.example.worktrack.R.string.license_revoked_message)
+        "expired" -> stringResource(com.example.worktrack.R.string.license_expired_message)
+        "device_mismatch" -> stringResource(com.example.worktrack.R.string.license_device_mismatch_message)
+        else -> stringResource(com.example.worktrack.R.string.license_invalid_message)
     }
     Column(
         Modifier.fillMaxSize().padding(32.dp),
@@ -105,7 +106,7 @@ private fun InvalidScreen(reason: String, viewModel: LicenseViewModel) {
         Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = viewModel::checkLicense, modifier = Modifier.fillMaxWidth()) {
-            Text("Проверить снова")
+            Text(stringResource(com.example.worktrack.R.string.action_check_again))
         }
     }
 }
@@ -117,12 +118,12 @@ private fun ErrorScreen(message: String, viewModel: LicenseViewModel) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Ошибка подключения", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+        Text(stringResource(com.example.worktrack.R.string.connection_error_title), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
         Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = viewModel::checkLicense, modifier = Modifier.fillMaxWidth()) {
-            Text("Повторить")
+            Text(stringResource(com.example.worktrack.R.string.action_retry))
         }
     }
 }
@@ -149,9 +150,9 @@ private fun LicenseForm(
         OutlinedTextField(
             value = email,
             onValueChange = onEmailChange,
-            label = { Text("Email") },
+            label = { Text(stringResource(com.example.worktrack.R.string.label_email)) },
             isError = error,
-            supportingText = if (error) ({ Text("Введите корректный email") }) else null,
+            supportingText = if (error) ({ Text(stringResource(com.example.worktrack.R.string.email_error)) }) else null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()

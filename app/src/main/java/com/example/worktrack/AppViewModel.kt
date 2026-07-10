@@ -1,6 +1,9 @@
 package com.example.worktrack
 
 import android.app.Application
+import android.content.Context
+import android.content.res.Configuration
+import android.os.LocaleList
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.worktrack.data.AppSettings
@@ -69,16 +72,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { settingsStore.setTheme(mode) }
     fun setLanguage(language: LanguageMode) = viewModelScope.launch { settingsStore.setLanguage(language) }
 
+    private fun text(id: Int, vararg args: Any): String =
+        getApplication<Application>().localized(settings.value.language).getString(id, *args)
+
     fun shareObjectReport(objectId: Long, share: (String) -> Unit) = viewModelScope.launch {
         val objectInfo = repo.objectById(objectId)
         val client = objectInfo?.let { repo.clientById(it.clientId) }
         val rows = repo.reportByObject(objectId)
         val total = rows.sumOf { it.amount }
         share(buildString {
-            appendLine("Отчёт по объекту")
-            appendLine("Адрес: ${objectInfo?.address.orEmpty()}")
-            appendLine("Заказчик: ${client?.name.orEmpty()}")
-            appendLine("Итого: ${total.money()}")
+            appendLine(text(R.string.report_object_title))
+            appendLine(text(R.string.report_address_format, objectInfo?.address.orEmpty()))
+            appendLine(text(R.string.report_customer_format, client?.name.orEmpty()))
+            appendLine(text(R.string.report_total_format, total.money()))
             appendLine()
             rows.groupBy { it.date }.forEach { (date, items) ->
                 appendLine(date.formatDate())
@@ -90,8 +96,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun shareDateReport(date: Long, share: (String) -> Unit) = viewModelScope.launch {
         val rows = repo.reportByDate(date.startOfDay(), date.endOfDay())
         share(buildString {
-            appendLine("Отчёт за ${date.formatDate()}")
-            appendLine("Итого: ${rows.sumOf { it.amount }.money()}")
+            appendLine(text(R.string.report_date_title_format, date.formatDate()))
+            appendLine(text(R.string.report_total_format, rows.sumOf { it.amount }.money()))
             appendLine()
             rows.groupBy { it.objectAddress }.forEach { (objectAddress, items) ->
                 appendLine(objectAddress)
@@ -104,9 +110,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val worker = workers.value.firstOrNull { it.id == workerId }
         val rows = repo.reportByWorker(workerId, from.startOfDay(), to.endOfDay())
         share(buildString {
-            appendLine("Отчёт по работнику: ${worker?.name.orEmpty()}")
-            appendLine("Период: ${from.formatDate()} - ${to.formatDate()}")
-            appendLine("Итого: ${rows.sumOf { it.amount }.money()}")
+            appendLine(text(R.string.report_worker_title_format, worker?.name.orEmpty()))
+            appendLine(text(R.string.report_period_format, from.formatDate(), to.formatDate()))
+            appendLine(text(R.string.report_total_format, rows.sumOf { it.amount }.money()))
             appendLine()
             rows.groupBy { it.date }.forEach { (date, items) ->
                 appendLine(date.formatDate())
@@ -114,6 +120,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             }
         })
     }
+}
+
+private fun Context.localized(language: LanguageMode): Context {
+    val locale = when (language) {
+        LanguageMode.System -> return this
+        LanguageMode.RU -> Locale("ru")
+        LanguageMode.EN -> Locale("en")
+        LanguageMode.ES -> Locale("es")
+    }
+    val config = Configuration(resources.configuration)
+    config.setLocales(LocaleList(locale))
+    return createConfigurationContext(config)
 }
 
 fun Long.formatDate(): String = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(this))
