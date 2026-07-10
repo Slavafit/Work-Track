@@ -3,4 +3,95 @@
     <string name="developer">Desarrollador: Slavafit</string>
     <string name="developer_contacts">Telegram: @Slavafit</string>
     <string name="app_version">Versión: %1$s</string>
+
+    <string name="tab_objects">Objetos</string>
+    <string name="tab_workers">Trabajadores</string>
+    <string name="tab_types">Tipos de trabajo</string>
+    <string name="tab_reports">Informes</string>
+    <string name="tab_about">Acerca de</string>
+
+    <string name="title_work_day">Día de trabajo</string>
+    <string name="title_object">Objeto</string>
+
+    <string name="btn_add_object">Objeto</string>
+    <string name="empty_objects">Añade tu primer objeto</string>
+    <string name="section_completed">Completado</string>
+    <string name="status_completed">Completado</string>
+    <string name="label_client">Cliente: %1$s</string>
+    <string name="label_days">días: %1$d</string>
+
+    <string name="btn_back">Volver</string>
+    <string name="btn_add_day">Añadir día</string>
+    <string name="btn_report">Informe</string>
+    <string name="btn_complete_object">Completar objeto</string>
+    <string name="empty_days">No se han añadido días de trabajo</string>
+    <string name="label_workers_count">Trabajadores: %1$d</string>
+    <string name="label_entries_count">entradas: %1$d</string>
+    <string name="label_total">Total: %1$s</string>
+
+    <string name="label_day_total">Total del día: %1$s</string>
+    <string name="btn_add">Añadir</string>
+    <string name="empty_work_entries">Añadir trabajos completados</string>
+    <string name="btn_delete">Eliminar</string>
+
+    <string name="empty_workers">Añadir trabajadores</string>
+    <string name="status_active">Activo</string>
+    <string name="status_hidden">Oculto</string>
+
+    <string name="empty_work_types">Añadir tipos de trabajo</string>
+
+    <string name="report_tab_date">Fecha</string>
+    <string name="report_tab_worker">Trabajador</string>
+    <string name="report_tab_object">Objeto</string>
+    <string name="label_date">Fecha</string>
+    <string name="label_from">Desde</string>
+    <string name="label_to">Hasta</string>
+    <string name="btn_share_report">Compartir informe</string>
+
+    <string name="section_theme">Tema</string>
+    <string name="theme_system">Sistema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="section_language">Idioma</string>
+
+    <string name="dialog_new_object_title">Nuevo objeto</string>
+    <string name="hint_address">Dirección</string>
+    <string name="hint_client">Cliente</string>
+    <string name="hint_phone">Teléfono</string>
+    <string name="btn_create">Crear</string>
+    <string name="btn_cancel">Cancelar</string>
+
+    <string name="dialog_new_day_title">Nuevo día de trabajo</string>
+    <string name="label_workers_list">Trabajadores</string>
+    <string name="hint_notes">Notas</string>
+
+    <string name="dialog_work_entry_title">Entrada de trabajo</string>
+    <string name="label_worker">Trabajador</string>
+    <string name="label_work_type">Tipo de trabajo</string>
+    <string name="hint_amount">Cantidad</string>
+
+    <string name="dialog_new_worker_title">Nuevo trabajador</string>
+    <string name="dialog_worker_title">Trabajador</string>
+    <string name="hint_name">Nombre</string>
+    <string name="label_active">Activo</string>
+    <string name="btn_save">Guardar</string>
+
+    <string name="dialog_new_work_type_title">Nuevo tipo de trabajo</string>
+    <string name="dialog_work_type_title">Tipo de trabajo</string>
+
+    <string name="dialog_complete_title">¿Completar objeto?</string>
+    <string name="dialog_complete_msg">Después de completar, el objeto es de solo lectura.</string>
+    <string name="dialog_delete_title">¿Eliminar entrada?</string>
+    <string name="dialog_delete_msg">Esta acción no se puede deshacer.</string>
+    <string name="btn_yes">Sí</string>
+    <string name="btn_ok">OK</string>
+
+    <string name="report_object_header">Informe de objeto</string>
+    <string name="report_date_header">Informe de %1$s</string>
+    <string name="report_worker_header">Informe de trabajador: %1$s</string>
+    <string name="report_address">Dirección: %1$s</string>
+    <string name="report_client">Cliente: %1$s</string>
+    <string name="report_period">Periodo: %1$s - %2$s</string>
+
+    <string name="money_format">%1$s €</string>
 </resources>

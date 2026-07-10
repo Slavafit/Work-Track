@@ -3,4 +3,97 @@
     <string name="developer">Разработчик: Slavafit</string>
     <string name="developer_contacts">Telegram: @Slavafit</string>
     <string name="app_version">Версия: %1$s</string>
+
+    <string name="tab_objects">Объекты</string>
+    <string name="tab_workers">Работники</string>
+    <string name="tab_types">Виды работ</string>
+    <string name="tab_reports">Отчёты</string>
+    <string name="tab_about">О приложении</string>
+
+    <string name="title_work_day">Рабочий день</string>
+    <string name="title_object">Объект</string>
+
+    <string name="btn_add_object">Объект</string>
+    <string name="empty_objects">Добавьте первый объект</string>
+    <string name="section_completed">Завершённые</string>
+    <string name="status_completed">Завершён</string>
+    <string name="label_client">Заказчик: %1$s</string>
+    <string name="label_days">дней: %1$d</string>
+
+    <string name="btn_back">Назад</string>
+    <string name="btn_add_day">Добавить день</string>
+    <string name="btn_report">Отчёт</string>
+    <string name="btn_complete_object">Завершить объект</string>
+    <string name="empty_days">Рабочие дни пока не добавлены</string>
+
+    <string name="label_workers_count">Работников: %1$d</string>
+    <string name="label_entries_count">записей: %1$d</string>
+    <string name="label_total">Итого: %1$s</string>
+
+    <string name="label_day_total">Итог дня: %1$s</string>
+    <string name="btn_add">Добавить</string>
+    <string name="empty_work_entries">Добавьте выполненные работы</string>
+    <string name="btn_delete">Удалить</string>
+
+    <string name="empty_workers">Добавьте работников</string>
+    <string name="status_active">Активен</string>
+    <string name="status_hidden">Скрыт</string>
+
+    <string name="empty_work_types">Добавьте виды работ</string>
+
+    <string name="report_tab_date">Дата</string>
+    <string name="report_tab_worker">Работник</string>
+    <string name="report_tab_object">Объект</string>
+    <string name="label_date">Дата</string>
+    <string name="label_from">С</string>
+    <string name="label_to">По</string>
+    <string name="btn_share_report">Поделиться отчётом</string>
+
+    <string name="section_theme">Тема</string>
+    <string name="theme_system">Системная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="section_language">Язык</string>
+    <string name="language_system">Системный</string>
+
+    <string name="dialog_new_object_title">Новый объект</string>
+    <string name="hint_address">Адрес</string>
+    <string name="hint_client">Заказчик</string>
+    <string name="hint_phone">Телефон</string>
+    <string name="btn_create">Создать</string>
+    <string name="btn_cancel">Отмена</string>
+
+    <string name="dialog_new_day_title">Новый рабочий день</string>
+    <string name="label_workers_list">Работники</string>
+    <string name="hint_notes">Заметки</string>
+
+    <string name="dialog_work_entry_title">Запись работы</string>
+    <string name="label_worker">Работник</string>
+    <string name="label_work_type">Вид работы</string>
+    <string name="hint_amount">Сумма</string>
+
+    <string name="dialog_new_worker_title">Новый работник</string>
+    <string name="dialog_worker_title">Работник</string>
+    <string name="hint_name">Имя</string>
+    <string name="label_active">Активен</string>
+    <string name="btn_save">Сохранить</string>
+
+    <string name="dialog_new_work_type_title">Новый вид работ</string>
+    <string name="dialog_work_type_title">Вид работ</string>
+
+    <string name="dialog_complete_title">Завершить объект?</string>
+    <string name="dialog_complete_msg">После завершения объект считается read-only.</string>
+    <string name="dialog_delete_title">Удалить запись?</string>
+    <string name="dialog_delete_msg">Действие нельзя отменить.</string>
+    <string name="btn_yes">Да</string>
+    <string name="btn_ok">ОК</string>
+
+    <string name="report_object_header">Отчёт по объекту</string>
+    <string name="report_date_header">Отчёт за %1$s</string>
+    <string name="report_worker_header">Отчёт по работнику: %1$s</string>
+    <string name="report_address">Адрес: %1$s</string>
+    <string name="report_client">Заказчик: %1$s</string>
+    <string name="report_period">Период: %1$s - %2$s</string>
+
+    <string name="money_format">%1$s ₽</string>
 </resources>
