@@ -45,6 +45,8 @@
     <string name="action_share">Share</string>
     <string name="action_check_again">Check again</string>
     <string name="action_retry">Retry</string>
+    <string name="action_pick_contact">Pick from contacts</string>
+    <string name="action_select">Select</string>
     <string name="confirm_complete_object_title">Complete object?</string>
     <string name="confirm_complete_object_message">After completion, the object becomes read-only.</string>
     <string name="confirm_delete_entry_title">Delete entry?</string>
@@ -63,6 +65,8 @@
     <string name="label_amount">Amount</string>
     <string name="label_name">Name</string>
     <string name="label_email">Email</string>
+    <string name="label_search">Search</string>
+    <string name="empty_search_results">No results found</string>
     <string name="dialog_new_object">New object</string>
     <string name="dialog_new_work_day">New work day</string>
     <string name="dialog_work_entry">Work entry</string>
@@ -102,8 +106,10 @@
     <string name="license_expired_message">The license has expired. Contact the developer.</string>
     <string name="license_device_mismatch_message">The license is linked to another device.</string>
     <string name="license_invalid_message">The license is invalid. Contact the developer.</string>
-    <string name="connection_error_title">Connection error</string>
+    <string name="connection_error_title">Could not verify the license</string>
+    <string name="connection_error_message">Check your internet connection or try again later: the license server is unavailable.</string>
     <string name="email_error">Enter a valid email</string>
+    <string name="phone_error">Phone number must contain 9 to 12 digits.</string>
     <string name="report_object_title">Object report</string>
     <string name="report_address_format">Address: %1$s</string>
     <string name="report_customer_format">Customer: %1$s</string>

@@ -45,6 +45,8 @@
     <string name="action_share">Compartir</string>
     <string name="action_check_again">Comprobar de nuevo</string>
     <string name="action_retry">Reintentar</string>
+    <string name="action_pick_contact">Elegir de contactos</string>
+    <string name="action_select">Elegir</string>
     <string name="confirm_complete_object_title">¿Completar objeto?</string>
     <string name="confirm_complete_object_message">Después de completarlo, el objeto será de solo lectura.</string>
     <string name="confirm_delete_entry_title">¿Eliminar entrada?</string>
@@ -63,6 +65,8 @@
     <string name="label_amount">Importe</string>
     <string name="label_name">Nombre</string>
     <string name="label_email">Email</string>
+    <string name="label_search">Buscar</string>
+    <string name="empty_search_results">No se encontraron resultados</string>
     <string name="dialog_new_object">Nuevo objeto</string>
     <string name="dialog_new_work_day">Nuevo día de trabajo</string>
     <string name="dialog_work_entry">Entrada de trabajo</string>
@@ -102,8 +106,10 @@
     <string name="license_expired_message">La licencia ha caducado. Contacta con el desarrollador.</string>
     <string name="license_device_mismatch_message">La licencia está vinculada a otro dispositivo.</string>
     <string name="license_invalid_message">La licencia no es válida. Contacta con el desarrollador.</string>
-    <string name="connection_error_title">Error de conexión</string>
+    <string name="connection_error_title">No se pudo verificar la licencia</string>
+    <string name="connection_error_message">Comprueba tu conexión o inténtalo más tarde: el servidor de licencias no está disponible.</string>
     <string name="email_error">Introduce un email válido</string>
+    <string name="phone_error">El teléfono debe contener entre 9 y 12 dígitos.</string>
     <string name="report_object_title">Informe del objeto</string>
     <string name="report_address_format">Dirección: %1$s</string>
     <string name="report_customer_format">Cliente: %1$s</string>

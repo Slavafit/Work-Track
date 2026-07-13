@@ -99,8 +99,8 @@ object LicenseManager {
     suspend fun savedEmail(context: Context): String? =
         context.licenseDataStore.data.first()[KEY_EMAIL]?.takeIf { it.isNotBlank() }
 
-    private fun getDeviceId(context: Context): String =
-        Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
+    fun getDeviceId(context: Context): String =
+        Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
 
     private fun localCheck(status: String, expiresAt: Long): VerifyResult {
         val nowSec = System.currentTimeMillis() / 1000

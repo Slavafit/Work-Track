@@ -120,7 +120,7 @@ private fun ErrorScreen(message: String, viewModel: LicenseViewModel) {
     ) {
         Text(stringResource(com.example.worktrack.R.string.connection_error_title), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
-        Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(com.example.worktrack.R.string.connection_error_message), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = viewModel::checkLicense, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(com.example.worktrack.R.string.action_retry))

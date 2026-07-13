@@ -465,10 +465,10 @@ private fun CreateObjectDialog(onDismiss: () -> Unit, onSave: (String, String, S
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(address, { address = it }, label = { Text(stringResource(R.string.label_address)) }, singleLine = true)
                 OutlinedTextField(client, { client = it }, label = { Text(stringResource(R.string.label_customer)) }, singleLine = true)
-                OutlinedTextField(phone, { phone = it }, label = { Text(stringResource(R.string.label_phone)) }, singleLine = true)
+                PhoneField(phone, { phone = it })
             }
         },
-        confirmButton = { Button(onClick = { onSave(address, client, phone) }, enabled = address.isNotBlank() && client.isNotBlank()) { Text(stringResource(R.string.action_create)) } },
+        confirmButton = { Button(onClick = { onSave(address, client, phone) }, enabled = address.isNotBlank() && client.isNotBlank() && phone.isValidPhoneOrBlank()) { Text(stringResource(R.string.action_create)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
@@ -514,10 +514,22 @@ private fun AddEntryDialog(workers: List<Worker>, types: List<WorkType>, onDismi
         title = { Text(stringResource(R.string.dialog_work_entry)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.report_tab_worker), fontWeight = FontWeight.SemiBold)
-                EntityChips(workers, workerId, { it.id }, { it.name }) { workerId = it }
-                Text(stringResource(R.string.label_work_type), fontWeight = FontWeight.SemiBold)
-                EntityChips(types, typeId, { it.id }, { it.name }) { typeId = it }
+                EntityPickerField(
+                    label = stringResource(R.string.report_tab_worker),
+                    items = workers,
+                    selectedId = workerId,
+                    idOf = { it.id },
+                    titleOf = { it.name },
+                    onSelect = { workerId = it }
+                )
+                EntityPickerField(
+                    label = stringResource(R.string.label_work_type),
+                    items = types,
+                    selectedId = typeId,
+                    idOf = { it.id },
+                    titleOf = { it.name },
+                    onSelect = { typeId = it }
+                )
                 OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text(stringResource(R.string.label_amount)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
             }
@@ -542,14 +554,21 @@ private fun WorkerDialog(worker: Worker?, onDismiss: () -> Unit, onSave: (String
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.label_name)) }, singleLine = true)
-                OutlinedTextField(phone, { phone = it }, label = { Text(stringResource(R.string.label_phone)) }, singleLine = true)
+                PhoneField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    onContactPicked = { contactName, contactPhone ->
+                        if (contactName.isNotBlank()) name = contactName
+                        phone = contactPhone
+                    }
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.status_active), modifier = Modifier.weight(1f))
                     Switch(checked = active, onCheckedChange = { active = it })
                 }
             }
         },
-        confirmButton = { Button(onClick = { onSave(name, phone, active) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
+        confirmButton = { Button(onClick = { onSave(name, phone, active) }, enabled = name.isNotBlank() && phone.isValidPhoneOrBlank()) { Text(stringResource(R.string.action_save)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }

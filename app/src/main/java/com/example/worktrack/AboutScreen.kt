@@ -133,7 +133,7 @@ private fun LicenseState.detail(): String = when (this) {
     is LicenseState.Pending -> stringResource(R.string.license_pending_detail)
     is LicenseState.NeedActivation -> stringResource(R.string.license_need_activation_detail)
     is LicenseState.Invalid -> stringResource(R.string.license_invalid_detail)
-    is LicenseState.Error -> message
+    is LicenseState.Error -> stringResource(R.string.connection_error_message)
     is LicenseState.Loading -> stringResource(R.string.license_checking_detail)
 }
 
