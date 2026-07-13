@@ -1,22 +1,10 @@
-WorkTrack: license module notes
+    ANDROID_ID при переустановке не меняется — он привязан к устройству, а не к приложению.
+В LicenseManager.kt должно быть:
+fun getDeviceId(context: Context): String =
+    Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
 
-1. Active app files live in:
-   app/src/main/java/com/example/worktrack/license/
-
-2. Current license endpoint:
-   https://license-server.slavafit.workers.dev
-
-3. Current app id:
-   worktrack
-
-4. Android requirements:
-   - INTERNET permission in AndroidManifest.xml
-   - androidx.datastore:datastore-preferences dependency
-
-5. Activation flow:
-   - user enters email
-   - app sends email, device_id, app_id to /activate
-   - server may return active, trial, pending, or error
-   - pending is shown as a normal status, not as a connection error
-
-6. Do not keep duplicate license Kotlin files in the project root.
+    нужно заменить запись ошибка соединения, на более понятную инфо.
+    для телефона допустимо вводить только цифры, минииум 9 макс 12
+    возможность брать телефон и контакт из книни контактов устройства.
+   убрать цикл при выботе работ, выбор работ сделать более удрбно для использования,
+   если список работы будет очень длинный, как сейчес не удобно
