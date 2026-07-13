@@ -160,16 +160,16 @@ fun PhoneField(
                 val nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
                 val phoneIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
                 val contactName = if (nameIndex >= 0) cursor.getString(nameIndex).orEmpty() else ""
-                val contactPhone = if (phoneIndex >= 0) cursor.getString(phoneIndex).phoneDigits() else ""
+                val contactPhone = if (phoneIndex >= 0) cursor.getString(phoneIndex).normalizePhone() else ""
                 if (contactPhone.isNotEmpty()) onContactPicked(contactName, contactPhone)
             }
         }
     }
-    val isValid = value.isEmpty() || value.length in 9..12
+    val isValid = value.isValidPhoneOrBlank()
 
     OutlinedTextField(
         value = value,
-        onValueChange = { onValueChange(it.phoneDigits()) },
+        onValueChange = { onValueChange(it.normalizePhone()) },
         label = { Text(stringResource(R.string.label_phone)) },
         singleLine = true,
         isError = !isValid,
@@ -187,9 +187,15 @@ fun PhoneField(
     )
 }
 
-fun String.phoneDigits(): String = filter(Char::isDigit).take(12)
+fun String.normalizePhone(): String {
+    val digits = filter(Char::isDigit).take(12)
+    return if (trimStart().startsWith("+")) "+$digits" else digits
+}
 
-fun String.isValidPhoneOrBlank(): Boolean = isBlank() || length in 9..12
+fun String.isValidPhoneOrBlank(): Boolean {
+    val digitCount = count(Char::isDigit)
+    return isBlank() || digitCount in 9..12
+}
 
 @StringRes
 fun LanguageMode.titleRes(): Int = when (this) {

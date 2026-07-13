@@ -1,0 +1,25 @@
+Проверил реальный запрос к серверу лицензий /activate.
+Сейчас сервер возвращает:
+HTTP 202
+{
+  "ok": false,
+  "status": "pending",
+  "message": "License request received. Contact developer to activate."
+}
+
+
+Чтобы по умолчанию был пробный период и лицензия считалась активной, сервер должен возвращать примерно так:
+{
+  "ok": true,
+  "status": "trial",
+  "token": "some-license-token",
+  "expires_at": 1783900000
+}
+
+или для полной лицензии:
+{
+  "ok": true,
+  "status": "active",
+  "token": "some-license-token",
+  "expires_at": 0
+}

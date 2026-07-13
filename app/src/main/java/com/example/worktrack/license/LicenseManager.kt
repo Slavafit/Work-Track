@@ -2,6 +2,7 @@ package com.example.worktrack.license
 
 import android.content.Context
 import android.provider.Settings
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -18,6 +19,7 @@ import java.net.URL
 val Context.licenseDataStore: DataStore<Preferences> by preferencesDataStore(name = "license")
 
 object LicenseManager {
+    private const val TAG = "LicenseManager"
     private const val BASE_URL = "https://license-server.slavafit.workers.dev"
     private const val APP_ID = "worktrack"
     private const val CACHE_TTL = 24 * 60 * 60 * 1000L
@@ -37,6 +39,7 @@ object LicenseManager {
                 put("app_id", APP_ID)
             }
             val response = post("$BASE_URL/activate", body)
+            Log.d(TAG, "activate response: $response")
             val ok = response.optBoolean("ok", false)
             val status = response.optString("status", "")
             val token = response.optString("token", "")
@@ -75,6 +78,7 @@ object LicenseManager {
                 put("app_id", APP_ID)
             }
             val response = post("$BASE_URL/verify", body)
+            Log.d(TAG, "verify response: $response")
             val valid = response.optBoolean("valid", false)
             val newStatus = response.optString("status", status)
             val newExpires = response.optLong("expires_at", expiresAt)

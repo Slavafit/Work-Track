@@ -109,7 +109,7 @@
     <string name="connection_error_title">Не удалось проверить лицензию</string>
     <string name="connection_error_message">Проверьте интернет или повторите позже: сервер лицензий сейчас недоступен.</string>
     <string name="email_error">Введите корректный email</string>
-    <string name="phone_error">Телефон должен содержать от 9 до 12 цифр.</string>
+    <string name="phone_error">Телефон должен содержать от 9 до 12 цифр. + можно указать только в начале.</string>
     <string name="report_object_title">Отчёт по объекту</string>
     <string name="report_address_format">Адрес: %1$s</string>
     <string name="report_customer_format">Заказчик: %1$s</string>

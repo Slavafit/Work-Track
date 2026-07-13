@@ -109,7 +109,7 @@
     <string name="connection_error_title">No se pudo verificar la licencia</string>
     <string name="connection_error_message">Comprueba tu conexión o inténtalo más tarde: el servidor de licencias no está disponible.</string>
     <string name="email_error">Introduce un email válido</string>
-    <string name="phone_error">El teléfono debe contener entre 9 y 12 dígitos.</string>
+    <string name="phone_error">El teléfono debe contener entre 9 y 12 dígitos. + solo se permite al inicio.</string>
     <string name="report_object_title">Informe del objeto</string>
     <string name="report_address_format">Dirección: %1$s</string>
     <string name="report_customer_format">Cliente: %1$s</string>

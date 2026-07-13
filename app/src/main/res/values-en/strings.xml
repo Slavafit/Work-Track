@@ -109,7 +109,7 @@
     <string name="connection_error_title">Could not verify the license</string>
     <string name="connection_error_message">Check your internet connection or try again later: the license server is unavailable.</string>
     <string name="email_error">Enter a valid email</string>
-    <string name="phone_error">Phone number must contain 9 to 12 digits.</string>
+    <string name="phone_error">Phone number must contain 9 to 12 digits. + is allowed only at the start.</string>
     <string name="report_object_title">Object report</string>
     <string name="report_address_format">Address: %1$s</string>
     <string name="report_customer_format">Customer: %1$s</string>
