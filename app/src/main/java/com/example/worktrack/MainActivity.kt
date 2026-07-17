@@ -5,6 +5,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.os.LocaleList
 import androidx.annotation.StringRes
+import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -151,6 +152,14 @@ private fun WorkTrackApp(vm: AppViewModel) {
         else -> stringResource(tab.titleRes)
     }
 
+    BackHandler(enabled = dayId != 0L || objectId != 0L || tab != MainTab.Objects) {
+        when {
+            dayId != 0L -> dayId = 0L
+            objectId != 0L -> objectId = 0L
+            tab != MainTab.Objects -> tab = MainTab.Objects
+        }
+    }
+
     Scaffold(
         topBar = { CenterAlignedTopAppBar(title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) }) },
         bottomBar = {
@@ -219,10 +228,11 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
 private fun ObjectCard(item: ObjectSummary, onOpen: (Long) -> Unit) {
     Card(
         onClick = { onOpen(item.id) },
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(item.address, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 2)
                 if (item.isCompleted) Text(stringResource(R.string.status_completed), color = MaterialTheme.colorScheme.primary)
@@ -246,29 +256,38 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
             item {
                 OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Spacer(Modifier.height(12.dp))
-                Card(shape = RoundedCornerShape(8.dp)) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(obj?.address.orEmpty(), style = MaterialTheme.typography.titleLarge)
                         Text(stringResource(R.string.customer_format, obj?.clientName.orEmpty()))
                         Text(stringResource(R.string.total_format, obj?.totalAmount?.money().orEmpty()), fontWeight = FontWeight.SemiBold)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = { showCreateDay = true }, enabled = obj?.isCompleted != true) { Text(stringResource(R.string.action_add_day)) }
-                            OutlinedButton(onClick = { vm.shareObjectReport(objectId) { context.shareText(it) } }) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { showCreateDay = true },
+                                enabled = obj?.isCompleted != true,
+                                modifier = Modifier.weight(1f)
+                            ) { Text(stringResource(R.string.action_add_day), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                            OutlinedButton(
+                                onClick = { vm.shareObjectReport(objectId) { context.shareText(it) } },
+                                modifier = Modifier.weight(1f)
+                            ) {
                                 Icon(Icons.Outlined.Share, null)
                                 Spacer(Modifier.width(6.dp))
-                                Text(stringResource(R.string.action_report))
+                                Text(stringResource(R.string.action_report), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                         if (obj?.isCompleted != true) {
-                            OutlinedButton(onClick = { confirmComplete = true }) { Text(stringResource(R.string.action_complete_object)) }
+                            OutlinedButton(onClick = { confirmComplete = true }, modifier = Modifier.fillMaxWidth()) {
+                                Text(stringResource(R.string.action_complete_object), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
                         }
                     }
                 }
             }
             if (days.isEmpty()) item { EmptyText(stringResource(R.string.empty_work_days)) }
             items(days, key = { it.id }) { day ->
-                Card(onClick = { onOpenDay(day.id) }, shape = RoundedCornerShape(8.dp)) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Card(onClick = { onOpenDay(day.id) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(day.date.formatDate(), style = MaterialTheme.typography.titleMedium)
                         Text(stringResource(R.string.day_counts_format, day.workerCount, day.entryCount))
                         Text(stringResource(R.string.total_format, day.totalAmount.money()), fontWeight = FontWeight.SemiBold)
@@ -474,7 +493,7 @@ private fun CreateObjectDialog(clients: List<Client>, onDismiss: () -> Unit, onS
                         selectedId = selectedClientId,
                         idOf = { it.id },
                         titleOf = { customer ->
-                            customer.phone?.takeIf { it.isNotBlank() }?.let { "${customer.name} · $it" } ?: customer.name
+                            customer.phone?.takeIf { it.isNotBlank() }?.let { "${customer.name} - $it" } ?: customer.name
                         },
                         onSelect = { id ->
                             selectedClientId = id
