@@ -33,9 +33,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val activeWorkTypes = repo.activeWorkTypes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val settings: StateFlow<AppSettings> = settingsStore.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettings())
 
-    fun workDays(objectId: Long) = repo.workDays(objectId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-    fun dayWorkerIds(dayId: Long) = repo.dayWorkerIds(dayId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-    fun entries(dayId: Long) = repo.entries(dayId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    fun workDays(objectId: Long) = repo.workDays(objectId)
+    fun dayWorkerIds(dayId: Long) = repo.dayWorkerIds(dayId)
+    fun entries(dayId: Long) = repo.entries(dayId)
 
     fun createObject(address: String, selectedClientId: Long?, clientName: String, phone: String?) = viewModelScope.launch {
         if (address.isNotBlank() && clientName.isNotBlank()) repo.createObject(address, selectedClientId, clientName, phone)

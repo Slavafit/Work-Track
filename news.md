@@ -1,5 +1,10 @@
 # News
 
+## Version 1.2
+
+- Fixed screen flickering when opening a work day.
+- Stabilized work day and object data subscriptions in Compose.
+
 ## Version 1.1
 
 - Reworked the work day flow around workers and their services.

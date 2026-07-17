@@ -245,7 +245,8 @@ private fun ObjectCard(item: ObjectSummary, onOpen: (Long) -> Unit) {
 @Composable
 private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: PaddingValues, onBack: () -> Unit, onOpenDay: (Long) -> Unit) {
     val objects by vm.objects.collectAsState()
-    val days by vm.workDays(objectId).collectAsState()
+    val daysFlow = remember(objectId) { vm.workDays(objectId) }
+    val days by daysFlow.collectAsState(initial = emptyList())
     val context = LocalContext.current
     val obj = objects.firstOrNull { it.id == objectId }
     var showCreateDay by remember { mutableStateOf(false) }
@@ -307,8 +308,10 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
 
 @Composable
 private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues, onBack: () -> Unit) {
-    val entries by vm.entries(dayId).collectAsState()
-    val workerIds by vm.dayWorkerIds(dayId).collectAsState()
+    val entriesFlow = remember(dayId) { vm.entries(dayId) }
+    val workerIdsFlow = remember(dayId) { vm.dayWorkerIds(dayId) }
+    val entries by entriesFlow.collectAsState(initial = emptyList())
+    val workerIds by workerIdsFlow.collectAsState(initial = emptyList())
     val workers by vm.workers.collectAsState()
     val types by vm.activeWorkTypes.collectAsState()
     val dayWorkers = workers.filter { it.id in workerIds }
