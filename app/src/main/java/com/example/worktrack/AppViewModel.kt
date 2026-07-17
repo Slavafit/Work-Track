@@ -15,6 +15,7 @@ import com.example.worktrack.data.WorkTrackDatabase
 import com.example.worktrack.data.WorkTrackRepository
 import com.example.worktrack.data.WorkType
 import com.example.worktrack.data.Worker
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -76,17 +77,38 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun shareObjectReport(objectId: Long, share: (String) -> Unit) = viewModelScope.launch {
         val objectInfo = repo.objectById(objectId)
         val client = objectInfo?.let { repo.clientById(it.clientId) }
+        val objectDays = repo.workDays(objectId).first()
         val rows = repo.reportByObject(objectId)
         val total = rows.sumOf { it.amount }
+        val rowsByDay = rows.groupBy { it.workDayId }
         share(buildString {
             appendLine(text(R.string.report_object_title))
             appendLine(text(R.string.report_address_format, objectInfo?.address.orEmpty()))
             appendLine(text(R.string.report_customer_format, client?.name.orEmpty()))
+            appendLine(text(R.string.customer_phone_format, client?.phone ?: text(R.string.phone_missing)))
+            appendLine(text(R.string.object_total_days_format, total.money(), objectDays.size))
             appendLine(text(R.string.report_total_format, total.money()))
             appendLine()
-            rows.groupBy { it.date }.forEach { (date, items) ->
-                appendLine(date.formatDate())
-                items.forEach { appendLine(" - ${it.workerName}: ${it.workTypeName}, ${it.amount.money()}") }
+            if (objectDays.isEmpty()) {
+                appendLine(text(R.string.empty_entries))
+            }
+            objectDays.forEach { day ->
+                val dayRows = rowsByDay[day.id].orEmpty()
+                appendLine("${day.date.formatDate()} - ${text(R.string.report_total_format, dayRows.sumOf { it.amount }.money())}")
+                if (dayRows.isEmpty()) {
+                    appendLine("  ${text(R.string.empty_entries)}")
+                } else {
+                    dayRows.groupBy { it.workerId }.values.forEach { workerRows ->
+                        val workerName = workerRows.first().workerName
+                        val workerTotal = workerRows.sumOf { it.amount }
+                        appendLine("  $workerName - ${text(R.string.report_total_format, workerTotal.money())}")
+                        workerRows.forEach { row ->
+                            val notes = row.notes?.takeIf { it.isNotBlank() }?.let { " ($it)" }.orEmpty()
+                            appendLine("    - ${row.workTypeName}: ${row.amount.money()}$notes")
+                        }
+                    }
+                }
+                appendLine()
             }
         })
     }

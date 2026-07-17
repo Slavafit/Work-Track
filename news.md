@@ -1,5 +1,10 @@
 # News
 
+## Version 1.3
+
+- Expanded object reports with customer phone, day count, day totals, worker totals, service details, and notes.
+- Included object days with no services in object reports.
+
 ## Version 1.2
 
 - Fixed screen flickering when opening a work day.

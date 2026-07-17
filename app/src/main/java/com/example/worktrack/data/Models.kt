@@ -126,8 +126,11 @@ data class WorkerReportRow(
 )
 
 data class ObjectReportRow(
+    val workDayId: Long,
     val date: Long,
+    val workerId: Long,
     val workerName: String,
     val workTypeName: String,
-    val amount: Long
+    val amount: Long,
+    val notes: String?
 )

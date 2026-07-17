@@ -161,13 +161,14 @@ interface WorkTrackDao {
     suspend fun reportByWorker(workerId: Long, start: Long, end: Long): List<WorkerReportRow>
 
     @Query("""
-        SELECT d.date, w.name AS workerName, t.name AS workTypeName, e.amount
+        SELECT d.id AS workDayId, d.date, w.id AS workerId, w.name AS workerName,
+               t.name AS workTypeName, e.amount, e.notes
         FROM WorkEntry e
         JOIN WorkDay d ON d.id = e.workDayId
         JOIN Worker w ON w.id = e.workerId
         JOIN WorkType t ON t.id = e.workTypeId
         WHERE d.objectId = :objectId
-        ORDER BY d.date DESC, w.name
+        ORDER BY d.date DESC, w.name, e.id
     """)
     suspend fun reportByObject(objectId: Long): List<ObjectReportRow>
 }
