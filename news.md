@@ -1,5 +1,15 @@
 # News
 
+## Version 1.1
+
+- Reworked the work day flow around workers and their services.
+- Added per-worker service lists and totals inside each work day.
+- Added service creation from a selected worker card.
+- Improved worker selection when creating a work day.
+- Improved system Back navigation across all main sections.
+- Improved object and settings screen layout consistency.
+- Fixed customer name autofill when picking a phone contact.
+
 ## Version 1.0
 
 - Added license activation and license status screens.
