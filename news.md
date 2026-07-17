@@ -1,5 +1,10 @@
 # News
 
+## Version 1.4
+
+- Refined object report formatting by removing customer phone from the header.
+- Made worker rows clearer by explicitly labeling each worker.
+
 ## Version 1.3
 
 - Expanded object reports with customer phone, day count, day totals, worker totals, service details, and notes.

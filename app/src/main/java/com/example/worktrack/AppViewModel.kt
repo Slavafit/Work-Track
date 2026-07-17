@@ -85,7 +85,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             appendLine(text(R.string.report_object_title))
             appendLine(text(R.string.report_address_format, objectInfo?.address.orEmpty()))
             appendLine(text(R.string.report_customer_format, client?.name.orEmpty()))
-            appendLine(text(R.string.customer_phone_format, client?.phone ?: text(R.string.phone_missing)))
             appendLine(text(R.string.object_total_days_format, total.money(), objectDays.size))
             appendLine(text(R.string.report_total_format, total.money()))
             appendLine()
@@ -101,7 +100,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     dayRows.groupBy { it.workerId }.values.forEach { workerRows ->
                         val workerName = workerRows.first().workerName
                         val workerTotal = workerRows.sumOf { it.amount }
-                        appendLine("  $workerName - ${text(R.string.report_total_format, workerTotal.money())}")
+                        appendLine("  ${text(R.string.report_tab_worker)}: $workerName - ${text(R.string.report_total_format, workerTotal.money())}")
                         workerRows.forEach { row ->
                             val notes = row.notes?.takeIf { it.isNotBlank() }?.let { " ($it)" }.orEmpty()
                             appendLine("    - ${row.workTypeName}: ${row.amount.money()}$notes")
