@@ -492,7 +492,15 @@ private fun CreateObjectDialog(clients: List<Client>, onDismiss: () -> Unit, onS
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                PhoneField(phone, { phone = it })
+                PhoneField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    onContactPicked = { contactName, contactPhone ->
+                        selectedClientId = 0L
+                        if (contactName.isNotBlank()) client = contactName
+                        phone = contactPhone
+                    }
+                )
             }
         },
         confirmButton = {
