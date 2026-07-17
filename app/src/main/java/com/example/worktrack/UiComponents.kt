@@ -18,10 +18,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -125,6 +130,51 @@ fun <T> EntityPickerField(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T> DropdownPickerField(
+    label: String,
+    items: List<T>,
+    selectedId: Long,
+    idOf: (T) -> Long,
+    titleOf: (T) -> String,
+    onSelect: (Long) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedTitle = items.firstOrNull { idOf(it) == selectedId }?.let(titleOf).orEmpty()
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selectedTitle,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true).fillMaxWidth(),
+            singleLine = true
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            items.forEach { item ->
+                DropdownMenuItem(
+                    text = { Text(titleOf(item), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    onClick = {
+                        onSelect(idOf(item))
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun SectionTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -171,6 +221,7 @@ fun PhoneField(
         value = value,
         onValueChange = { onValueChange(it.normalizePhone()) },
         label = { Text(stringResource(R.string.label_phone)) },
+        modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         isError = !isValid,
         supportingText = if (!isValid) ({ Text(stringResource(R.string.phone_error)) }) else null,

@@ -41,6 +41,9 @@ interface WorkTrackDao {
     @Query("SELECT * FROM WorkType ORDER BY isActive DESC, name")
     fun workTypes(): Flow<List<WorkType>>
 
+    @Query("SELECT * FROM Client ORDER BY name")
+    fun clients(): Flow<List<Client>>
+
     @Query("SELECT * FROM Worker WHERE isActive = 1 ORDER BY name")
     fun activeWorkers(): Flow<List<Worker>>
 
@@ -109,8 +112,12 @@ interface WorkTrackDao {
     suspend fun clearDayWorkers(dayId: Long)
 
     @Transaction
-    suspend fun createObject(address: String, clientName: String, phone: String?): Long {
-        val clientId = insertClient(Client(name = clientName.trim(), phone = phone?.trim()?.ifBlank { null }))
+    suspend fun createObject(address: String, selectedClientId: Long?, clientName: String, phone: String?): Long {
+        val cleanName = clientName.trim()
+        val cleanPhone = phone?.trim()?.ifBlank { null }
+        val clientId = selectedClientId?.takeIf { it != 0L }?.also { id ->
+            updateClient(Client(id = id, name = cleanName, phone = cleanPhone))
+        } ?: insertClient(Client(name = cleanName, phone = cleanPhone))
         return insertObject(WorkObject(clientId = clientId, address = address.trim()))
     }
 

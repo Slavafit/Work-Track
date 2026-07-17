@@ -26,6 +26,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val settingsStore = SettingsStore(app)
 
     val objects = repo.objects.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val clients = repo.clients.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val workers = repo.workers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val workTypes = repo.workTypes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val activeWorkers = repo.activeWorkers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -36,8 +37,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun dayWorkerIds(dayId: Long) = repo.dayWorkerIds(dayId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     fun entries(dayId: Long) = repo.entries(dayId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun createObject(address: String, clientName: String, phone: String?) = viewModelScope.launch {
-        if (address.isNotBlank() && clientName.isNotBlank()) repo.createObject(address, clientName, phone)
+    fun createObject(address: String, selectedClientId: Long?, clientName: String, phone: String?) = viewModelScope.launch {
+        if (address.isNotBlank() && clientName.isNotBlank()) repo.createObject(address, selectedClientId, clientName, phone)
     }
 
     fun addWorker(name: String, phone: String?) = viewModelScope.launch {

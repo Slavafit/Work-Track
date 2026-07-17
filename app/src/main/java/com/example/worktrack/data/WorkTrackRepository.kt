@@ -2,6 +2,7 @@ package com.example.worktrack.data
 
 class WorkTrackRepository(private val dao: WorkTrackDao) {
     val objects = dao.objectSummaries()
+    val clients = dao.clients()
     val workers = dao.workers()
     val workTypes = dao.workTypes()
     val activeWorkers = dao.activeWorkers()
@@ -11,7 +12,8 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
     fun dayWorkerIds(dayId: Long) = dao.dayWorkerIds(dayId)
     fun entries(dayId: Long) = dao.entries(dayId)
 
-    suspend fun createObject(address: String, clientName: String, phone: String?) = dao.createObject(address, clientName, phone)
+    suspend fun createObject(address: String, selectedClientId: Long?, clientName: String, phone: String?) =
+        dao.createObject(address, selectedClientId, clientName, phone)
     suspend fun addWorker(name: String, phone: String?) = dao.insertWorker(Worker(name = name.trim(), phone = phone?.trim()?.ifBlank { null }))
     suspend fun updateWorker(worker: Worker) = dao.updateWorker(worker)
     suspend fun addWorkType(name: String) = dao.insertWorkType(WorkType(name = name.trim()))

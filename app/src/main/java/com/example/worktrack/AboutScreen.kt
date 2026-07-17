@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.worktrack.data.LanguageMode
@@ -47,7 +49,10 @@ fun AboutScreen(
                 Text("WorkTrack", style = MaterialTheme.typography.headlineMedium)
                 Text(stringResource(id = R.string.app_version, BuildConfig.VERSION_NAME), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(stringResource(id = R.string.developer), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = { uriHandler.openUri("https://t.me/Slavafit") }) {
+                TextButton(
+                    onClick = { uriHandler.openUri("https://t.me/Slavafit") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text(stringResource(id = R.string.developer_contacts))
                 }
             }
@@ -67,19 +72,22 @@ fun AboutScreen(
         item {
             SettingsCard {
                 SectionTitle(stringResource(R.string.section_theme))
-                SingleChoiceSegmentedButtonRow {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     ThemeMode.entries.forEachIndexed { index, mode ->
                         SegmentedButton(
                             selected = settings.themeMode == mode,
                             onClick = { vm.setTheme(mode) },
                             shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
+                            modifier = Modifier.weight(1f),
                             label = {
                                 Text(
                                     when (mode) {
                                         ThemeMode.System -> stringResource(R.string.theme_system)
                                         ThemeMode.Light -> stringResource(R.string.theme_light)
                                         ThemeMode.Dark -> stringResource(R.string.theme_dark)
-                                    }
+                                    },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         )
@@ -90,13 +98,20 @@ fun AboutScreen(
         item {
             SettingsCard {
                 SectionTitle(stringResource(R.string.section_language))
-                SingleChoiceSegmentedButtonRow {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     LanguageMode.entries.forEachIndexed { index, lang ->
                         SegmentedButton(
                             selected = settings.language == lang,
                             onClick = { vm.setLanguage(lang) },
                             shape = SegmentedButtonDefaults.itemShape(index, LanguageMode.entries.size),
-                            label = { Text(stringResource(lang.titleRes())) }
+                            modifier = Modifier.weight(1f),
+                            label = {
+                                Text(
+                                    stringResource(lang.titleRes()),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         )
                     }
                 }
@@ -110,8 +125,16 @@ private fun SettingsCard(
     verticalGap: androidx.compose.ui.unit.Dp = 12.dp,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(verticalGap), content = content)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(verticalGap),
+            content = content
+        )
     }
 }
 

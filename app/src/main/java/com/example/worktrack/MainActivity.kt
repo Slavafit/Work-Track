@@ -81,6 +81,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.worktrack.data.Client
 import com.example.worktrack.data.LanguageMode
 import com.example.worktrack.data.ObjectSummary
 import com.example.worktrack.data.ThemeMode
@@ -188,6 +189,7 @@ private fun WorkTrackApp(vm: AppViewModel) {
 @Composable
 private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Long) -> Unit) {
     val objects by vm.objects.collectAsState()
+    val clients by vm.clients.collectAsState()
     var showCreate by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -207,8 +209,8 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         )
     }
-    if (showCreate) CreateObjectDialog(onDismiss = { showCreate = false }, onSave = { address, client, phone ->
-        vm.createObject(address, client, phone)
+    if (showCreate) CreateObjectDialog(clients, onDismiss = { showCreate = false }, onSave = { address, clientId, client, phone ->
+        vm.createObject(address, clientId, client, phone)
         showCreate = false
     })
 }
@@ -454,8 +456,9 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
 }
 
 @Composable
-private fun CreateObjectDialog(onDismiss: () -> Unit, onSave: (String, String, String?) -> Unit) {
+private fun CreateObjectDialog(clients: List<Client>, onDismiss: () -> Unit, onSave: (String, Long?, String, String?) -> Unit) {
     var address by remember { mutableStateOf("") }
+    var selectedClientId by remember { mutableLongStateOf(0L) }
     var client by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     AlertDialog(
@@ -464,11 +467,40 @@ private fun CreateObjectDialog(onDismiss: () -> Unit, onSave: (String, String, S
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(address, { address = it }, label = { Text(stringResource(R.string.label_address)) }, singleLine = true)
-                OutlinedTextField(client, { client = it }, label = { Text(stringResource(R.string.label_customer)) }, singleLine = true)
+                if (clients.isNotEmpty()) {
+                    EntityPickerField(
+                        label = stringResource(R.string.label_customer),
+                        items = clients,
+                        selectedId = selectedClientId,
+                        idOf = { it.id },
+                        titleOf = { customer ->
+                            customer.phone?.takeIf { it.isNotBlank() }?.let { "${customer.name} · $it" } ?: customer.name
+                        },
+                        onSelect = { id ->
+                            selectedClientId = id
+                            clients.firstOrNull { it.id == id }?.let { customer ->
+                                client = customer.name
+                                phone = customer.phone.orEmpty()
+                            }
+                        }
+                    )
+                }
+                OutlinedTextField(
+                    value = client,
+                    onValueChange = { client = it },
+                    label = { Text(stringResource(R.string.label_customer)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
                 PhoneField(phone, { phone = it })
             }
         },
-        confirmButton = { Button(onClick = { onSave(address, client, phone) }, enabled = address.isNotBlank() && client.isNotBlank() && phone.isValidPhoneOrBlank()) { Text(stringResource(R.string.action_create)) } },
+        confirmButton = {
+            Button(
+                onClick = { onSave(address, selectedClientId.takeIf { it != 0L }, client, phone) },
+                enabled = address.isNotBlank() && client.isNotBlank() && phone.isValidPhoneOrBlank()
+            ) { Text(stringResource(R.string.action_create)) }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
@@ -522,7 +554,7 @@ private fun AddEntryDialog(workers: List<Worker>, types: List<WorkType>, onDismi
                     titleOf = { it.name },
                     onSelect = { workerId = it }
                 )
-                EntityPickerField(
+                DropdownPickerField(
                     label = stringResource(R.string.label_work_type),
                     items = types,
                     selectedId = typeId,

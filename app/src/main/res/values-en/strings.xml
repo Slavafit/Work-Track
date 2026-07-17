@@ -62,7 +62,7 @@
     <string name="label_phone">Phone</string>
     <string name="label_notes">Notes</string>
     <string name="label_work_type">Work type</string>
-    <string name="label_amount">Amount</string>
+    <string name="label_amount">Cost</string>
     <string name="label_name">Name</string>
     <string name="label_email">Email</string>
     <string name="label_search">Search</string>

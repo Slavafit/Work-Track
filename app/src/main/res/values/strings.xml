@@ -62,7 +62,7 @@
     <string name="label_phone">Телефон</string>
     <string name="label_notes">Заметки</string>
     <string name="label_work_type">Вид работы</string>
-    <string name="label_amount">Сумма</string>
+    <string name="label_amount">Стоимость</string>
     <string name="label_name">Имя</string>
     <string name="label_email">Email</string>
     <string name="label_search">Поиск</string>
