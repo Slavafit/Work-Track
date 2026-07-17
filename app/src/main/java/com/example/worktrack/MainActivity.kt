@@ -81,6 +81,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.worktrack.data.Client
+import com.example.worktrack.data.EntryDetail
 import com.example.worktrack.data.LanguageMode
 import com.example.worktrack.data.ObjectSummary
 import com.example.worktrack.data.ThemeMode
@@ -308,49 +309,86 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
 private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues, onBack: () -> Unit) {
     val entries by vm.entries(dayId).collectAsState()
     val workerIds by vm.dayWorkerIds(dayId).collectAsState()
-    val workers by vm.activeWorkers.collectAsState()
+    val workers by vm.workers.collectAsState()
     val types by vm.activeWorkTypes.collectAsState()
-    var showEntry by remember { mutableStateOf(false) }
+    val dayWorkers = workers.filter { it.id in workerIds }
+    val entriesByWorker = entries.groupBy { it.workerId }
+    var entryWorker by remember { mutableStateOf<Worker?>(null) }
     var deleteId by remember { mutableLongStateOf(0L) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
                 OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.day_total_format, entries.sumOf { it.amount }.money()), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    Button(onClick = { showEntry = true }, enabled = workerIds.isNotEmpty() && types.isNotEmpty()) { Text(stringResource(R.string.action_add)) }
-                }
+                Text(stringResource(R.string.day_total_format, entries.sumOf { it.amount }.money()), style = MaterialTheme.typography.titleMedium)
             }
-            if (entries.isEmpty()) item { EmptyText(stringResource(R.string.empty_entries)) }
-            items(entries, key = { it.id }) { entry ->
-                Card(shape = RoundedCornerShape(8.dp)) {
-                    ListItem(
-                        headlineContent = { Text(stringResource(R.string.entry_title_format, entry.workerName, entry.workTypeName)) },
-                        supportingContent = { Text(entry.notes.orEmpty()) },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(entry.amount.money(), fontWeight = FontWeight.SemiBold)
-                                IconButton(onClick = { deleteId = entry.id }) { Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete)) }
-                            }
-                        }
-                    )
-                }
+            if (dayWorkers.isEmpty()) item { EmptyText(stringResource(R.string.empty_workers)) }
+            items(dayWorkers, key = { it.id }) { worker ->
+                WorkerServicesCard(
+                    worker = worker,
+                    entries = entriesByWorker[worker.id].orEmpty(),
+                    canAdd = types.isNotEmpty(),
+                    onAdd = { entryWorker = worker },
+                    onDelete = { deleteId = it }
+                )
             }
         }
     }
-    if (showEntry) AddEntryDialog(
-        workers = workers.filter { it.id in workerIds },
+    entryWorker?.let { worker ->
+        AddEntryDialog(
+        worker = worker,
         types = types,
-        onDismiss = { showEntry = false },
-        onSave = { workerId, typeId, amount, notes ->
-            vm.addEntry(dayId, workerId, typeId, amount, notes)
-            showEntry = false
+        onDismiss = { entryWorker = null },
+        onSave = { typeId, amount, notes ->
+            vm.addEntry(dayId, worker.id, typeId, amount, notes)
+            entryWorker = null
         }
-    )
+        )
+    }
     if (deleteId != 0L) ConfirmDialog(stringResource(R.string.confirm_delete_entry_title), stringResource(R.string.confirm_delete_entry_message), onDismiss = { deleteId = 0L }) {
         vm.deleteEntry(deleteId)
         deleteId = 0L
+    }
+}
+
+@Composable
+private fun WorkerServicesCard(
+    worker: Worker,
+    entries: List<EntryDetail>,
+    canAdd: Boolean,
+    onAdd: () -> Unit,
+    onDelete: (Long) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(worker.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.total_format, entries.sumOf { it.amount }.money()), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Button(onClick = onAdd, enabled = canAdd) {
+                    Text(stringResource(R.string.action_add), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            if (entries.isEmpty()) {
+                Text(stringResource(R.string.empty_entries), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                entries.forEach { entry ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(entry.workTypeName, fontWeight = FontWeight.SemiBold)
+                            entry.notes?.takeIf { it.isNotBlank() }?.let {
+                                Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        Text(entry.amount.money(), fontWeight = FontWeight.SemiBold)
+                        IconButton(onClick = { onDelete(entry.id) }) {
+                            Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -560,8 +598,7 @@ private fun CreateDayDialog(vm: AppViewModel, objectId: Long, onDismiss: () -> U
 }
 
 @Composable
-private fun AddEntryDialog(workers: List<Worker>, types: List<WorkType>, onDismiss: () -> Unit, onSave: (Long, Long, Long, String?) -> Unit) {
-    var workerId by remember { mutableLongStateOf(workers.firstOrNull()?.id ?: 0L) }
+private fun AddEntryDialog(worker: Worker, types: List<WorkType>, onDismiss: () -> Unit, onSave: (Long, Long, String?) -> Unit) {
     var typeId by remember { mutableLongStateOf(types.firstOrNull()?.id ?: 0L) }
     var amount by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
@@ -570,14 +607,7 @@ private fun AddEntryDialog(workers: List<Worker>, types: List<WorkType>, onDismi
         title = { Text(stringResource(R.string.dialog_work_entry)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                EntityPickerField(
-                    label = stringResource(R.string.report_tab_worker),
-                    items = workers,
-                    selectedId = workerId,
-                    idOf = { it.id },
-                    titleOf = { it.name },
-                    onSelect = { workerId = it }
-                )
+                Text(worker.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 DropdownPickerField(
                     label = stringResource(R.string.label_work_type),
                     items = types,
@@ -591,7 +621,7 @@ private fun AddEntryDialog(workers: List<Worker>, types: List<WorkType>, onDismi
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(workerId, typeId, amount.toLongOrNull() ?: 0L, notes) }, enabled = workerId != 0L && typeId != 0L && (amount.toLongOrNull() ?: 0L) > 0) {
+            Button(onClick = { onSave(typeId, amount.toLongOrNull() ?: 0L, notes) }, enabled = typeId != 0L && (amount.toLongOrNull() ?: 0L) > 0) {
                 Text(stringResource(R.string.action_add))
             }
         },
