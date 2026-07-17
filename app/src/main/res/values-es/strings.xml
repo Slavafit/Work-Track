@@ -47,6 +47,7 @@
     <string name="action_retry">Reintentar</string>
     <string name="action_pick_contact">Elegir de contactos</string>
     <string name="action_select">Elegir</string>
+    <string name="selected_count_format">Seleccionados: %1$d</string>
     <string name="confirm_complete_object_title">¿Completar objeto?</string>
     <string name="confirm_complete_object_message">Después de completarlo, el objeto será de solo lectura.</string>
     <string name="confirm_delete_entry_title">¿Eliminar entrada?</string>
@@ -59,6 +60,8 @@
     <string name="label_to">Hasta</string>
     <string name="label_address">Dirección</string>
     <string name="label_customer">Cliente</string>
+    <string name="customer_phone_format">Teléfono: %1$s</string>
+    <string name="phone_missing">no indicado</string>
     <string name="label_phone">Teléfono</string>
     <string name="label_notes">Notas</string>
     <string name="label_work_type">Tipo de trabajo</string>
@@ -68,6 +71,7 @@
     <string name="label_search">Buscar</string>
     <string name="empty_search_results">No se encontraron resultados</string>
     <string name="dialog_new_object">Nuevo objeto</string>
+    <string name="dialog_new_client">Nuevo cliente</string>
     <string name="dialog_new_work_day">Nuevo día de trabajo</string>
     <string name="dialog_work_entry">Entrada de trabajo</string>
     <string name="dialog_new_worker">Nuevo trabajador</string>
@@ -79,7 +83,7 @@
     <string name="language_ru">Русский</string>
     <string name="language_en">English</string>
     <string name="language_es">Español</string>
-    <string name="developer">Desarrollador: Slavafit</string>
+    <string name="developer">Desarrollador: Viacheslav Fitlin</string>
     <string name="developer_contacts">Telegram: @Slavafit</string>
     <string name="app_version">Versión: %1$s</string>
     <string name="license_pending_title">Solicitud enviada</string>

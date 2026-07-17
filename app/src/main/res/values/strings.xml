@@ -47,6 +47,7 @@
     <string name="action_retry">Повторить</string>
     <string name="action_pick_contact">Выбрать из контактов</string>
     <string name="action_select">Выбрать</string>
+    <string name="selected_count_format">Выбрано: %1$d</string>
     <string name="confirm_complete_object_title">Завершить объект?</string>
     <string name="confirm_complete_object_message">После завершения объект считается read-only.</string>
     <string name="confirm_delete_entry_title">Удалить запись?</string>
@@ -79,7 +80,7 @@
     <string name="language_ru">Русский</string>
     <string name="language_en">English</string>
     <string name="language_es">Español</string>
-    <string name="developer">Разработчик: Slavafit</string>
+    <string name="developer">Разработчик: Viacheslav Fitlin</string>
     <string name="developer_contacts">Telegram: @Slavafit</string>
     <string name="app_version">Версия: %1$s</string>
     <string name="license_pending_title">Заявка отправлена</string>

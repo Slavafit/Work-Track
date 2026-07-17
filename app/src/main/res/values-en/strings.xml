@@ -47,6 +47,7 @@
     <string name="action_retry">Retry</string>
     <string name="action_pick_contact">Pick from contacts</string>
     <string name="action_select">Select</string>
+    <string name="selected_count_format">Selected: %1$d</string>
     <string name="confirm_complete_object_title">Complete object?</string>
     <string name="confirm_complete_object_message">After completion, the object becomes read-only.</string>
     <string name="confirm_delete_entry_title">Delete entry?</string>
@@ -59,6 +60,8 @@
     <string name="label_to">To</string>
     <string name="label_address">Address</string>
     <string name="label_customer">Customer</string>
+    <string name="customer_phone_format">Phone: %1$s</string>
+    <string name="phone_missing">not set</string>
     <string name="label_phone">Phone</string>
     <string name="label_notes">Notes</string>
     <string name="label_work_type">Work type</string>
@@ -68,6 +71,7 @@
     <string name="label_search">Search</string>
     <string name="empty_search_results">No results found</string>
     <string name="dialog_new_object">New object</string>
+    <string name="dialog_new_client">New client</string>
     <string name="dialog_new_work_day">New work day</string>
     <string name="dialog_work_entry">Work entry</string>
     <string name="dialog_new_worker">New worker</string>
@@ -79,7 +83,7 @@
     <string name="language_ru">Русский</string>
     <string name="language_en">English</string>
     <string name="language_es">Español</string>
-    <string name="developer">Developer: Slavafit</string>
+    <string name="developer">Developer: Viacheslav Fitlin</string>
     <string name="developer_contacts">Telegram: @Slavafit</string>
     <string name="app_version">Version: %1$s</string>
     <string name="license_pending_title">Request sent</string>

@@ -25,7 +25,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Assessment
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Construction
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Info
@@ -41,7 +40,6 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -190,7 +188,11 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
     val objects by vm.objects.collectAsState()
     var showCreate by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
-        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             val active = objects.filterNot { it.isCompleted }
             val completed = objects.filter { it.isCompleted }
             if (active.isEmpty() && completed.isEmpty()) item { EmptyText(stringResource(R.string.empty_objects)) }
@@ -207,22 +209,26 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         )
     }
-    if (showCreate) CreateObjectDialog(onDismiss = { showCreate = false }, onSave = { address, client, phone ->
-        vm.createObject(address, client, phone)
-        showCreate = false
-    })
+    if (showCreate) CreateObjectDialog(vm, onDismiss = { showCreate = false })
 }
 
 @Composable
 private fun ObjectCard(item: ObjectSummary, onOpen: (Long) -> Unit) {
     Card(
         onClick = { onOpen(item.id) },
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(item.address, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 2)
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    item.address,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
                 if (item.isCompleted) Text(stringResource(R.string.status_completed), color = MaterialTheme.colorScheme.primary)
             }
             Text(stringResource(R.string.customer_format, item.clientName), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -431,7 +437,14 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
                     }
                 }
                 1 -> {
-                    EntityChips(workers, workerId, { it.id }, { it.name }) { workerId = it }
+                    EntityPickerField(
+                        label = stringResource(R.string.report_tab_worker),
+                        items = workers,
+                        selectedId = workerId,
+                        idOf = { it.id },
+                        titleOf = { it.name },
+                        onSelect = { workerId = it }
+                    )
                     DateButton(stringResource(R.string.label_from), from) { from = it }
                     DateButton(stringResource(R.string.label_to), to) { to = it }
                     Button(onClick = { vm.shareWorkerReport(workerId, from, to) { context.shareText(it) } }, enabled = workerId != 0L, modifier = Modifier.fillMaxWidth()) {
@@ -441,7 +454,14 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
                     }
                 }
                 2 -> {
-                    EntityChips(objects, objectId, { it.id }, { it.address }) { objectId = it }
+                    EntityPickerField(
+                        label = stringResource(R.string.report_tab_object),
+                        items = objects,
+                        selectedId = objectId,
+                        idOf = { it.id },
+                        titleOf = { it.address },
+                        onSelect = { objectId = it }
+                    )
                     Button(onClick = { vm.shareObjectReport(objectId) { context.shareText(it) } }, enabled = objectId != 0L, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Share, null)
                         Spacer(Modifier.width(8.dp))
@@ -454,21 +474,124 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
 }
 
 @Composable
-private fun CreateObjectDialog(onDismiss: () -> Unit, onSave: (String, String, String?) -> Unit) {
+private fun CreateObjectDialog(vm: AppViewModel, onDismiss: () -> Unit) {
+    val clients by vm.clients.collectAsState()
     var address by remember { mutableStateOf("") }
-    var client by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
+    var clientId by remember { mutableLongStateOf(0L) }
+    var showNewClient by remember { mutableStateOf(false) }
+    val selectedClient = clients.firstOrNull { it.id == clientId }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.dialog_new_object)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(address, { address = it }, label = { Text(stringResource(R.string.label_address)) }, singleLine = true)
-                OutlinedTextField(client, { client = it }, label = { Text(stringResource(R.string.label_customer)) }, singleLine = true)
-                PhoneField(phone, { phone = it })
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text(stringResource(R.string.label_address)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(Modifier.weight(1f)) {
+                        EntityPickerField(
+                            label = stringResource(R.string.label_customer),
+                            items = clients,
+                            selectedId = clientId,
+                            idOf = { it.id },
+                            titleOf = { client ->
+                                buildString {
+                                    append(client.name)
+                                    client.phone?.takeIf { it.isNotBlank() }?.let { append(" · ").append(it) }
+                                }
+                            },
+                            onSelect = { clientId = it }
+                        )
+                    }
+                    IconButton(
+                        onClick = { showNewClient = true },
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    ) {
+                        Icon(Icons.Outlined.Add, stringResource(R.string.dialog_new_client))
+                    }
+                }
+                if (selectedClient != null) {
+                    Text(
+                        text = stringResource(
+                            R.string.customer_phone_format,
+                            selectedClient.phone?.takeIf { it.isNotBlank() }
+                                ?: stringResource(R.string.phone_missing)
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
-        confirmButton = { Button(onClick = { onSave(address, client, phone) }, enabled = address.isNotBlank() && client.isNotBlank() && phone.isValidPhoneOrBlank()) { Text(stringResource(R.string.action_create)) } },
+        confirmButton = {
+            Button(
+                onClick = {
+                    vm.createObject(address, clientId)
+                    onDismiss()
+                },
+                enabled = address.isNotBlank() && clientId != 0L
+            ) {
+                Text(stringResource(R.string.action_create))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
+    )
+
+    if (showNewClient) {
+        CreateClientDialog(
+            onDismiss = { showNewClient = false },
+            onSave = { name, phone ->
+                vm.createClient(name, phone) { id ->
+                    clientId = id
+                    showNewClient = false
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun CreateClientDialog(onDismiss: () -> Unit, onSave: (String, String?) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.dialog_new_client)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.label_name)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                PhoneField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    onContactPicked = { contactName, contactPhone ->
+                        if (contactName.isNotBlank()) name = contactName
+                        phone = contactPhone
+                    }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(name, phone.ifBlank { null }) },
+                enabled = name.isNotBlank() && phone.isValidPhoneOrBlank()
+            ) {
+                Text(stringResource(R.string.action_create))
+            }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
@@ -486,15 +609,14 @@ private fun CreateDayDialog(vm: AppViewModel, objectId: Long, onDismiss: () -> U
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 DateButton(stringResource(R.string.label_date), date) { date = it }
-                Text(stringResource(R.string.tab_workers), fontWeight = FontWeight.SemiBold)
-                workers.forEach { worker ->
-                    FilterChip(
-                        selected = worker.id in selected,
-                        onClick = { selected = if (worker.id in selected) selected - worker.id else selected + worker.id },
-                        label = { Text(worker.name) },
-                        leadingIcon = if (worker.id in selected) ({ Icon(Icons.Outlined.Check, null) }) else null
-                    )
-                }
+                MultiEntityPickerField(
+                    label = stringResource(R.string.tab_workers),
+                    items = workers,
+                    selectedIds = selected,
+                    idOf = { it.id },
+                    titleOf = { it.name },
+                    onSelectionChange = { selected = it }
+                )
                 OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
             }
         },

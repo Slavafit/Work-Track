@@ -15,10 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,21 +40,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.example.worktrack.data.LanguageMode
-
-@Composable
-fun <T> EntityChips(items: List<T>, selectedId: Long, idOf: (T) -> Long, titleOf: (T) -> String, onSelect: (Long) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        items.forEach { item ->
-            val id = idOf(item)
-            FilterChip(
-                selected = selectedId == id,
-                onClick = { onSelect(id) },
-                label = { Text(titleOf(item), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                leadingIcon = if (selectedId == id) ({ Icon(Icons.Outlined.Check, null) }) else null
-            )
-        }
-    }
-}
 
 @Composable
 fun <T> EntityPickerField(
@@ -88,7 +72,7 @@ fun <T> EntityPickerField(
             else items.filter { titleOf(it).contains(normalizedQuery, ignoreCase = true) }
         }
         AlertDialog(
-            onDismissRequest = { showPicker = false },
+            onDismissRequest = { showPicker = false; query = "" },
             title = { Text(label) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -104,15 +88,24 @@ fun <T> EntityPickerField(
                             item { EmptyText(stringResource(R.string.empty_search_results)) }
                         } else {
                             items(filtered, key = { idOf(it) }) { item ->
+                                val id = idOf(item)
+                                val isSelected = id == selectedId
                                 TextButton(
                                     onClick = {
-                                        onSelect(idOf(item))
+                                        onSelect(id)
                                         showPicker = false
                                         query = ""
                                     },
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(titleOf(item), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(
+                                        titleOf(item),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f),
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                    if (isSelected) Icon(Icons.Outlined.Check, contentDescription = null)
                                 }
                             }
                         }
@@ -120,7 +113,106 @@ fun <T> EntityPickerField(
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.action_cancel)) } }
+            dismissButton = {
+                TextButton(onClick = { showPicker = false; query = "" }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
+    }
+}
+
+/** Multi-select with search dialog — same UX as [EntityPickerField], for several items. */
+@Composable
+fun <T> MultiEntityPickerField(
+    label: String,
+    items: List<T>,
+    selectedIds: Set<Long>,
+    idOf: (T) -> Long,
+    titleOf: (T) -> String,
+    onSelectionChange: (Set<Long>) -> Unit
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    val selectedTitles = remember(items, selectedIds) {
+        items.filter { idOf(it) in selectedIds }.joinToString { titleOf(it) }
+    }
+    val buttonText = when {
+        selectedIds.isEmpty() -> stringResource(R.string.action_select)
+        selectedTitles.isNotBlank() -> selectedTitles
+        else -> stringResource(R.string.selected_count_format, selectedIds.size)
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, fontWeight = FontWeight.SemiBold)
+        OutlinedButton(onClick = { showPicker = true }, modifier = Modifier.fillMaxWidth()) {
+            Text(buttonText, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+    }
+
+    if (showPicker) {
+        var draft by remember(selectedIds) { mutableStateOf(selectedIds) }
+        val filtered = remember(items, query) {
+            val normalizedQuery = query.trim()
+            if (normalizedQuery.isEmpty()) items
+            else items.filter { titleOf(it).contains(normalizedQuery, ignoreCase = true) }
+        }
+        AlertDialog(
+            onDismissRequest = { showPicker = false; query = "" },
+            title = { Text(label) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        label = { Text(stringResource(R.string.label_search)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                        if (filtered.isEmpty()) {
+                            item { EmptyText(stringResource(R.string.empty_search_results)) }
+                        } else {
+                            items(filtered, key = { idOf(it) }) { item ->
+                                val id = idOf(item)
+                                val isSelected = id in draft
+                                TextButton(
+                                    onClick = {
+                                        draft = if (isSelected) draft - id else draft + id
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        titleOf(item),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f),
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                    if (isSelected) Icon(Icons.Outlined.Check, contentDescription = null)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onSelectionChange(draft)
+                        showPicker = false
+                        query = ""
+                    },
+                    enabled = draft.isNotEmpty()
+                ) {
+                    Text(stringResource(R.string.action_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false; query = "" }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
         )
     }
 }
@@ -141,7 +233,8 @@ fun EmptyText(text: String) {
 fun PhoneField(
     value: String,
     onValueChange: (String) -> Unit,
-    onContactPicked: (name: String, phone: String) -> Unit = { _, phone -> onValueChange(phone) }
+    onContactPicked: (name: String, phone: String) -> Unit = { _, phone -> onValueChange(phone) },
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val contactPicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -181,9 +274,10 @@ fun PhoneField(
                     contactPicker.launch(Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI))
                 }
             ) {
-                Icon(Icons.Outlined.People, stringResource(R.string.action_pick_contact))
+                Icon(Icons.Outlined.Add, stringResource(R.string.action_pick_contact))
             }
-        }
+        },
+        modifier = modifier.fillMaxWidth()
     )
 }
 
