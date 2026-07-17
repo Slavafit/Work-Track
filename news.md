@@ -1,0 +1,17 @@
+# News
+
+## Version 1.0
+
+- Added license activation and license status screens.
+- Added app settings with theme and language selection.
+- Added developer contact information with a Telegram link.
+- Added app version information.
+- Added customer selection from the internal customer list when creating an object.
+- Added contact picker support for customer and worker phone fields.
+- Added support for phone numbers that start with `+`.
+- Improved object, work day, worker, work type, report, and settings screens.
+- Improved system Back behavior across nested screens and main sections.
+- Improved worker selection when creating a work day with a searchable multi-select list.
+- Improved work entry creation with a dropdown work type selector and required cost field.
+- Fixed localization and encoding issues across Russian, English, and Spanish resources.
+- Fixed launcher app icon setup.

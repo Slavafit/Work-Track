@@ -26,7 +26,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Assessment
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Construction
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Info
@@ -42,7 +41,6 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -545,15 +543,14 @@ private fun CreateDayDialog(vm: AppViewModel, objectId: Long, onDismiss: () -> U
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 DateButton(stringResource(R.string.label_date), date) { date = it }
-                Text(stringResource(R.string.tab_workers), fontWeight = FontWeight.SemiBold)
-                workers.forEach { worker ->
-                    FilterChip(
-                        selected = worker.id in selected,
-                        onClick = { selected = if (worker.id in selected) selected - worker.id else selected + worker.id },
-                        label = { Text(worker.name) },
-                        leadingIcon = if (worker.id in selected) ({ Icon(Icons.Outlined.Check, null) }) else null
-                    )
-                }
+                MultiEntityPickerField(
+                    label = stringResource(R.string.tab_workers),
+                    items = workers,
+                    selectedIds = selected,
+                    idOf = { it.id },
+                    titleOf = { it.name },
+                    onSelectionChange = { selected = it }
+                )
                 OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
             }
         },

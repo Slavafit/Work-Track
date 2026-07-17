@@ -9,6 +9,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -125,6 +127,86 @@ fun <T> EntityPickerField(
                 }
             },
             confirmButton = {},
+            dismissButton = { TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.action_cancel)) } }
+        )
+    }
+}
+
+@Composable
+fun <T> MultiEntityPickerField(
+    label: String,
+    items: List<T>,
+    selectedIds: Set<Long>,
+    idOf: (T) -> Long,
+    titleOf: (T) -> String,
+    onSelectionChange: (Set<Long>) -> Unit
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    val selectedTitles = items.filter { idOf(it) in selectedIds }.map(titleOf)
+    val summary = when {
+        selectedTitles.isEmpty() -> stringResource(R.string.action_select)
+        selectedTitles.size <= 3 -> selectedTitles.joinToString(", ")
+        else -> selectedTitles.take(3).joinToString(", ") + " +${selectedTitles.size - 3}"
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, fontWeight = FontWeight.SemiBold)
+        OutlinedButton(onClick = { showPicker = true }, modifier = Modifier.fillMaxWidth()) {
+            Text(summary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+
+    if (showPicker) {
+        val filtered = remember(items, query) {
+            val normalizedQuery = query.trim()
+            if (normalizedQuery.isEmpty()) items
+            else items.filter { titleOf(it).contains(normalizedQuery, ignoreCase = true) }
+        }
+        AlertDialog(
+            onDismissRequest = { showPicker = false },
+            title = { Text(label) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        label = { Text(stringResource(R.string.label_search)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                        if (filtered.isEmpty()) {
+                            item { EmptyText(stringResource(R.string.empty_search_results)) }
+                        } else {
+                            items(filtered, key = { idOf(it) }) { item ->
+                                val id = idOf(item)
+                                val checked = id in selectedIds
+                                TextButton(
+                                    onClick = {
+                                        onSelectionChange(if (checked) selectedIds - id else selectedIds + id)
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Checkbox(
+                                            checked = checked,
+                                            onCheckedChange = {
+                                                onSelectionChange(if (checked) selectedIds - id else selectedIds + id)
+                                            }
+                                        )
+                                        Text(titleOf(item), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.action_ok)) } },
             dismissButton = { TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.action_cancel)) } }
         )
     }
