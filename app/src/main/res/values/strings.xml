@@ -5,13 +5,13 @@
     <string name="tab_types">Виды работ</string>
     <string name="tab_proposal">Предложение</string>
     <string name="tab_reports">Отчёты</string>
-    <string name="tab_about">О приложении</string>
+    <string name="tab_about">Настройки</string>
     <string name="nav_objects">Объекты</string>
     <string name="nav_workers">Люди</string>
     <string name="nav_types">Виды</string>
     <string name="nav_proposal">Смета</string>
     <string name="nav_reports">Отчёты</string>
-    <string name="nav_about">О нас</string>
+    <string name="nav_about">Настройки</string>
     <string name="title_work_day">Рабочий день</string>
     <string name="title_object">Объект</string>
     <string name="empty_objects">Добавьте первый объект</string>
@@ -24,6 +24,7 @@
     <string name="section_language">Язык</string>
     <string name="section_license">Лицензия</string>
     <string name="section_company">Компания</string>
+    <string name="section_directories">Справочники</string>
     <string name="section_saved_proposals">Сохранённые предложения</string>
     <string name="status_completed">Завершён</string>
     <string name="status_active">Активен</string>

@@ -136,11 +136,14 @@ private fun Context.withLanguage(language: LanguageMode): Context {
 
 private enum class MainTab(@StringRes val titleRes: Int, @StringRes val navLabelRes: Int, val icon: ImageVector) {
     Objects(R.string.tab_objects, R.string.nav_objects, Icons.Outlined.Work),
-    Workers(R.string.tab_workers, R.string.nav_workers, Icons.Outlined.People),
-    Types(R.string.tab_types, R.string.nav_types, Icons.Outlined.Construction),
     Proposal(R.string.tab_proposal, R.string.nav_proposal, Icons.Outlined.Assessment),
     Reports(R.string.tab_reports, R.string.nav_reports, Icons.Outlined.Assessment),
     About(R.string.tab_about, R.string.nav_about, Icons.Outlined.Info)
+}
+
+private enum class SettingsSection(@StringRes val titleRes: Int) {
+    Workers(R.string.tab_workers),
+    Types(R.string.tab_types)
 }
 
 private data class ProposalLine(
@@ -153,18 +156,21 @@ private data class ProposalLine(
 @Composable
 private fun WorkTrackApp(vm: AppViewModel) {
     var tab by remember { mutableStateOf(MainTab.Objects) }
+    var settingsSection by remember { mutableStateOf<SettingsSection?>(null) }
     var objectId by remember { mutableLongStateOf(0L) }
     var dayId by remember { mutableLongStateOf(0L) }
     val title = when {
         dayId != 0L -> stringResource(R.string.title_work_day)
         objectId != 0L -> stringResource(R.string.title_object)
+        settingsSection != null -> stringResource(settingsSection!!.titleRes)
         else -> stringResource(tab.titleRes)
     }
 
-    BackHandler(enabled = dayId != 0L || objectId != 0L || tab != MainTab.Objects) {
+    BackHandler(enabled = dayId != 0L || objectId != 0L || settingsSection != null || tab != MainTab.Objects) {
         when {
             dayId != 0L -> dayId = 0L
             objectId != 0L -> objectId = 0L
+            settingsSection != null -> settingsSection = null
             tab != MainTab.Objects -> tab = MainTab.Objects
         }
     }
@@ -176,7 +182,10 @@ private fun WorkTrackApp(vm: AppViewModel) {
                 MainTab.entries.forEach { item ->
                     NavigationBarItem(
                         selected = tab == item,
-                        onClick = { tab = item },
+                        onClick = {
+                            tab = item
+                            settingsSection = null
+                        },
                         icon = { Icon(item.icon, contentDescription = stringResource(item.titleRes)) },
                         label = {
                             Text(
@@ -195,12 +204,17 @@ private fun WorkTrackApp(vm: AppViewModel) {
         when {
             dayId != 0L -> WorkDayScreen(vm, dayId, padding, onBack = { dayId = 0L })
             objectId != 0L -> ObjectDetailsScreen(vm, objectId, padding, onBack = { objectId = 0L }, onOpenDay = { dayId = it })
+            settingsSection == SettingsSection.Workers -> WorkersScreen(vm, padding, onBack = { settingsSection = null })
+            settingsSection == SettingsSection.Types -> WorkTypesScreen(vm, padding, onBack = { settingsSection = null })
             tab == MainTab.Objects -> ObjectsScreen(vm, padding, onOpen = { objectId = it })
-            tab == MainTab.Workers -> WorkersScreen(vm, padding)
-            tab == MainTab.Types -> WorkTypesScreen(vm, padding)
             tab == MainTab.Proposal -> ProposalScreen(vm, padding)
             tab == MainTab.Reports -> ReportsScreen(vm, padding)
-            tab == MainTab.About -> AboutScreen(vm, padding)
+            tab == MainTab.About -> AboutScreen(
+                vm = vm,
+                padding = padding,
+                onOpenWorkers = { settingsSection = SettingsSection.Workers },
+                onOpenTypes = { settingsSection = SettingsSection.Types }
+            )
         }
     }
 }
@@ -407,12 +421,13 @@ private fun WorkerServicesCard(
 }
 
 @Composable
-private fun WorkersScreen(vm: AppViewModel, padding: PaddingValues) {
+private fun WorkersScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -> Unit) {
     val workers by vm.workers.collectAsState()
     var editing by remember { mutableStateOf<Worker?>(null) }
     var showAdd by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) } }
             if (workers.isEmpty()) item { EmptyText(stringResource(R.string.empty_workers)) }
             items(workers, key = { it.id }) { worker ->
                 Card(onClick = { editing = worker }, shape = RoundedCornerShape(8.dp)) {
@@ -441,12 +456,13 @@ private fun WorkersScreen(vm: AppViewModel, padding: PaddingValues) {
 }
 
 @Composable
-private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues) {
+private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -> Unit) {
     val types by vm.workTypes.collectAsState()
     var editing by remember { mutableStateOf<WorkType?>(null) }
     var showAdd by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) } }
             if (types.isEmpty()) item { EmptyText(stringResource(R.string.empty_work_types)) }
             items(types, key = { it.id }) { type ->
                 Card(onClick = { editing = type }, shape = RoundedCornerShape(8.dp)) {

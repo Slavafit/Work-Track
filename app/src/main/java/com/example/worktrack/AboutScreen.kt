@@ -38,6 +38,8 @@ import kotlin.math.max
 fun AboutScreen(
     vm: AppViewModel,
     padding: PaddingValues,
+    onOpenWorkers: () -> Unit,
+    onOpenTypes: () -> Unit,
     licenseViewModel: LicenseViewModel = viewModel()
 ) {
     val settings by vm.settings.collectAsState()
@@ -80,6 +82,17 @@ fun AboutScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
+            }
+        }
+        item {
+            SettingsCard {
+                SectionTitle(stringResource(R.string.section_directories))
+                TextButton(onClick = onOpenWorkers, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.tab_workers))
+                }
+                TextButton(onClick = onOpenTypes, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.tab_types))
+                }
             }
         }
         item {

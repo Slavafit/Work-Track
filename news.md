@@ -1,5 +1,11 @@
 # News
 
+## Version 2.1
+
+- Simplified bottom navigation by keeping only primary app workflows.
+- Moved workers and work types into Settings under Directories.
+- Added internal settings navigation with Back support for directory screens.
+
 ## Version 2.0
 
 - Added saved proposal storage with Room database migration.
