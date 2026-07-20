@@ -70,75 +70,107 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun completeObject(objectId: Long) = viewModelScope.launch { repo.completeObject(objectId) }
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { settingsStore.setTheme(mode) }
     fun setLanguage(language: LanguageMode) = viewModelScope.launch { settingsStore.setLanguage(language) }
+    fun setCompanyName(name: String) = viewModelScope.launch { settingsStore.setCompanyName(name) }
 
-    private fun text(id: Int, vararg args: Any): String =
-        getApplication<Application>().localized(settings.value.language).getString(id, *args)
+    private fun text(id: Int, vararg args: Any): String {
+        val app = getApplication<Application>()
+        return runCatching { app.localized(settings.value.language).getString(id, *args) }
+            .getOrElse { app.getString(id, *args) }
+    }
+
+    private fun reportLocale(): Locale = when (settings.value.language) {
+        LanguageMode.System -> Locale.getDefault()
+        LanguageMode.RU -> Locale("ru")
+        LanguageMode.EN -> Locale("en")
+        LanguageMode.ES -> Locale("es")
+    }
+
+    private fun Long.reportDate(): String = formatDate(reportLocale())
+
+    private fun Long.reportMoney(): String = money(reportLocale())
 
     fun shareObjectReport(objectId: Long, share: (String) -> Unit) = viewModelScope.launch {
-        val objectInfo = repo.objectById(objectId)
-        val client = objectInfo?.let { repo.clientById(it.clientId) }
-        val objectDays = repo.workDays(objectId).first()
-        val rows = repo.reportByObject(objectId)
-        val total = rows.sumOf { it.amount }
-        val rowsByDay = rows.groupBy { it.workDayId }
-        share(buildString {
+        runCatching {
+            val objectInfo = repo.objectById(objectId)
+            val client = objectInfo?.let { repo.clientById(it.clientId) }
+            val objectDays = repo.workDays(objectId).first()
+            val rows = repo.reportByObject(objectId)
+            val total = rows.sumOf { it.amount }
+            val rowsByDay = rows.groupBy { it.workDayId }
+            buildString {
             appendLine(text(R.string.report_object_title))
+            settings.value.companyName.trim().takeIf { it.isNotEmpty() }?.let {
+                appendLine(text(R.string.report_company_format, it))
+            }
             appendLine(text(R.string.report_address_format, objectInfo?.address.orEmpty()))
             appendLine(text(R.string.report_customer_format, client?.name.orEmpty()))
-            appendLine(text(R.string.object_total_days_format, total.money(), objectDays.size))
-            appendLine(text(R.string.report_total_format, total.money()))
+            appendLine(text(R.string.object_total_days_format, total.reportMoney(), objectDays.size))
+            appendLine(text(R.string.report_total_format, total.reportMoney()))
             appendLine()
             if (objectDays.isEmpty()) {
                 appendLine(text(R.string.empty_entries))
             }
             objectDays.forEach { day ->
                 val dayRows = rowsByDay[day.id].orEmpty()
-                appendLine("${day.date.formatDate()} - ${text(R.string.report_total_format, dayRows.sumOf { it.amount }.money())}")
+                appendLine("${day.date.reportDate()} - ${text(R.string.report_total_format, dayRows.sumOf { it.amount }.reportMoney())}")
                 if (dayRows.isEmpty()) {
                     appendLine("  ${text(R.string.empty_entries)}")
                 } else {
                     dayRows.groupBy { it.workerId }.values.forEach { workerRows ->
                         val workerName = workerRows.first().workerName
                         val workerTotal = workerRows.sumOf { it.amount }
-                        appendLine("  ${text(R.string.report_tab_worker)}: $workerName - ${text(R.string.report_total_format, workerTotal.money())}")
+                        val workerHeader = if (workerRows.size == 1) {
+                            "${text(R.string.report_tab_worker)}: $workerName"
+                        } else {
+                            "${text(R.string.report_tab_worker)}: $workerName - ${text(R.string.report_total_format, workerTotal.reportMoney())}"
+                        }
+                        appendLine("  $workerHeader")
                         workerRows.forEach { row ->
                             val notes = row.notes?.takeIf { it.isNotBlank() }?.let { " ($it)" }.orEmpty()
-                            appendLine("    - ${row.workTypeName}: ${row.amount.money()}$notes")
+                            appendLine("    - ${row.workTypeName}: ${row.amount.reportMoney()}$notes")
                         }
                     }
                 }
                 appendLine()
             }
-        })
+            }
+        }.onSuccess(share).onFailure { share(reportError(it)) }
     }
 
     fun shareDateReport(date: Long, share: (String) -> Unit) = viewModelScope.launch {
-        val rows = repo.reportByDate(date.startOfDay(), date.endOfDay())
-        share(buildString {
-            appendLine(text(R.string.report_date_title_format, date.formatDate()))
-            appendLine(text(R.string.report_total_format, rows.sumOf { it.amount }.money()))
+        runCatching {
+            val rows = repo.reportByDate(date.startOfDay(), date.endOfDay())
+            buildString {
+            appendLine(text(R.string.report_date_title_format, date.reportDate()))
+            appendLine(text(R.string.report_total_format, rows.sumOf { it.amount }.reportMoney()))
             appendLine()
             rows.groupBy { it.objectAddress }.forEach { (objectAddress, items) ->
                 appendLine(objectAddress)
-                items.forEach { appendLine(" - ${it.workerName}: ${it.workTypeName}, ${it.amount.money()}") }
+                items.forEach { appendLine(" - ${it.workerName}: ${it.workTypeName}, ${it.amount.reportMoney()}") }
             }
-        })
+            }
+        }.onSuccess(share).onFailure { share(reportError(it)) }
     }
 
     fun shareWorkerReport(workerId: Long, from: Long, to: Long, share: (String) -> Unit) = viewModelScope.launch {
-        val worker = workers.value.firstOrNull { it.id == workerId }
-        val rows = repo.reportByWorker(workerId, from.startOfDay(), to.endOfDay())
-        share(buildString {
+        runCatching {
+            val worker = workers.value.firstOrNull { it.id == workerId }
+            val rows = repo.reportByWorker(workerId, from.startOfDay(), to.endOfDay())
+            buildString {
             appendLine(text(R.string.report_worker_title_format, worker?.name.orEmpty()))
-            appendLine(text(R.string.report_period_format, from.formatDate(), to.formatDate()))
-            appendLine(text(R.string.report_total_format, rows.sumOf { it.amount }.money()))
+            appendLine(text(R.string.report_period_format, from.reportDate(), to.reportDate()))
+            appendLine(text(R.string.report_total_format, rows.sumOf { it.amount }.reportMoney()))
             appendLine()
             rows.groupBy { it.date }.forEach { (date, items) ->
-                appendLine(date.formatDate())
-                items.forEach { appendLine(" - ${it.objectAddress}: ${it.workTypeName}, ${it.amount.money()}") }
+                appendLine(date.reportDate())
+                items.forEach { appendLine(" - ${it.objectAddress}: ${it.workTypeName}, ${it.amount.reportMoney()}") }
             }
-        })
+            }
+        }.onSuccess(share).onFailure { share(reportError(it)) }
     }
+
+    private fun reportError(error: Throwable): String =
+        "Report error: ${error.message ?: error::class.java.simpleName}"
 }
 
 private fun Context.localized(language: LanguageMode): Context {

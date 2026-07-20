@@ -1,5 +1,26 @@
 # News
 
+## Version 1.8
+
+- Added company name setting.
+- Added company information to object reports so customers can see who issued the report.
+
+## Version 1.7
+
+- Simplified object reports by hiding per-worker totals when a worker has only one service entry.
+
+## Version 1.6
+
+- Fixed duplicated work day totals when a day has multiple workers.
+- Reworked object and work day summary SQL to calculate totals, worker counts, and entry counts independently.
+
+## Version 1.5
+
+- Fixed report generation stability when the app language differs from the system language.
+- Made report date and money formatting follow the selected app language.
+- Added safe fallback handling so report generation errors do not crash the app.
+- Replaced the euro symbol in code with a Unicode escape for safer encoding.
+
 ## Version 1.4
 
 - Refined object report formatting by removing customer phone from the header.

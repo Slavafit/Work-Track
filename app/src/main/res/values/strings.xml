@@ -21,6 +21,7 @@
     <string name="section_theme">Тема</string>
     <string name="section_language">Язык</string>
     <string name="section_license">Лицензия</string>
+    <string name="section_company">Компания</string>
     <string name="status_completed">Завершён</string>
     <string name="status_active">Активен</string>
     <string name="status_hidden">Скрыт</string>
@@ -68,6 +69,7 @@
     <string name="label_amount">Стоимость</string>
     <string name="label_name">Имя</string>
     <string name="label_email">Email</string>
+    <string name="label_company_name">Название компании</string>
     <string name="label_search">Поиск</string>
     <string name="empty_search_results">Ничего не найдено</string>
     <string name="dialog_new_object">Новый объект</string>
@@ -115,6 +117,7 @@
     <string name="email_error">Введите корректный email</string>
     <string name="phone_error">Телефон должен содержать от 9 до 12 цифр. + можно указать только в начале.</string>
     <string name="report_object_title">Отчёт по объекту</string>
+    <string name="report_company_format">Исполнитель: %1$s</string>
     <string name="report_address_format">Адрес: %1$s</string>
     <string name="report_customer_format">Заказчик: %1$s</string>
     <string name="report_total_format">Итого: %1$s</string>

@@ -12,25 +12,42 @@ import kotlinx.coroutines.flow.Flow
 interface WorkTrackDao {
     @Query("""
         SELECT o.id, o.address, c.name AS clientName, o.isCompleted, o.completedAt,
-               COALESCE(SUM(e.amount), 0) AS totalAmount,
-               COUNT(DISTINCT d.id) AS dayCount
+               COALESCE(totals.totalAmount, 0) AS totalAmount,
+               COALESCE(days.dayCount, 0) AS dayCount
         FROM WorkObject o
         JOIN Client c ON c.id = o.clientId
-        LEFT JOIN WorkDay d ON d.objectId = o.id
-        LEFT JOIN WorkEntry e ON e.workDayId = d.id
-        GROUP BY o.id
+        LEFT JOIN (
+            SELECT d.objectId, SUM(e.amount) AS totalAmount
+            FROM WorkDay d
+            JOIN WorkEntry e ON e.workDayId = d.id
+            GROUP BY d.objectId
+        ) totals ON totals.objectId = o.id
+        LEFT JOIN (
+            SELECT objectId, COUNT(id) AS dayCount
+            FROM WorkDay
+            GROUP BY objectId
+        ) days ON days.objectId = o.id
         ORDER BY o.isCompleted ASC, o.id DESC
     """)
     fun objectSummaries(): Flow<List<ObjectSummary>>
 
     @Query("""
-        SELECT d.id, d.objectId, d.date, d.notes, COALESCE(SUM(e.amount), 0) AS totalAmount,
-               COUNT(DISTINCT wdw.workerId) AS workerCount, COUNT(DISTINCT e.id) AS entryCount
+        SELECT d.id, d.objectId, d.date, d.notes,
+               COALESCE(entries.totalAmount, 0) AS totalAmount,
+               COALESCE(workers.workerCount, 0) AS workerCount,
+               COALESCE(entries.entryCount, 0) AS entryCount
         FROM WorkDay d
-        LEFT JOIN WorkEntry e ON e.workDayId = d.id
-        LEFT JOIN WorkDayWorker wdw ON wdw.workDayId = d.id
+        LEFT JOIN (
+            SELECT workDayId, SUM(amount) AS totalAmount, COUNT(id) AS entryCount
+            FROM WorkEntry
+            GROUP BY workDayId
+        ) entries ON entries.workDayId = d.id
+        LEFT JOIN (
+            SELECT workDayId, COUNT(workerId) AS workerCount
+            FROM WorkDayWorker
+            GROUP BY workDayId
+        ) workers ON workers.workDayId = d.id
         WHERE d.objectId = :objectId
-        GROUP BY d.id
         ORDER BY d.date DESC
     """)
     fun workDays(objectId: Long): Flow<List<WorkDaySummary>>

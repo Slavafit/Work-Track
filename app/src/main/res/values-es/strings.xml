@@ -21,6 +21,7 @@
     <string name="section_theme">Tema</string>
     <string name="section_language">Idioma</string>
     <string name="section_license">Licencia</string>
+    <string name="section_company">Empresa</string>
     <string name="status_completed">Completado</string>
     <string name="status_active">Activo</string>
     <string name="status_hidden">Oculto</string>
@@ -68,6 +69,7 @@
     <string name="label_amount">Coste</string>
     <string name="label_name">Nombre</string>
     <string name="label_email">Email</string>
+    <string name="label_company_name">Nombre de la empresa</string>
     <string name="label_search">Buscar</string>
     <string name="empty_search_results">No se encontraron resultados</string>
     <string name="dialog_new_object">Nuevo objeto</string>
@@ -115,6 +117,7 @@
     <string name="email_error">Introduce un email válido</string>
     <string name="phone_error">El teléfono debe contener entre 9 y 12 dígitos. + solo se permite al inicio.</string>
     <string name="report_object_title">Informe del objeto</string>
+    <string name="report_company_format">De: %1$s</string>
     <string name="report_address_format">Dirección: %1$s</string>
     <string name="report_customer_format">Cliente: %1$s</string>
     <string name="report_total_format">Total: %1$s</string>

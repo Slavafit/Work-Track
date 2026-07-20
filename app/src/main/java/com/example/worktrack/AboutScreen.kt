@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -66,6 +67,18 @@ fun AboutScreen(
                     text = licenseEmail?.let { stringResource(R.string.license_email_format, it) }
                         ?: stringResource(R.string.license_email_missing),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        item {
+            SettingsCard {
+                SectionTitle(stringResource(R.string.section_company))
+                OutlinedTextField(
+                    value = settings.companyName,
+                    onValueChange = vm::setCompanyName,
+                    label = { Text(stringResource(R.string.label_company_name)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
             }
         }
