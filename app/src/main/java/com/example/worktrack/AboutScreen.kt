@@ -4,14 +4,23 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Construction
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -19,8 +28,13 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -46,6 +60,12 @@ fun AboutScreen(
     val licenseState by licenseViewModel.state.collectAsState()
     val licenseEmail by licenseViewModel.email.collectAsState()
     val uriHandler = LocalUriHandler.current
+    var companyName by remember { mutableStateOf(settings.companyName) }
+    LaunchedEffect(settings.companyName) {
+        if (companyName.isBlank() && settings.companyName.isNotBlank()) {
+            companyName = settings.companyName
+        }
+    }
     LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             SettingsCard {
@@ -76,8 +96,11 @@ fun AboutScreen(
             SettingsCard {
                 SectionTitle(stringResource(R.string.section_company))
                 OutlinedTextField(
-                    value = settings.companyName,
-                    onValueChange = vm::setCompanyName,
+                    value = companyName,
+                    onValueChange = {
+                        companyName = it
+                        vm.setCompanyName(it)
+                    },
                     label = { Text(stringResource(R.string.label_company_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -86,11 +109,19 @@ fun AboutScreen(
         }
         item {
             SettingsCard {
-                SectionTitle(stringResource(R.string.section_directories))
-                TextButton(onClick = onOpenWorkers, modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    SectionTitle(stringResource(R.string.section_directories))
+                }
+                OutlinedButton(onClick = onOpenWorkers, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.People, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.tab_workers))
                 }
-                TextButton(onClick = onOpenTypes, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onOpenTypes, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.Construction, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.tab_types))
                 }
             }

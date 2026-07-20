@@ -1,5 +1,13 @@
 # News
 
+## Version 2.3
+
+- Fixed company name input in Settings so typing is no longer overwritten by saved settings updates.
+
+## Version 2.2
+
+- Improved Settings directories block with a book icon and clearer directory buttons.
+
 ## Version 2.1
 
 - Simplified bottom navigation by keeping only primary app workflows.
