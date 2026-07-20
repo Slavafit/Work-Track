@@ -61,6 +61,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -84,6 +85,8 @@ import com.example.worktrack.data.Client
 import com.example.worktrack.data.EntryDetail
 import com.example.worktrack.data.LanguageMode
 import com.example.worktrack.data.ObjectSummary
+import com.example.worktrack.data.ProposalItem
+import com.example.worktrack.data.ProposalSummary
 import com.example.worktrack.data.ThemeMode
 import com.example.worktrack.data.WorkType
 import com.example.worktrack.data.Worker
@@ -135,9 +138,16 @@ private enum class MainTab(@StringRes val titleRes: Int, @StringRes val navLabel
     Objects(R.string.tab_objects, R.string.nav_objects, Icons.Outlined.Work),
     Workers(R.string.tab_workers, R.string.nav_workers, Icons.Outlined.People),
     Types(R.string.tab_types, R.string.nav_types, Icons.Outlined.Construction),
+    Proposal(R.string.tab_proposal, R.string.nav_proposal, Icons.Outlined.Assessment),
     Reports(R.string.tab_reports, R.string.nav_reports, Icons.Outlined.Assessment),
     About(R.string.tab_about, R.string.nav_about, Icons.Outlined.Info)
 }
+
+private data class ProposalLine(
+    val id: Long,
+    val workTypeId: Long,
+    val amount: String
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,6 +198,7 @@ private fun WorkTrackApp(vm: AppViewModel) {
             tab == MainTab.Objects -> ObjectsScreen(vm, padding, onOpen = { objectId = it })
             tab == MainTab.Workers -> WorkersScreen(vm, padding)
             tab == MainTab.Types -> WorkTypesScreen(vm, padding)
+            tab == MainTab.Proposal -> ProposalScreen(vm, padding)
             tab == MainTab.Reports -> ReportsScreen(vm, padding)
             tab == MainTab.About -> AboutScreen(vm, padding)
         }
@@ -459,6 +470,266 @@ private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues) {
             vm.saveWorkType(type.copy(name = name, isActive = active))
             editing = null
         })
+    }
+}
+
+@Composable
+private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
+    val objects by vm.objects.collectAsState()
+    val types by vm.activeWorkTypes.collectAsState()
+    val proposals by vm.proposals.collectAsState()
+    val settings by vm.settings.collectAsState()
+    val context = LocalContext.current
+    var selectedProposalId by remember { mutableStateOf<Long?>(null) }
+    var objectId by remember { mutableLongStateOf(0L) }
+    var nextLineId by remember { mutableLongStateOf(-1L) }
+    var lines by remember { mutableStateOf<List<ProposalLine>>(emptyList()) }
+    val selectedObject = objects.firstOrNull { it.id == objectId }
+    val proposalTitle = stringResource(R.string.proposal_title)
+    val companyFormat = stringResource(R.string.report_company_format)
+    val addressFormat = stringResource(R.string.report_address_format)
+    val customerFormat = stringResource(R.string.report_customer_format)
+    val totalFormat = stringResource(R.string.report_total_format)
+    val validLines = lines.mapNotNull { line ->
+        val type = types.firstOrNull { it.id == line.workTypeId }
+        val amount = line.amount.toLongOrNull()
+        if (type != null && amount != null && amount > 0L) type to amount else null
+    }
+    val total = validLines.sumOf { it.second }
+
+    LaunchedEffect(selectedProposalId) {
+        val id = selectedProposalId ?: return@LaunchedEffect
+        val proposal = proposals.firstOrNull { it.id == id } ?: return@LaunchedEffect
+        objectId = proposal.objectId
+        vm.loadProposalItems(id) { savedItems ->
+            lines = savedItems.map { ProposalLine(it.id, it.workTypeId, it.amount.toString()) }
+            nextLineId = -1L
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(padding),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.section_saved_proposals), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        OutlinedButton(
+                            onClick = {
+                                selectedProposalId = null
+                                objectId = 0L
+                                lines = emptyList()
+                                nextLineId = -1L
+                            }
+                        ) {
+                            Icon(Icons.Outlined.Add, null)
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.action_new_proposal), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                    if (proposals.isEmpty()) {
+                        Text(stringResource(R.string.empty_proposals), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        proposals.forEach { proposal ->
+                            ProposalSummaryCard(
+                                proposal = proposal,
+                                selected = selectedProposalId == proposal.id,
+                                onOpen = { selectedProposalId = proposal.id },
+                                onDelete = {
+                                    vm.deleteProposal(proposal.id)
+                                    if (selectedProposalId == proposal.id) {
+                                        selectedProposalId = null
+                                        objectId = 0L
+                                        lines = emptyList()
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.tab_proposal), style = MaterialTheme.typography.titleLarge)
+                    EntityPickerField(
+                        label = stringResource(R.string.report_tab_object),
+                        items = objects,
+                        selectedId = objectId,
+                        idOf = { it.id },
+                        titleOf = { "${it.address} - ${it.clientName}" },
+                        onSelect = { objectId = it }
+                    )
+                    if (selectedObject != null) {
+                        Text(stringResource(R.string.report_customer_format, selectedObject.clientName), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Button(
+                        onClick = {
+                            val firstType = types.firstOrNull() ?: return@Button
+                            lines = lines + ProposalLine(nextLineId, firstType.id, "")
+                            nextLineId -= 1
+                        },
+                        enabled = types.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Outlined.Add, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.action_add_service))
+                    }
+                }
+            }
+        }
+        if (lines.isEmpty()) {
+            item { EmptyText(stringResource(R.string.empty_proposal_services)) }
+        } else {
+            items(lines, key = { it.id }) { line ->
+                ProposalLineCard(
+                    line = line,
+                    types = types,
+                    onChange = { updated -> lines = lines.map { if (it.id == updated.id) updated else it } },
+                    onDelete = { lines = lines.filterNot { it.id == line.id } }
+                )
+            }
+        }
+        item {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(stringResource(R.string.report_total_format, total.money()), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Button(
+                        onClick = {
+                            vm.saveProposal(
+                                proposalId = selectedProposalId,
+                                objectId = objectId,
+                                items = validLines.map { (type, amount) -> ProposalItem(proposalId = 0L, workTypeId = type.id, amount = amount) },
+                                onSaved = { selectedProposalId = it }
+                            )
+                        },
+                        enabled = selectedObject != null && validLines.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.action_save_proposal))
+                    }
+                    Button(
+                        onClick = {
+                            context.shareText(
+                                buildProposalText(
+                                    proposalTitle = proposalTitle,
+                                    companyFormat = companyFormat,
+                                    addressFormat = addressFormat,
+                                    customerFormat = customerFormat,
+                                    totalFormat = totalFormat,
+                                    companyName = settings.companyName,
+                                    objectSummary = selectedObject,
+                                    lines = validLines
+                                )
+                            )
+                        },
+                        enabled = selectedObject != null && validLines.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Outlined.Share, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.action_send_to_customer))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProposalSummaryCard(
+    proposal: ProposalSummary,
+    selected: Boolean,
+    onOpen: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        onClick = onOpen,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    ) {
+        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(proposal.address, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(proposal.clientName, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    stringResource(R.string.proposal_items_format, proposal.itemCount, proposal.totalAmount.money()),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProposalLineCard(
+    line: ProposalLine,
+    types: List<WorkType>,
+    onChange: (ProposalLine) -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            DropdownPickerField(
+                label = stringResource(R.string.label_work_type),
+                items = types,
+                selectedId = line.workTypeId,
+                idOf = { it.id },
+                titleOf = { it.name },
+                onSelect = { onChange(line.copy(workTypeId = it)) }
+            )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = line.amount,
+                    onValueChange = { onChange(line.copy(amount = it.filter(Char::isDigit))) },
+                    label = { Text(stringResource(R.string.label_amount)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
+                }
+            }
+        }
+    }
+}
+
+private fun buildProposalText(
+    proposalTitle: String,
+    companyFormat: String,
+    addressFormat: String,
+    customerFormat: String,
+    totalFormat: String,
+    companyName: String,
+    objectSummary: ObjectSummary?,
+    lines: List<Pair<WorkType, Long>>
+): String {
+    val total = lines.sumOf { it.second }
+    return buildString {
+        appendLine(proposalTitle)
+        companyName.trim().takeIf { it.isNotEmpty() }?.let {
+            appendLine(companyFormat.format(it))
+        }
+        appendLine(addressFormat.format(objectSummary?.address.orEmpty()))
+        appendLine(customerFormat.format(objectSummary?.clientName.orEmpty()))
+        appendLine()
+        lines.forEach { (type, amount) ->
+            appendLine("- ${type.name}: ${amount.money()}")
+        }
+        appendLine()
+        appendLine(totalFormat.format(total.money()))
     }
 }
 

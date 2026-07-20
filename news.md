@@ -1,5 +1,17 @@
 # News
 
+## Version 2.0
+
+- Added saved proposal storage with Room database migration.
+- Added saved proposal list, editing, deleting, saving, and repeat sharing.
+- Preserved existing database data with migration from version 1 to 2.
+
+## Version 1.9
+
+- Added Proposal / Presupuesto section.
+- Added draft proposals with object selection, service lines, prices, total, and customer sharing.
+- Added localized proposal strings in Russian, English, and Spanish.
+
 ## Version 1.8
 
 - Added company name setting.

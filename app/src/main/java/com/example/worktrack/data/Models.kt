@@ -80,6 +80,31 @@ data class WorkEntry(
     val notes: String? = null
 )
 
+@Entity(
+    foreignKeys = [ForeignKey(WorkObject::class, ["id"], ["objectId"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index("objectId")]
+)
+data class Proposal(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val objectId: Long,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+
+@Entity(
+    foreignKeys = [
+        ForeignKey(Proposal::class, ["id"], ["proposalId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(WorkType::class, ["id"], ["workTypeId"], onDelete = ForeignKey.RESTRICT)
+    ],
+    indices = [Index("proposalId"), Index("workTypeId")]
+)
+data class ProposalItem(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val proposalId: Long,
+    val workTypeId: Long,
+    val amount: Long
+)
+
 data class ObjectSummary(
     val id: Long,
     val address: String,
@@ -133,4 +158,22 @@ data class ObjectReportRow(
     val workTypeName: String,
     val amount: Long,
     val notes: String?
+)
+
+data class ProposalSummary(
+    val id: Long,
+    val objectId: Long,
+    val address: String,
+    val clientName: String,
+    val updatedAt: Long,
+    val totalAmount: Long,
+    val itemCount: Int
+)
+
+data class ProposalItemDetail(
+    val id: Long,
+    val proposalId: Long,
+    val workTypeId: Long,
+    val workTypeName: String,
+    val amount: Long
 )

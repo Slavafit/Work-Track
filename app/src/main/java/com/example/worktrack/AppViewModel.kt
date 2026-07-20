@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.worktrack.data.AppSettings
 import com.example.worktrack.data.LanguageMode
 import com.example.worktrack.data.ObjectSummary
+import com.example.worktrack.data.ProposalItem
+import com.example.worktrack.data.ProposalItemDetail
 import com.example.worktrack.data.SettingsStore
 import com.example.worktrack.data.ThemeMode
 import com.example.worktrack.data.WorkTrackDatabase
@@ -32,11 +34,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val workTypes = repo.workTypes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val activeWorkers = repo.activeWorkers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val activeWorkTypes = repo.activeWorkTypes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val proposals = repo.proposals.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val settings: StateFlow<AppSettings> = settingsStore.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettings())
 
     fun workDays(objectId: Long) = repo.workDays(objectId)
     fun dayWorkerIds(dayId: Long) = repo.dayWorkerIds(dayId)
     fun entries(dayId: Long) = repo.entries(dayId)
+    fun proposalItems(proposalId: Long) = repo.proposalItems(proposalId)
 
     fun createObject(address: String, selectedClientId: Long?, clientName: String, phone: String?) = viewModelScope.launch {
         if (address.isNotBlank() && clientName.isNotBlank()) repo.createObject(address, selectedClientId, clientName, phone)
@@ -68,6 +72,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun deleteEntry(id: Long) = viewModelScope.launch { repo.deleteEntry(id) }
     fun completeObject(objectId: Long) = viewModelScope.launch { repo.completeObject(objectId) }
+    fun saveProposal(proposalId: Long?, objectId: Long, items: List<ProposalItem>, onSaved: (Long) -> Unit) = viewModelScope.launch {
+        if (objectId != 0L && items.isNotEmpty()) onSaved(repo.saveProposal(proposalId, objectId, items))
+    }
+    fun loadProposalItems(proposalId: Long, onLoaded: (List<ProposalItemDetail>) -> Unit) = viewModelScope.launch {
+        onLoaded(repo.proposalItems(proposalId).first())
+    }
+    fun deleteProposal(id: Long) = viewModelScope.launch { repo.deleteProposal(id) }
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { settingsStore.setTheme(mode) }
     fun setLanguage(language: LanguageMode) = viewModelScope.launch { settingsStore.setLanguage(language) }
     fun setCompanyName(name: String) = viewModelScope.launch { settingsStore.setCompanyName(name) }

@@ -7,10 +7,12 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
     val workTypes = dao.workTypes()
     val activeWorkers = dao.activeWorkers()
     val activeWorkTypes = dao.activeWorkTypes()
+    val proposals = dao.proposals()
 
     fun workDays(objectId: Long) = dao.workDays(objectId)
     fun dayWorkerIds(dayId: Long) = dao.dayWorkerIds(dayId)
     fun entries(dayId: Long) = dao.entries(dayId)
+    fun proposalItems(proposalId: Long) = dao.proposalItems(proposalId)
 
     suspend fun createObject(address: String, selectedClientId: Long?, clientName: String, phone: String?) =
         dao.createObject(address, selectedClientId, clientName, phone)
@@ -23,6 +25,8 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
         dao.insertEntry(WorkEntry(workDayId = dayId, workerId = workerId, workTypeId = typeId, amount = amount, notes = notes?.ifBlank { null }))
     suspend fun deleteEntry(id: Long) = dao.deleteEntryById(id)
     suspend fun completeObject(objectId: Long) = dao.completeObject(objectId, System.currentTimeMillis())
+    suspend fun saveProposal(proposalId: Long?, objectId: Long, items: List<ProposalItem>) = dao.saveProposal(proposalId, objectId, items)
+    suspend fun deleteProposal(id: Long) = dao.deleteProposalById(id)
     suspend fun objectById(id: Long) = dao.objectById(id)
     suspend fun clientById(id: Long) = dao.clientById(id)
     suspend fun reportByDate(start: Long, end: Long) = dao.reportByDate(start, end)

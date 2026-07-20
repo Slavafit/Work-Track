@@ -3,11 +3,13 @@
     <string name="tab_objects">Objetos</string>
     <string name="tab_workers">Trabajadores</string>
     <string name="tab_types">Tipos de trabajo</string>
+    <string name="tab_proposal">Presupuesto</string>
     <string name="tab_reports">Informes</string>
     <string name="tab_about">Acerca de</string>
     <string name="nav_objects">Objetos</string>
     <string name="nav_workers">Equipo</string>
     <string name="nav_types">Tipos</string>
+    <string name="nav_proposal">Presup.</string>
     <string name="nav_reports">Informes</string>
     <string name="nav_about">Info</string>
     <string name="title_work_day">Día de trabajo</string>
@@ -22,6 +24,7 @@
     <string name="section_language">Idioma</string>
     <string name="section_license">Licencia</string>
     <string name="section_company">Empresa</string>
+    <string name="section_saved_proposals">Presupuestos guardados</string>
     <string name="status_completed">Completado</string>
     <string name="status_active">Activo</string>
     <string name="status_hidden">Oculto</string>
@@ -48,6 +51,10 @@
     <string name="action_retry">Reintentar</string>
     <string name="action_pick_contact">Elegir de contactos</string>
     <string name="action_select">Elegir</string>
+    <string name="action_add_service">Añadir servicio</string>
+    <string name="action_send_to_customer">Enviar al cliente</string>
+    <string name="action_new_proposal">Nuevo</string>
+    <string name="action_save_proposal">Guardar presupuesto</string>
     <string name="selected_count_format">Seleccionados: %1$d</string>
     <string name="confirm_complete_object_title">¿Completar objeto?</string>
     <string name="confirm_complete_object_message">Después de completarlo, el objeto será de solo lectura.</string>
@@ -72,6 +79,8 @@
     <string name="label_company_name">Nombre de la empresa</string>
     <string name="label_search">Buscar</string>
     <string name="empty_search_results">No se encontraron resultados</string>
+    <string name="empty_proposal_services">Añade servicios para el presupuesto</string>
+    <string name="empty_proposals">Aún no hay presupuestos guardados</string>
     <string name="dialog_new_object">Nuevo objeto</string>
     <string name="dialog_new_client">Nuevo cliente</string>
     <string name="dialog_new_work_day">Nuevo día de trabajo</string>
@@ -124,4 +133,6 @@
     <string name="report_date_title_format">Informe del %1$s</string>
     <string name="report_worker_title_format">Informe del trabajador: %1$s</string>
     <string name="report_period_format">Periodo: %1$s - %2$s</string>
+    <string name="proposal_title">Presupuesto</string>
+    <string name="proposal_items_format">Servicios: %1$d · %2$s</string>
 </resources>

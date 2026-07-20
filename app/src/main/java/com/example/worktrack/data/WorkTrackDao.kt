@@ -67,6 +67,28 @@ interface WorkTrackDao {
     @Query("SELECT * FROM WorkType WHERE isActive = 1 ORDER BY name")
     fun activeWorkTypes(): Flow<List<WorkType>>
 
+    @Query("""
+        SELECT p.id, p.objectId, o.address, c.name AS clientName, p.updatedAt,
+               COALESCE(SUM(i.amount), 0) AS totalAmount,
+               COUNT(i.id) AS itemCount
+        FROM Proposal p
+        JOIN WorkObject o ON o.id = p.objectId
+        JOIN Client c ON c.id = o.clientId
+        LEFT JOIN ProposalItem i ON i.proposalId = p.id
+        GROUP BY p.id
+        ORDER BY p.updatedAt DESC
+    """)
+    fun proposals(): Flow<List<ProposalSummary>>
+
+    @Query("""
+        SELECT i.id, i.proposalId, i.workTypeId, t.name AS workTypeName, i.amount
+        FROM ProposalItem i
+        JOIN WorkType t ON t.id = i.workTypeId
+        WHERE i.proposalId = :proposalId
+        ORDER BY i.id
+    """)
+    fun proposalItems(proposalId: Long): Flow<List<ProposalItemDetail>>
+
     @Query("SELECT * FROM WorkObject WHERE id = :id")
     suspend fun objectById(id: Long): WorkObject?
 
@@ -107,6 +129,12 @@ interface WorkTrackDao {
     @Insert
     suspend fun insertEntry(entry: WorkEntry): Long
 
+    @Insert
+    suspend fun insertProposal(proposal: Proposal): Long
+
+    @Insert
+    suspend fun insertProposalItem(item: ProposalItem): Long
+
     @Update
     suspend fun updateClient(client: Client)
 
@@ -124,6 +152,12 @@ interface WorkTrackDao {
 
     @Query("DELETE FROM WorkEntry WHERE id = :id")
     suspend fun deleteEntryById(id: Long)
+
+    @Query("DELETE FROM ProposalItem WHERE proposalId = :proposalId")
+    suspend fun deleteProposalItems(proposalId: Long)
+
+    @Query("DELETE FROM Proposal WHERE id = :id")
+    suspend fun deleteProposalById(id: Long)
 
     @Query("DELETE FROM WorkDayWorker WHERE workDayId = :dayId")
     suspend fun clearDayWorkers(dayId: Long)
@@ -150,6 +184,21 @@ interface WorkTrackDao {
         clearDayWorkers(dayId)
         workerIds.forEach { insertDayWorker(WorkDayWorker(workDayId = dayId, workerId = it)) }
     }
+
+    @Transaction
+    suspend fun saveProposal(proposalId: Long?, objectId: Long, items: List<ProposalItem>): Long {
+        val now = System.currentTimeMillis()
+        val id = proposalId?.takeIf { it != 0L } ?: insertProposal(Proposal(objectId = objectId, createdAt = now, updatedAt = now))
+        if (proposalId != null && proposalId != 0L) {
+            updateProposalTimestamp(id, objectId, now)
+            deleteProposalItems(id)
+        }
+        items.forEach { item -> insertProposalItem(item.copy(proposalId = id)) }
+        return id
+    }
+
+    @Query("UPDATE Proposal SET objectId = :objectId, updatedAt = :updatedAt WHERE id = :proposalId")
+    suspend fun updateProposalTimestamp(proposalId: Long, objectId: Long, updatedAt: Long)
 
     @Query("UPDATE WorkObject SET isCompleted = 1, completedAt = :completedAt WHERE id = :objectId")
     suspend fun completeObject(objectId: Long, completedAt: Long)

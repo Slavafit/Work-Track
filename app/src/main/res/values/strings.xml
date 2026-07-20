@@ -3,11 +3,13 @@
     <string name="tab_objects">Объекты</string>
     <string name="tab_workers">Работники</string>
     <string name="tab_types">Виды работ</string>
+    <string name="tab_proposal">Предложение</string>
     <string name="tab_reports">Отчёты</string>
     <string name="tab_about">О приложении</string>
     <string name="nav_objects">Объекты</string>
     <string name="nav_workers">Люди</string>
     <string name="nav_types">Виды</string>
+    <string name="nav_proposal">Смета</string>
     <string name="nav_reports">Отчёты</string>
     <string name="nav_about">О нас</string>
     <string name="title_work_day">Рабочий день</string>
@@ -22,6 +24,7 @@
     <string name="section_language">Язык</string>
     <string name="section_license">Лицензия</string>
     <string name="section_company">Компания</string>
+    <string name="section_saved_proposals">Сохранённые предложения</string>
     <string name="status_completed">Завершён</string>
     <string name="status_active">Активен</string>
     <string name="status_hidden">Скрыт</string>
@@ -50,6 +53,10 @@
     <string name="action_retry">Повторить</string>
     <string name="action_pick_contact">Выбрать из контактов</string>
     <string name="action_select">Выбрать</string>
+    <string name="action_add_service">Добавить услугу</string>
+    <string name="action_send_to_customer">Отправить клиенту</string>
+    <string name="action_new_proposal">Новое</string>
+    <string name="action_save_proposal">Сохранить предложение</string>
     <string name="selected_count_format">Выбрано: %1$d</string>
     <string name="confirm_complete_object_title">Завершить объект?</string>
     <string name="confirm_complete_object_message">После завершения объект считается read-only.</string>
@@ -72,6 +79,8 @@
     <string name="label_company_name">Название компании</string>
     <string name="label_search">Поиск</string>
     <string name="empty_search_results">Ничего не найдено</string>
+    <string name="empty_proposal_services">Добавьте услуги для предложения</string>
+    <string name="empty_proposals">Сохранённых предложений пока нет</string>
     <string name="dialog_new_object">Новый объект</string>
     <string name="dialog_new_client">Новый клиент</string>
     <string name="dialog_new_work_day">Новый рабочий день</string>
@@ -124,4 +133,6 @@
     <string name="report_date_title_format">Отчёт за %1$s</string>
     <string name="report_worker_title_format">Отчёт по работнику: %1$s</string>
     <string name="report_period_format">Период: %1$s - %2$s</string>
+    <string name="proposal_title">Предложение / Presupuesto</string>
+    <string name="proposal_items_format">Услуг: %1$d · %2$s</string>
 </resources>
