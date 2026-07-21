@@ -1,5 +1,11 @@
 # News
 
+## Version 2.9
+
+- Restored object reports to the previous text sharing style instead of PDF.
+- Removed the duplicate object total line from the report header.
+- Removed per-worker totals from object reports while keeping day totals.
+
 ## Version 2.8
 
 - Fixed expired licenses being treated as connection errors.
