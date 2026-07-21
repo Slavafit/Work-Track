@@ -125,6 +125,7 @@
     <string name="license_activation_message">Introduce tu email para empezar. El acceso de prueba dura 3 días.</string>
     <string name="license_start_trial">Iniciar prueba</string>
     <string name="license_trial_expired_title">El periodo de prueba terminó</string>
+    <string name="license_expired_title">La licencia ha caducado</string>
     <string name="license_no_access_title">Sin acceso</string>
     <string name="license_trial_expired_message">Solicita una licencia completa al desarrollador.</string>
     <string name="license_revoked_message">La licencia fue revocada. Contacta con el desarrollador.</string>

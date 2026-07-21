@@ -1,5 +1,16 @@
 # News
 
+## Version 2.8
+
+- Fixed expired licenses being treated as connection errors.
+- Added explicit expired license and expired trial states in the license gate and Settings.
+- Made remaining days display as 0 for expired license states.
+
+## Version 2.7
+
+- Changed object report sharing to a single PDF file so photos appear after the report text.
+- Added secure FileProvider sharing for generated report PDFs.
+
 ## Version 2.6
 
 - Moved object report photo summary to the end of the report text.

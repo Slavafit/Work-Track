@@ -3,10 +3,20 @@ package com.example.worktrack
 import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Typeface
+import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.LocaleList
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.worktrack.BuildConfig
 import com.example.worktrack.data.AppSettings
 import com.example.worktrack.data.LanguageMode
 import com.example.worktrack.data.ObjectSummary
@@ -23,6 +33,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.Locale
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -110,8 +121,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun Long.reportMoney(): String = money(reportLocale())
 
-    fun shareObjectReport(objectId: Long, share: (String, List<String>) -> Unit) = viewModelScope.launch {
+    fun shareObjectReport(objectId: Long, sharePdf: (String) -> Unit, shareText: (String) -> Unit) = viewModelScope.launch {
         runCatching {
+            val report = buildObjectReportShare(objectId)
+            createObjectReportPdf(report.text, report.photoUris)
+        }.onSuccess(sharePdf).onFailure { shareText(reportError(it)) }
+    }
+
+    private suspend fun buildObjectReportShare(objectId: Long): ObjectReportShare {
             val objectInfo = repo.objectById(objectId)
             val client = objectInfo?.let { repo.clientById(it.clientId) }
             val objectDays = repo.workDays(objectId).first()
@@ -166,8 +183,89 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
             }
-            ObjectReportShare(text, availablePhotoUris)
-        }.onSuccess { share(it.text, it.photoUris) }.onFailure { share(reportError(it), emptyList()) }
+            return ObjectReportShare(text, availablePhotoUris)
+    }
+
+    private fun createObjectReportPdf(text: String, photoUris: List<String>): String {
+        val app = getApplication<Application>()
+        val outputDir = File(app.cacheDir, "reports").apply { mkdirs() }
+        val output = File(outputDir, "object-report.pdf")
+        val document = PdfDocument()
+        val pageWidth = 595
+        val pageHeight = 842
+        val margin = 40f
+        val normalPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.BLACK
+            textSize = 12f
+        }
+        val titlePaint = Paint(normalPaint).apply {
+            textSize = 18f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+        var pageNumber = 1
+        var page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
+        var canvas = page.canvas
+        var y = margin
+
+        fun finishPage() {
+            document.finishPage(page)
+        }
+
+        fun newPage() {
+            finishPage()
+            pageNumber += 1
+            page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
+            canvas = page.canvas
+            y = margin
+        }
+
+        fun drawWrappedLine(line: String, paint: Paint) {
+            val maxWidth = pageWidth - margin * 2
+            val words = line.split(" ")
+            var current = ""
+            val source = if (words.isEmpty()) listOf(line) else words
+            source.forEach { word ->
+                val candidate = if (current.isEmpty()) word else "$current $word"
+                if (paint.measureText(candidate) <= maxWidth) {
+                    current = candidate
+                } else {
+                    if (y > pageHeight - margin) newPage()
+                    canvas.drawText(current, margin, y, paint)
+                    y += paint.textSize + 6f
+                    current = word
+                }
+            }
+            if (current.isNotEmpty()) {
+                if (y > pageHeight - margin) newPage()
+                canvas.drawText(current, margin, y, paint)
+                y += paint.textSize + 6f
+            } else {
+                y += paint.textSize + 6f
+            }
+        }
+
+        text.lines().forEachIndexed { index, line ->
+            val paint = if (index == 0) titlePaint else normalPaint
+            if (line.isBlank()) {
+                y += 10f
+            } else {
+                drawWrappedLine(line, paint)
+            }
+        }
+
+        photoUris.forEach { uri ->
+            val bitmap = app.contentResolver.openInputStream(Uri.parse(uri))?.use(BitmapFactory::decodeStream)
+            if (bitmap != null) {
+                newPage()
+                canvas.drawBitmap(bitmap, null, fitRect(bitmap, pageWidth - margin * 2, pageHeight - margin * 2, margin, margin), null)
+                bitmap.recycle()
+            }
+        }
+
+        finishPage()
+        output.outputStream().use(document::writeTo)
+        document.close()
+        return FileProvider.getUriForFile(app, "${BuildConfig.APPLICATION_ID}.fileprovider", output).toString()
     }
 
     fun shareDateReport(date: Long, share: (String) -> Unit) = viewModelScope.launch {
@@ -211,6 +309,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             app.contentResolver.openInputStream(Uri.parse(uri))?.use { true } == true
         }.getOrDefault(false)
     }
+}
+
+private fun fitRect(bitmap: Bitmap, maxWidth: Float, maxHeight: Float, left: Float, top: Float): RectF {
+    val scale = minOf(maxWidth / bitmap.width, maxHeight / bitmap.height)
+    val width = bitmap.width * scale
+    val height = bitmap.height * scale
+    return RectF(left, top, left + width, top + height)
 }
 
 private data class ObjectReportShare(

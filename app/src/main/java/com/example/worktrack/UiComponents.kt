@@ -365,3 +365,14 @@ fun Context.shareReport(text: String, photoUris: List<String>) {
     }
     startActivity(Intent.createChooser(intent, getString(R.string.action_share)))
 }
+
+fun Context.sharePdfReport(pdfUri: String) {
+    val uri = Uri.parse(pdfUri)
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "application/pdf"
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        putExtra(Intent.EXTRA_STREAM, uri)
+        clipData = ClipData.newUri(contentResolver, "object-report", uri)
+    }
+    startActivity(Intent.createChooser(intent, getString(R.string.action_share)))
+}

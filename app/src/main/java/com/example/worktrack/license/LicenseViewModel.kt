@@ -24,7 +24,7 @@ class LicenseViewModel(app: Application) : AndroidViewModel(app) {
                 is VerifyResult.Active -> LicenseState.Active
                 is VerifyResult.Trial -> LicenseState.Trial(result.expiresAt)
                 is VerifyResult.NeedActivation -> LicenseState.NeedActivation
-                is VerifyResult.Invalid -> LicenseState.Invalid(result.reason)
+                is VerifyResult.Invalid -> LicenseState.Invalid(result.reason, result.expiresAt)
             }
             _email.value = LicenseManager.savedEmail(getApplication())
         }
@@ -38,7 +38,10 @@ class LicenseViewModel(app: Application) : AndroidViewModel(app) {
                 is ActivateResult.Trial -> LicenseState.Trial(result.expiresAt)
                 is ActivateResult.Pending -> LicenseState.Pending(result.message)
                 is ActivateResult.TrialExpired -> LicenseState.Invalid("trial_expired")
-                is ActivateResult.Error -> LicenseState.Error(result.message)
+                is ActivateResult.Error -> {
+                    val reason = result.message.trim()
+                    if (reason == "expired" || reason == "trial_expired") LicenseState.Invalid(reason) else LicenseState.Error(result.message)
+                }
             }
             _email.value = LicenseManager.savedEmail(getApplication()) ?: email
         }
@@ -51,6 +54,6 @@ sealed class LicenseState {
     data class Trial(val expiresAt: Long) : LicenseState()
     data class Pending(val message: String) : LicenseState()
     data object NeedActivation : LicenseState()
-    data class Invalid(val reason: String) : LicenseState()
+    data class Invalid(val reason: String, val expiresAt: Long = 0L) : LicenseState()
     data class Error(val message: String) : LicenseState()
 }

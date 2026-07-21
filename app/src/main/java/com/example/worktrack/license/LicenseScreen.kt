@@ -31,6 +31,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlin.math.ceil
+import kotlin.math.max
 
 @Composable
 fun LicenseGate(
@@ -43,7 +45,7 @@ fun LicenseGate(
         is LicenseState.Trial -> content()
         is LicenseState.Pending -> PendingScreen(state.message, viewModel)
         is LicenseState.NeedActivation -> ActivationScreen(viewModel)
-        is LicenseState.Invalid -> InvalidScreen(state.reason, viewModel)
+        is LicenseState.Invalid -> InvalidScreen(state.reason, state.expiresAt, viewModel)
         is LicenseState.Error -> ErrorScreen(state.message, viewModel)
     }
 }
@@ -85,14 +87,25 @@ private fun ActivationScreen(viewModel: LicenseViewModel) {
 }
 
 @Composable
-private fun InvalidScreen(reason: String, viewModel: LicenseViewModel) {
-    val title = stringResource(if (reason == "trial_expired") com.example.worktrack.R.string.license_trial_expired_title else com.example.worktrack.R.string.license_no_access_title)
+private fun InvalidScreen(reason: String, expiresAt: Long, viewModel: LicenseViewModel) {
+    val title = stringResource(
+        when (reason) {
+            "trial_expired" -> com.example.worktrack.R.string.license_trial_expired_title
+            "expired" -> com.example.worktrack.R.string.license_expired_title
+            else -> com.example.worktrack.R.string.license_no_access_title
+        }
+    )
     val message = when (reason) {
         "trial_expired" -> stringResource(com.example.worktrack.R.string.license_trial_expired_message)
         "revoked" -> stringResource(com.example.worktrack.R.string.license_revoked_message)
         "expired" -> stringResource(com.example.worktrack.R.string.license_expired_message)
         "device_mismatch" -> stringResource(com.example.worktrack.R.string.license_device_mismatch_message)
         else -> stringResource(com.example.worktrack.R.string.license_invalid_message)
+    }
+    val daysText = if (reason == "trial_expired" || reason == "expired") {
+        stringResource(com.example.worktrack.R.string.license_trial_days_format, daysLeft(expiresAt))
+    } else {
+        null
     }
     Column(
         Modifier.fillMaxSize().padding(32.dp),
@@ -104,6 +117,10 @@ private fun InvalidScreen(reason: String, viewModel: LicenseViewModel) {
         Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
         Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        daysText?.let {
+            Spacer(Modifier.height(6.dp))
+            Text(it, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = viewModel::checkLicense, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(com.example.worktrack.R.string.action_check_again))
@@ -165,3 +182,8 @@ private fun LicenseForm(
 }
 
 private fun String.isValidEmail(): Boolean = contains("@") && contains(".") && length >= 5
+
+private fun daysLeft(expiresAtSeconds: Long): Int {
+    val millisLeft = expiresAtSeconds * 1000L - System.currentTimeMillis()
+    return max(0, ceil(millisLeft / 86_400_000.0).toInt())
+}

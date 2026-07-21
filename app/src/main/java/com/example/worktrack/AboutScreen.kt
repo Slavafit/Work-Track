@@ -201,7 +201,13 @@ private fun LicenseState.title(): String = when (this) {
     is LicenseState.Trial -> stringResource(R.string.license_status_trial)
     is LicenseState.Pending -> stringResource(R.string.license_status_pending)
     is LicenseState.NeedActivation -> stringResource(R.string.license_status_need_activation)
-    is LicenseState.Invalid -> stringResource(R.string.license_status_invalid)
+    is LicenseState.Invalid -> stringResource(
+        when (reason) {
+            "trial_expired" -> R.string.license_trial_expired_title
+            "expired" -> R.string.license_expired_title
+            else -> R.string.license_status_invalid
+        }
+    )
     is LicenseState.Error -> stringResource(R.string.connection_error_title)
     is LicenseState.Loading -> stringResource(R.string.license_status_checking)
 }
@@ -212,7 +218,10 @@ private fun LicenseState.detail(): String = when (this) {
     is LicenseState.Trial -> stringResource(R.string.license_trial_days_format, daysLeft(expiresAt))
     is LicenseState.Pending -> stringResource(R.string.license_pending_detail)
     is LicenseState.NeedActivation -> stringResource(R.string.license_need_activation_detail)
-    is LicenseState.Invalid -> stringResource(R.string.license_invalid_detail)
+    is LicenseState.Invalid -> when (reason) {
+        "trial_expired", "expired" -> stringResource(R.string.license_trial_days_format, daysLeft(expiresAt))
+        else -> stringResource(R.string.license_invalid_detail)
+    }
     is LicenseState.Error -> stringResource(R.string.connection_error_message)
     is LicenseState.Loading -> stringResource(R.string.license_checking_detail)
 }

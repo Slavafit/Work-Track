@@ -125,6 +125,7 @@
     <string name="license_activation_message">Enter your email to start. Trial access lasts 3 days.</string>
     <string name="license_start_trial">Start trial</string>
     <string name="license_trial_expired_title">Trial period ended</string>
+    <string name="license_expired_title">License expired</string>
     <string name="license_no_access_title">No access</string>
     <string name="license_trial_expired_message">Request a full license from the developer.</string>
     <string name="license_revoked_message">The license was revoked. Contact the developer.</string>

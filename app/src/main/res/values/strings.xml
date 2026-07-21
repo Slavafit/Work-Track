@@ -125,6 +125,7 @@
     <string name="license_activation_message">Введите email для начала работы. Пробный доступ действует 3 дня.</string>
     <string name="license_start_trial">Начать пробный период</string>
     <string name="license_trial_expired_title">Пробный период завершён</string>
+    <string name="license_expired_title">Срок лицензии истёк</string>
     <string name="license_no_access_title">Нет доступа</string>
     <string name="license_trial_expired_message">Запросите полную лицензию у разработчика.</string>
     <string name="license_revoked_message">Лицензия отозвана. Обратитесь к разработчику.</string>
