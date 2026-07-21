@@ -1,7 +1,9 @@
 package com.example.worktrack
 
 import android.content.Context
+import android.content.ClipData
 import android.content.Intent
+import android.net.Uri
 import android.provider.ContactsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -342,6 +344,24 @@ fun Context.shareText(text: String) {
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_TEXT, text)
+    }
+    startActivity(Intent.createChooser(intent, getString(R.string.action_share)))
+}
+
+fun Context.shareReport(text: String, photoUris: List<String>) {
+    val uris = ArrayList(photoUris.map(Uri::parse))
+    if (uris.isEmpty()) {
+        shareText(text)
+        return
+    }
+    val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+        type = "image/*"
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        putExtra(Intent.EXTRA_TEXT, text)
+        putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+        clipData = ClipData.newUri(contentResolver, "report-photo", uris.first()).also { clip ->
+            uris.drop(1).forEach { uri -> clip.addItem(ClipData.Item(uri)) }
+        }
     }
     startActivity(Intent.createChooser(intent, getString(R.string.action_share)))
 }

@@ -110,17 +110,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun Long.reportMoney(): String = money(reportLocale())
 
-    fun shareObjectReport(objectId: Long, share: (String) -> Unit) = viewModelScope.launch {
+    fun shareObjectReport(objectId: Long, share: (String, List<String>) -> Unit) = viewModelScope.launch {
         runCatching {
             val objectInfo = repo.objectById(objectId)
             val client = objectInfo?.let { repo.clientById(it.clientId) }
             val objectDays = repo.workDays(objectId).first()
             val rows = repo.reportByObject(objectId)
             val photos = repo.photosByObject(objectId)
+            val availablePhotoUris = photos.map { it.uri }.filter(::photoUriAvailable).distinct()
             val total = rows.sumOf { it.amount }
             val rowsByDay = rows.groupBy { it.workDayId }
             val photosByDay = photos.groupBy { it.workDayId }
-            buildString {
+            val text = buildString {
             appendLine(text(R.string.report_object_title))
             settings.value.companyName.trim().takeIf { it.isNotEmpty() }?.let {
                 appendLine(text(R.string.report_company_format, it))
@@ -156,19 +157,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 photosByDay[day.id].orEmpty().takeIf { it.isNotEmpty() }?.let { dayPhotos ->
                     appendLine("  ${text(R.string.report_photos_title)}")
-                    dayPhotos.forEach { photo ->
-                        val status = if (photoUriAvailable(photo.uri)) {
-                            text(R.string.photo_status_available)
-                        } else {
-                            text(R.string.photo_status_missing)
-                        }
-                        appendLine("    - $status: ${photo.uri}")
+                    val availableCount = dayPhotos.count { photoUriAvailable(it.uri) }
+                    val missingCount = dayPhotos.size - availableCount
+                    appendLine("    ${text(R.string.report_photos_attached_format, availableCount)}")
+                    if (missingCount > 0) {
+                        appendLine("    ${text(R.string.report_photos_missing_format, missingCount)}")
                     }
                 }
                 appendLine()
             }
             }
-        }.onSuccess(share).onFailure { share(reportError(it)) }
+            ObjectReportShare(text, availablePhotoUris)
+        }.onSuccess { share(it.text, it.photoUris) }.onFailure { share(reportError(it), emptyList()) }
     }
 
     fun shareDateReport(date: Long, share: (String) -> Unit) = viewModelScope.launch {
@@ -213,6 +213,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }.getOrDefault(false)
     }
 }
+
+private data class ObjectReportShare(
+    val text: String,
+    val photoUris: List<String>
+)
 
 private fun Context.localized(language: LanguageMode): Context {
     val locale = when (language) {

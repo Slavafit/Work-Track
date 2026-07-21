@@ -1,5 +1,11 @@
 # News
 
+## Version 2.5
+
+- Changed object report sharing to attach available work day photos as image files.
+- Removed raw photo URI links from object report text.
+- Added report text counters for attached and unavailable photos.
+
 ## Version 2.4
 
 - Added photo links for work days using persisted device gallery access.

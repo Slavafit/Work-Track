@@ -302,7 +302,7 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
                                 modifier = Modifier.weight(1f)
                             ) { Text(stringResource(R.string.action_add_day), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                             OutlinedButton(
-                                onClick = { vm.shareObjectReport(objectId) { context.shareText(it) } },
+                                onClick = { vm.shareObjectReport(objectId) { text, photos -> context.shareReport(text, photos) } },
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Outlined.Share, null)
@@ -884,7 +884,7 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
                 }
                 2 -> {
                     EntityChips(objects, objectId, { it.id }, { it.address }) { objectId = it }
-                    Button(onClick = { vm.shareObjectReport(objectId) { context.shareText(it) } }, enabled = objectId != 0L, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { vm.shareObjectReport(objectId) { text, photos -> context.shareReport(text, photos) } }, enabled = objectId != 0L, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Share, null)
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.action_share_report))

@@ -141,6 +141,8 @@
     <string name="report_customer_format">Customer: %1$s</string>
     <string name="report_total_format">Total: %1$s</string>
     <string name="report_photos_title">Photos:</string>
+    <string name="report_photos_attached_format">Attached photos: %1$d</string>
+    <string name="report_photos_missing_format">Unavailable photos: %1$d</string>
     <string name="report_date_title_format">Report for %1$s</string>
     <string name="report_worker_title_format">Worker report: %1$s</string>
     <string name="report_period_format">Period: %1$s - %2$s</string>
