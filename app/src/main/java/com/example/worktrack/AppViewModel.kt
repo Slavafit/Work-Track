@@ -120,7 +120,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val availablePhotoUris = photos.map { it.uri }.filter(::photoUriAvailable).distinct()
             val total = rows.sumOf { it.amount }
             val rowsByDay = rows.groupBy { it.workDayId }
-            val photosByDay = photos.groupBy { it.workDayId }
+            val availablePhotoCount = photos.count { photoUriAvailable(it.uri) }
+            val missingPhotoCount = photos.size - availablePhotoCount
             val text = buildString {
             appendLine(text(R.string.report_object_title))
             settings.value.companyName.trim().takeIf { it.isNotEmpty() }?.let {
@@ -155,16 +156,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         }
                     }
                 }
-                photosByDay[day.id].orEmpty().takeIf { it.isNotEmpty() }?.let { dayPhotos ->
-                    appendLine("  ${text(R.string.report_photos_title)}")
-                    val availableCount = dayPhotos.count { photoUriAvailable(it.uri) }
-                    val missingCount = dayPhotos.size - availableCount
-                    appendLine("    ${text(R.string.report_photos_attached_format, availableCount)}")
-                    if (missingCount > 0) {
-                        appendLine("    ${text(R.string.report_photos_missing_format, missingCount)}")
-                    }
-                }
                 appendLine()
+            }
+            if (photos.isNotEmpty()) {
+                appendLine(text(R.string.report_photos_title))
+                appendLine(text(R.string.report_photos_attached_format, availablePhotoCount))
+                if (missingPhotoCount > 0) {
+                    appendLine(text(R.string.report_photos_missing_format, missingPhotoCount))
+                }
             }
             }
             ObjectReportShare(text, availablePhotoUris)

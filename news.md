@@ -1,5 +1,9 @@
 # News
 
+## Version 2.6
+
+- Moved object report photo summary to the end of the report text.
+
 ## Version 2.5
 
 - Changed object report sharing to attach available work day photos as image files.
