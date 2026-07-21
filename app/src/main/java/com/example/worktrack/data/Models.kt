@@ -81,6 +81,18 @@ data class WorkEntry(
 )
 
 @Entity(
+    foreignKeys = [ForeignKey(WorkDay::class, ["id"], ["workDayId"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index("workDayId")]
+)
+data class WorkDayPhoto(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val workDayId: Long,
+    val uri: String,
+    val note: String? = null,
+    val createdAt: Long
+)
+
+@Entity(
     foreignKeys = [ForeignKey(WorkObject::class, ["id"], ["objectId"], onDelete = ForeignKey.CASCADE)],
     indices = [Index("objectId")]
 )
@@ -134,6 +146,14 @@ data class EntryDetail(
     val workTypeName: String,
     val amount: Long,
     val notes: String?
+)
+
+data class WorkDayPhotoDetail(
+    val id: Long,
+    val workDayId: Long,
+    val date: Long,
+    val uri: String,
+    val note: String?
 )
 
 data class DateReportRow(

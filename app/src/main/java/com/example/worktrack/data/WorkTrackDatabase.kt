@@ -16,10 +16,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkDay::class,
         WorkDayWorker::class,
         WorkEntry::class,
+        WorkDayPhoto::class,
         Proposal::class,
         ProposalItem::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class WorkTrackDatabase : RoomDatabase() {
@@ -34,7 +35,7 @@ abstract class WorkTrackDatabase : RoomDatabase() {
                     context.applicationContext,
                     WorkTrackDatabase::class.java,
                     "worktrack.db"
-                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
             }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -61,6 +62,22 @@ abstract class WorkTrackDatabase : RoomDatabase() {
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_ProposalItem_proposalId` ON `ProposalItem` (`proposalId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_ProposalItem_workTypeId` ON `ProposalItem` (`workTypeId`)")
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `WorkDayPhoto` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `workDayId` INTEGER NOT NULL,
+                        `uri` TEXT NOT NULL,
+                        `note` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        FOREIGN KEY(`workDayId`) REFERENCES `WorkDay`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_WorkDayPhoto_workDayId` ON `WorkDayPhoto` (`workDayId`)")
             }
         }
     }

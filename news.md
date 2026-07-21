@@ -1,5 +1,12 @@
 # News
 
+## Version 2.4
+
+- Added photo links for work days using persisted device gallery access.
+- Added photo availability status and deletion of photo links without deleting device files.
+- Included work day photo links in object reports with available/missing status.
+- Added editing for existing work entries inside a work day.
+
 ## Version 2.3
 
 - Fixed company name input in Settings so typing is no longer overwritten by saved settings updates.

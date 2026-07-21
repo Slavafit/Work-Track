@@ -25,6 +25,7 @@
     <string name="section_license">Licencia</string>
     <string name="section_company">Empresa</string>
     <string name="section_directories">Directorios</string>
+    <string name="section_photos">Fotos</string>
     <string name="section_saved_proposals">Presupuestos guardados</string>
     <string name="status_completed">Completado</string>
     <string name="status_active">Activo</string>
@@ -41,6 +42,7 @@
     <string name="action_report">Informe</string>
     <string name="action_complete_object">Completar objeto</string>
     <string name="action_delete">Eliminar</string>
+    <string name="action_edit">Editar</string>
     <string name="action_share_report">Compartir informe</string>
     <string name="action_create">Crear</string>
     <string name="action_cancel">Cancelar</string>
@@ -56,11 +58,14 @@
     <string name="action_send_to_customer">Enviar al cliente</string>
     <string name="action_new_proposal">Nuevo</string>
     <string name="action_save_proposal">Guardar presupuesto</string>
+    <string name="action_add_photo">Añadir foto</string>
     <string name="selected_count_format">Seleccionados: %1$d</string>
     <string name="confirm_complete_object_title">¿Completar objeto?</string>
     <string name="confirm_complete_object_message">Después de completarlo, el objeto será de solo lectura.</string>
     <string name="confirm_delete_entry_title">¿Eliminar entrada?</string>
     <string name="confirm_delete_entry_message">Esta acción no se puede deshacer.</string>
+    <string name="confirm_delete_photo_title">¿Eliminar enlace a la foto?</string>
+    <string name="confirm_delete_photo_message">La foto seguirá en el dispositivo. Solo se eliminará el enlace de la app.</string>
     <string name="report_tab_date">Fecha</string>
     <string name="report_tab_worker">Trabajador</string>
     <string name="report_tab_object">Objeto</string>
@@ -82,6 +87,10 @@
     <string name="empty_search_results">No se encontraron resultados</string>
     <string name="empty_proposal_services">Añade servicios para el presupuesto</string>
     <string name="empty_proposals">Aún no hay presupuestos guardados</string>
+    <string name="empty_photos">Aún no hay fotos añadidas a este día</string>
+    <string name="photos_count_format">Fotos: %1$d</string>
+    <string name="photo_status_available">Foto disponible</string>
+    <string name="photo_status_missing">Foto no disponible</string>
     <string name="dialog_new_object">Nuevo objeto</string>
     <string name="dialog_new_client">Nuevo cliente</string>
     <string name="dialog_new_work_day">Nuevo día de trabajo</string>
@@ -131,6 +140,7 @@
     <string name="report_address_format">Dirección: %1$s</string>
     <string name="report_customer_format">Cliente: %1$s</string>
     <string name="report_total_format">Total: %1$s</string>
+    <string name="report_photos_title">Fotos:</string>
     <string name="report_date_title_format">Informe del %1$s</string>
     <string name="report_worker_title_format">Informe del trabajador: %1$s</string>
     <string name="report_period_format">Periodo: %1$s - %2$s</string>

@@ -1,13 +1,17 @@
 package com.example.worktrack
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Bundle
 import android.os.LocaleList
 import androidx.annotation.StringRes
 import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +32,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Assessment
 import androidx.compose.material.icons.outlined.Construction
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Share
@@ -89,6 +94,7 @@ import com.example.worktrack.data.ProposalItem
 import com.example.worktrack.data.ProposalSummary
 import com.example.worktrack.data.ThemeMode
 import com.example.worktrack.data.WorkType
+import com.example.worktrack.data.WorkDayPhoto
 import com.example.worktrack.data.Worker
 import com.example.worktrack.license.LicenseGate
 import java.util.Locale
@@ -133,6 +139,9 @@ private fun Context.withLanguage(language: LanguageMode): Context {
     config.setLocales(LocaleList(locale))
     return createConfigurationContext(config)
 }
+
+private fun Context.canOpenUri(uri: String): Boolean =
+    runCatching { contentResolver.openInputStream(Uri.parse(uri))?.use { true } == true }.getOrDefault(false)
 
 private enum class MainTab(@StringRes val titleRes: Int, @StringRes val navLabelRes: Int, val icon: ImageVector) {
     Objects(R.string.tab_objects, R.string.nav_objects, Icons.Outlined.Work),
@@ -335,14 +344,28 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
 private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues, onBack: () -> Unit) {
     val entriesFlow = remember(dayId) { vm.entries(dayId) }
     val workerIdsFlow = remember(dayId) { vm.dayWorkerIds(dayId) }
+    val photosFlow = remember(dayId) { vm.dayPhotos(dayId) }
     val entries by entriesFlow.collectAsState(initial = emptyList())
     val workerIds by workerIdsFlow.collectAsState(initial = emptyList())
+    val photos by photosFlow.collectAsState(initial = emptyList())
     val workers by vm.workers.collectAsState()
-    val types by vm.activeWorkTypes.collectAsState()
+    val activeTypes by vm.activeWorkTypes.collectAsState()
+    val allTypes by vm.workTypes.collectAsState()
+    val context = LocalContext.current
     val dayWorkers = workers.filter { it.id in workerIds }
     val entriesByWorker = entries.groupBy { it.workerId }
     var entryWorker by remember { mutableStateOf<Worker?>(null) }
+    var editingEntry by remember { mutableStateOf<EntryDetail?>(null) }
     var deleteId by remember { mutableLongStateOf(0L) }
+    var deletePhotoId by remember { mutableLongStateOf(0L) }
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        uris.forEach { uri ->
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        }
+        vm.addDayPhotos(dayId, uris.map(Uri::toString))
+    }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
@@ -350,13 +373,21 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
                 Spacer(Modifier.height(12.dp))
                 Text(stringResource(R.string.day_total_format, entries.sumOf { it.amount }.money()), style = MaterialTheme.typography.titleMedium)
             }
+            item {
+                DayPhotosCard(
+                    photos = photos,
+                    onAdd = { photoPicker.launch(arrayOf("image/*")) },
+                    onDelete = { deletePhotoId = it }
+                )
+            }
             if (dayWorkers.isEmpty()) item { EmptyText(stringResource(R.string.empty_workers)) }
             items(dayWorkers, key = { it.id }) { worker ->
                 WorkerServicesCard(
                     worker = worker,
                     entries = entriesByWorker[worker.id].orEmpty(),
-                    canAdd = types.isNotEmpty(),
+                    canAdd = activeTypes.isNotEmpty(),
                     onAdd = { entryWorker = worker },
+                    onEdit = { editingEntry = it },
                     onDelete = { deleteId = it }
                 )
             }
@@ -365,7 +396,7 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
     entryWorker?.let { worker ->
         AddEntryDialog(
         worker = worker,
-        types = types,
+        types = activeTypes,
         onDismiss = { entryWorker = null },
         onSave = { typeId, amount, notes ->
             vm.addEntry(dayId, worker.id, typeId, amount, notes)
@@ -373,9 +404,25 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
         }
         )
     }
+    editingEntry?.let { entry ->
+        AddEntryDialog(
+            worker = workers.firstOrNull { it.id == entry.workerId } ?: Worker(id = entry.workerId, name = entry.workerName),
+            types = allTypes,
+            entry = entry,
+            onDismiss = { editingEntry = null },
+            onSave = { typeId, amount, notes ->
+                vm.updateEntry(entry.id, entry.workDayId, entry.workerId, typeId, amount, notes)
+                editingEntry = null
+            }
+        )
+    }
     if (deleteId != 0L) ConfirmDialog(stringResource(R.string.confirm_delete_entry_title), stringResource(R.string.confirm_delete_entry_message), onDismiss = { deleteId = 0L }) {
         vm.deleteEntry(deleteId)
         deleteId = 0L
+    }
+    if (deletePhotoId != 0L) ConfirmDialog(stringResource(R.string.confirm_delete_photo_title), stringResource(R.string.confirm_delete_photo_message), onDismiss = { deletePhotoId = 0L }) {
+        vm.deleteDayPhoto(deletePhotoId)
+        deletePhotoId = 0L
     }
 }
 
@@ -385,6 +432,7 @@ private fun WorkerServicesCard(
     entries: List<EntryDetail>,
     canAdd: Boolean,
     onAdd: () -> Unit,
+    onEdit: (EntryDetail) -> Unit,
     onDelete: (Long) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
@@ -410,7 +458,54 @@ private fun WorkerServicesCard(
                             }
                         }
                         Text(entry.amount.money(), fontWeight = FontWeight.SemiBold)
+                        IconButton(onClick = { onEdit(entry) }) {
+                            Icon(Icons.Outlined.Edit, stringResource(R.string.action_edit))
+                        }
                         IconButton(onClick = { onDelete(entry.id) }) {
+                            Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayPhotosCard(
+    photos: List<WorkDayPhoto>,
+    onAdd: () -> Unit,
+    onDelete: (Long) -> Unit
+) {
+    val context = LocalContext.current
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.section_photos), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.photos_count_format, photos.size), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Button(onClick = onAdd) {
+                    Icon(Icons.Outlined.Add, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.action_add_photo), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            if (photos.isEmpty()) {
+                Text(stringResource(R.string.empty_photos), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                photos.forEach { photo ->
+                    val available = context.canOpenUri(photo.uri)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                if (available) stringResource(R.string.photo_status_available) else stringResource(R.string.photo_status_missing),
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (available) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                            )
+                            Text(photo.uri, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        IconButton(onClick = { onDelete(photo.id) }) {
                             Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
                         }
                     }
@@ -888,10 +983,16 @@ private fun CreateDayDialog(vm: AppViewModel, objectId: Long, onDismiss: () -> U
 }
 
 @Composable
-private fun AddEntryDialog(worker: Worker, types: List<WorkType>, onDismiss: () -> Unit, onSave: (Long, Long, String?) -> Unit) {
-    var typeId by remember { mutableLongStateOf(types.firstOrNull()?.id ?: 0L) }
-    var amount by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
+private fun AddEntryDialog(
+    worker: Worker,
+    types: List<WorkType>,
+    entry: EntryDetail? = null,
+    onDismiss: () -> Unit,
+    onSave: (Long, Long, String?) -> Unit
+) {
+    var typeId by remember(entry?.id, types) { mutableLongStateOf(entry?.workTypeId ?: types.firstOrNull()?.id ?: 0L) }
+    var amount by remember(entry?.id) { mutableStateOf(entry?.amount?.toString().orEmpty()) }
+    var notes by remember(entry?.id) { mutableStateOf(entry?.notes.orEmpty()) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.dialog_work_entry)) },
@@ -912,7 +1013,7 @@ private fun AddEntryDialog(worker: Worker, types: List<WorkType>, onDismiss: () 
         },
         confirmButton = {
             Button(onClick = { onSave(typeId, amount.toLongOrNull() ?: 0L, notes) }, enabled = typeId != 0L && (amount.toLongOrNull() ?: 0L) > 0) {
-                Text(stringResource(R.string.action_add))
+                Text(stringResource(if (entry == null) R.string.action_add else R.string.action_save))
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }

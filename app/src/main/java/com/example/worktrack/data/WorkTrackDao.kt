@@ -108,6 +108,18 @@ interface WorkTrackDao {
     """)
     fun entries(dayId: Long): Flow<List<EntryDetail>>
 
+    @Query("SELECT * FROM WorkDayPhoto WHERE workDayId = :dayId ORDER BY createdAt DESC")
+    fun dayPhotos(dayId: Long): Flow<List<WorkDayPhoto>>
+
+    @Query("""
+        SELECT p.id, p.workDayId, d.date, p.uri, p.note
+        FROM WorkDayPhoto p
+        JOIN WorkDay d ON d.id = p.workDayId
+        WHERE d.objectId = :objectId
+        ORDER BY d.date DESC, p.createdAt DESC
+    """)
+    suspend fun photosByObject(objectId: Long): List<WorkDayPhotoDetail>
+
     @Insert
     suspend fun insertClient(client: Client): Long
 
@@ -130,6 +142,9 @@ interface WorkTrackDao {
     suspend fun insertEntry(entry: WorkEntry): Long
 
     @Insert
+    suspend fun insertDayPhoto(photo: WorkDayPhoto): Long
+
+    @Insert
     suspend fun insertProposal(proposal: Proposal): Long
 
     @Insert
@@ -147,11 +162,17 @@ interface WorkTrackDao {
     @Update
     suspend fun updateObject(obj: WorkObject)
 
+    @Update
+    suspend fun updateEntry(entry: WorkEntry)
+
     @Delete
     suspend fun deleteEntry(entry: WorkEntry)
 
     @Query("DELETE FROM WorkEntry WHERE id = :id")
     suspend fun deleteEntryById(id: Long)
+
+    @Query("DELETE FROM WorkDayPhoto WHERE id = :id")
+    suspend fun deleteDayPhotoById(id: Long)
 
     @Query("DELETE FROM ProposalItem WHERE proposalId = :proposalId")
     suspend fun deleteProposalItems(proposalId: Long)

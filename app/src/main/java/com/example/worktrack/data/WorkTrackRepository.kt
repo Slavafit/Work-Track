@@ -12,6 +12,7 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
     fun workDays(objectId: Long) = dao.workDays(objectId)
     fun dayWorkerIds(dayId: Long) = dao.dayWorkerIds(dayId)
     fun entries(dayId: Long) = dao.entries(dayId)
+    fun dayPhotos(dayId: Long) = dao.dayPhotos(dayId)
     fun proposalItems(proposalId: Long) = dao.proposalItems(proposalId)
 
     suspend fun createObject(address: String, selectedClientId: Long?, clientName: String, phone: String?) =
@@ -23,7 +24,12 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
     suspend fun createDay(objectId: Long, date: Long, workerIds: Set<Long>, notes: String?) = dao.createDay(objectId, date, workerIds, notes)
     suspend fun addEntry(dayId: Long, workerId: Long, typeId: Long, amount: Long, notes: String?) =
         dao.insertEntry(WorkEntry(workDayId = dayId, workerId = workerId, workTypeId = typeId, amount = amount, notes = notes?.ifBlank { null }))
+    suspend fun updateEntry(id: Long, dayId: Long, workerId: Long, typeId: Long, amount: Long, notes: String?) =
+        dao.updateEntry(WorkEntry(id = id, workDayId = dayId, workerId = workerId, workTypeId = typeId, amount = amount, notes = notes?.ifBlank { null }))
     suspend fun deleteEntry(id: Long) = dao.deleteEntryById(id)
+    suspend fun addDayPhoto(dayId: Long, uri: String) =
+        dao.insertDayPhoto(WorkDayPhoto(workDayId = dayId, uri = uri, createdAt = System.currentTimeMillis()))
+    suspend fun deleteDayPhoto(id: Long) = dao.deleteDayPhotoById(id)
     suspend fun completeObject(objectId: Long) = dao.completeObject(objectId, System.currentTimeMillis())
     suspend fun saveProposal(proposalId: Long?, objectId: Long, items: List<ProposalItem>) = dao.saveProposal(proposalId, objectId, items)
     suspend fun deleteProposal(id: Long) = dao.deleteProposalById(id)
@@ -32,5 +38,6 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
     suspend fun reportByDate(start: Long, end: Long) = dao.reportByDate(start, end)
     suspend fun reportByWorker(workerId: Long, start: Long, end: Long) = dao.reportByWorker(workerId, start, end)
     suspend fun reportByObject(objectId: Long) = dao.reportByObject(objectId)
+    suspend fun photosByObject(objectId: Long) = dao.photosByObject(objectId)
 
 }

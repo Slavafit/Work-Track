@@ -3,6 +3,7 @@ package com.example.worktrack
 import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.LocaleList
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -40,6 +41,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun workDays(objectId: Long) = repo.workDays(objectId)
     fun dayWorkerIds(dayId: Long) = repo.dayWorkerIds(dayId)
     fun entries(dayId: Long) = repo.entries(dayId)
+    fun dayPhotos(dayId: Long) = repo.dayPhotos(dayId)
     fun proposalItems(proposalId: Long) = repo.proposalItems(proposalId)
 
     fun createObject(address: String, selectedClientId: Long?, clientName: String, phone: String?) = viewModelScope.launch {
@@ -70,7 +72,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (amount > 0) repo.addEntry(dayId, workerId, typeId, amount, notes)
     }
 
+    fun updateEntry(id: Long, dayId: Long, workerId: Long, typeId: Long, amount: Long, notes: String?) = viewModelScope.launch {
+        if (id != 0L && amount > 0) repo.updateEntry(id, dayId, workerId, typeId, amount, notes)
+    }
+
     fun deleteEntry(id: Long) = viewModelScope.launch { repo.deleteEntry(id) }
+    fun addDayPhotos(dayId: Long, uris: List<String>) = viewModelScope.launch {
+        uris.distinct().forEach { uri -> repo.addDayPhoto(dayId, uri) }
+    }
+    fun deleteDayPhoto(id: Long) = viewModelScope.launch { repo.deleteDayPhoto(id) }
     fun completeObject(objectId: Long) = viewModelScope.launch { repo.completeObject(objectId) }
     fun saveProposal(proposalId: Long?, objectId: Long, items: List<ProposalItem>, onSaved: (Long) -> Unit) = viewModelScope.launch {
         if (objectId != 0L && items.isNotEmpty()) onSaved(repo.saveProposal(proposalId, objectId, items))
@@ -106,8 +116,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val client = objectInfo?.let { repo.clientById(it.clientId) }
             val objectDays = repo.workDays(objectId).first()
             val rows = repo.reportByObject(objectId)
+            val photos = repo.photosByObject(objectId)
             val total = rows.sumOf { it.amount }
             val rowsByDay = rows.groupBy { it.workDayId }
+            val photosByDay = photos.groupBy { it.workDayId }
             buildString {
             appendLine(text(R.string.report_object_title))
             settings.value.companyName.trim().takeIf { it.isNotEmpty() }?.let {
@@ -140,6 +152,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                             val notes = row.notes?.takeIf { it.isNotBlank() }?.let { " ($it)" }.orEmpty()
                             appendLine("    - ${row.workTypeName}: ${row.amount.reportMoney()}$notes")
                         }
+                    }
+                }
+                photosByDay[day.id].orEmpty().takeIf { it.isNotEmpty() }?.let { dayPhotos ->
+                    appendLine("  ${text(R.string.report_photos_title)}")
+                    dayPhotos.forEach { photo ->
+                        val status = if (photoUriAvailable(photo.uri)) {
+                            text(R.string.photo_status_available)
+                        } else {
+                            text(R.string.photo_status_missing)
+                        }
+                        appendLine("    - $status: ${photo.uri}")
                     }
                 }
                 appendLine()
@@ -182,6 +205,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun reportError(error: Throwable): String =
         "Report error: ${error.message ?: error::class.java.simpleName}"
+
+    private fun photoUriAvailable(uri: String): Boolean {
+        val app = getApplication<Application>()
+        return runCatching {
+            app.contentResolver.openInputStream(Uri.parse(uri))?.use { true } == true
+        }.getOrDefault(false)
+    }
 }
 
 private fun Context.localized(language: LanguageMode): Context {

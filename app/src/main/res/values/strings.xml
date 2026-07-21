@@ -25,6 +25,7 @@
     <string name="section_license">Лицензия</string>
     <string name="section_company">Компания</string>
     <string name="section_directories">Справочники</string>
+    <string name="section_photos">Фото</string>
     <string name="section_saved_proposals">Сохранённые предложения</string>
     <string name="status_completed">Завершён</string>
     <string name="status_active">Активен</string>
@@ -43,6 +44,7 @@
     <string name="action_report">Отчёт</string>
     <string name="action_complete_object">Завершить объект</string>
     <string name="action_delete">Удалить</string>
+    <string name="action_edit">Изменить</string>
     <string name="action_share_report">Поделиться отчётом</string>
     <string name="action_create">Создать</string>
     <string name="action_cancel">Отмена</string>
@@ -58,11 +60,14 @@
     <string name="action_send_to_customer">Отправить клиенту</string>
     <string name="action_new_proposal">Новое</string>
     <string name="action_save_proposal">Сохранить предложение</string>
+    <string name="action_add_photo">Добавить фото</string>
     <string name="selected_count_format">Выбрано: %1$d</string>
     <string name="confirm_complete_object_title">Завершить объект?</string>
     <string name="confirm_complete_object_message">После завершения объект считается read-only.</string>
     <string name="confirm_delete_entry_title">Удалить запись?</string>
     <string name="confirm_delete_entry_message">Действие нельзя отменить.</string>
+    <string name="confirm_delete_photo_title">Удалить ссылку на фото?</string>
+    <string name="confirm_delete_photo_message">Фото на устройстве не удалится, будет удалена только ссылка из приложения.</string>
     <string name="report_tab_date">Дата</string>
     <string name="report_tab_worker">Работник</string>
     <string name="report_tab_object">Объект</string>
@@ -82,6 +87,10 @@
     <string name="empty_search_results">Ничего не найдено</string>
     <string name="empty_proposal_services">Добавьте услуги для предложения</string>
     <string name="empty_proposals">Сохранённых предложений пока нет</string>
+    <string name="empty_photos">Фото к этому дню пока не добавлены</string>
+    <string name="photos_count_format">Фото: %1$d</string>
+    <string name="photo_status_available">Фото доступно</string>
+    <string name="photo_status_missing">Фото недоступно</string>
     <string name="dialog_new_object">Новый объект</string>
     <string name="dialog_new_client">Новый клиент</string>
     <string name="dialog_new_work_day">Новый рабочий день</string>
@@ -131,6 +140,7 @@
     <string name="report_address_format">Адрес: %1$s</string>
     <string name="report_customer_format">Заказчик: %1$s</string>
     <string name="report_total_format">Итого: %1$s</string>
+    <string name="report_photos_title">Фото:</string>
     <string name="report_date_title_format">Отчёт за %1$s</string>
     <string name="report_worker_title_format">Отчёт по работнику: %1$s</string>
     <string name="report_period_format">Период: %1$s - %2$s</string>
