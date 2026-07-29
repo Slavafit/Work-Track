@@ -35,6 +35,7 @@
     <string name="phone_missing">не указан</string>
     <string name="total_format">Итого: %1$s</string>
     <string name="object_total_days_format">%1$s · дней: %2$d</string>
+    <string name="object_days_format">Рабочих дней: %1$d</string>
     <string name="day_counts_format">Работников: %1$d · записей: %2$d</string>
     <string name="day_total_format">Итог дня: %1$s</string>
     <string name="entry_title_format">%1$s · %2$s</string>

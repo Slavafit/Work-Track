@@ -69,11 +69,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun addEntry(dayId: Long, workerId: Long, typeId: Long, amount: Long, notes: String?) = viewModelScope.launch {
-        if (amount > 0) repo.addEntry(dayId, workerId, typeId, amount, notes)
+        if (amount >= 0) repo.addEntry(dayId, workerId, typeId, amount, notes)
     }
 
     fun updateEntry(id: Long, dayId: Long, workerId: Long, typeId: Long, amount: Long, notes: String?) = viewModelScope.launch {
-        if (id != 0L && amount > 0) repo.updateEntry(id, dayId, workerId, typeId, amount, notes)
+        if (id != 0L && amount >= 0) repo.updateEntry(id, dayId, workerId, typeId, amount, notes)
     }
 
     fun deleteEntry(id: Long) = viewModelScope.launch { repo.deleteEntry(id) }

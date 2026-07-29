@@ -33,6 +33,7 @@
     <string name="customer_format">Cliente: %1$s</string>
     <string name="total_format">Total: %1$s</string>
     <string name="object_total_days_format">%1$s · días: %2$d</string>
+    <string name="object_days_format">Días de trabajo: %1$d</string>
     <string name="day_counts_format">Trabajadores: %1$d · entradas: %2$d</string>
     <string name="day_total_format">Total del día: %1$s</string>
     <string name="entry_title_format">%1$s · %2$s</string>

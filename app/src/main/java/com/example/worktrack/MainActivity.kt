@@ -262,16 +262,73 @@ private fun ObjectCard(item: ObjectSummary, onOpen: (Long) -> Unit) {
     Card(
         onClick = { onOpen(item.id) },
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(item.address, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 2)
-                if (item.isCompleted) Text(stringResource(R.string.status_completed), color = MaterialTheme.colorScheme.primary)
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Icon(
+                        Icons.Outlined.Work,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(10.dp)
+                    )
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        item.address,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        stringResource(R.string.customer_format, item.clientName),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (item.isCompleted) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            stringResource(R.string.status_completed),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        )
+                    }
+                }
             }
-            Text(stringResource(R.string.customer_format, item.clientName), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(stringResource(R.string.object_total_days_format, item.totalAmount.money(), item.dayCount), fontWeight = FontWeight.SemiBold)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        stringResource(R.string.total_format, item.totalAmount.money()),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Text(
+                    stringResource(R.string.object_days_format, item.dayCount),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -604,7 +661,7 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
     val validLines = lines.mapNotNull { line ->
         val type = types.firstOrNull { it.id == line.workTypeId }
         val amount = line.amount.toLongOrNull()
-        if (type != null && amount != null && amount > 0L) type to amount else null
+        if (type != null && amount != null && amount >= 0L) type to amount else null
     }
     val total = validLines.sumOf { it.second }
 
@@ -1012,7 +1069,7 @@ private fun AddEntryDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(typeId, amount.toLongOrNull() ?: 0L, notes) }, enabled = typeId != 0L && (amount.toLongOrNull() ?: 0L) > 0) {
+            Button(onClick = { onSave(typeId, amount.toLongOrNull() ?: 0L, notes) }, enabled = typeId != 0L && (amount.toLongOrNull() ?: 0L) >= 0) {
                 Text(stringResource(if (entry == null) R.string.action_add else R.string.action_save))
             }
         },

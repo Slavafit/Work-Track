@@ -1,5 +1,10 @@
 # News
 
+## Version 2.10
+
+- Redesigned object cards with clearer address and customer grouping, a status badge, and separate total and work-day statistics.
+- Allowed work entries and proposal items with a zero amount.
+
 ## Version 2.9
 
 - Restored object reports to the previous text sharing style instead of PDF.
