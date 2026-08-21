@@ -126,6 +126,23 @@ data class ProposalItem(
 
 @Entity(
     foreignKeys = [
+        ForeignKey(WorkDay::class, ["id"], ["workDayId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(Worker::class, ["id"], ["workerId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(Material::class, ["id"], ["materialId"], onDelete = ForeignKey.RESTRICT)
+    ],
+    indices = [Index("workDayId"), Index("workerId"), Index("materialId")]
+)
+data class WorkMaterialEntry(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val workDayId: Long,
+    val workerId: Long,
+    val materialId: Long,
+    val amount: Long,
+    val notes: String? = null
+)
+
+@Entity(
+    foreignKeys = [
         ForeignKey(Proposal::class, ["id"], ["proposalId"], onDelete = ForeignKey.CASCADE),
         ForeignKey(Material::class, ["id"], ["materialId"], onDelete = ForeignKey.RESTRICT)
     ],
@@ -217,6 +234,17 @@ data class ProposalItemDetail(
     val workTypeId: Long,
     val workTypeName: String,
     val amount: Long
+)
+
+data class MaterialEntryDetail(
+    val id: Long,
+    val workDayId: Long,
+    val workerId: Long,
+    val workerName: String,
+    val materialId: Long,
+    val materialName: String,
+    val amount: Long,
+    val notes: String?
 )
 
 data class ProposalMaterialItemDetail(

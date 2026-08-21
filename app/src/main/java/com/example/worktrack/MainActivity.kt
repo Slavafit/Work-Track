@@ -90,6 +90,7 @@ import com.example.worktrack.data.Client
 import com.example.worktrack.data.EntryDetail
 import com.example.worktrack.data.LanguageMode
 import com.example.worktrack.data.Material
+import com.example.worktrack.data.MaterialEntryDetail
 import com.example.worktrack.data.ObjectSummary
 import com.example.worktrack.data.ProposalItem
 import com.example.worktrack.data.ProposalMaterialItem
@@ -411,20 +412,27 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
 @Composable
 private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues, onBack: () -> Unit) {
     val entriesFlow = remember(dayId) { vm.entries(dayId) }
+    val materialEntriesFlow = remember(dayId) { vm.materialEntries(dayId) }
     val workerIdsFlow = remember(dayId) { vm.dayWorkerIds(dayId) }
     val photosFlow = remember(dayId) { vm.dayPhotos(dayId) }
     val entries by entriesFlow.collectAsState(initial = emptyList())
+    val materialEntries by materialEntriesFlow.collectAsState(initial = emptyList())
     val workerIds by workerIdsFlow.collectAsState(initial = emptyList())
     val photos by photosFlow.collectAsState(initial = emptyList())
     val workers by vm.workers.collectAsState()
     val activeTypes by vm.activeWorkTypes.collectAsState()
+    val activeMaterials by vm.materials.collectAsState()
     val allTypes by vm.workTypes.collectAsState()
     val context = LocalContext.current
     val dayWorkers = workers.filter { it.id in workerIds }
     val entriesByWorker = entries.groupBy { it.workerId }
+    val materialsByWorker = materialEntries.groupBy { it.workerId }
     var entryWorker by remember { mutableStateOf<Worker?>(null) }
+    var materialWorker by remember { mutableStateOf<Worker?>(null) }
     var editingEntry by remember { mutableStateOf<EntryDetail?>(null) }
+    var editingMaterialEntry by remember { mutableStateOf<MaterialEntryDetail?>(null) }
     var deleteId by remember { mutableLongStateOf(0L) }
+    var deleteMaterialId by remember { mutableLongStateOf(0L) }
     var deletePhotoId by remember { mutableLongStateOf(0L) }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         uris.forEach { uri ->
@@ -439,7 +447,10 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             item {
                 OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Spacer(Modifier.height(12.dp))
-                Text(stringResource(R.string.day_total_format, entries.sumOf { it.amount }.money()), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(R.string.day_total_format, (entries.sumOf { it.amount } + materialEntries.sumOf { it.amount }).money()),
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
             item {
                 DayPhotosCard(
@@ -453,10 +464,13 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
                 WorkerServicesCard(
                     worker = worker,
                     entries = entriesByWorker[worker.id].orEmpty(),
-                    canAdd = activeTypes.isNotEmpty(),
-                    onAdd = { entryWorker = worker },
+                    materialEntries = materialsByWorker[worker.id].orEmpty(),
+                    onAddService = { entryWorker = worker },
+                    onAddMaterial = { materialWorker = worker },
                     onEdit = { editingEntry = it },
-                    onDelete = { deleteId = it }
+                    onEditMaterial = { editingMaterialEntry = it },
+                    onDelete = { deleteId = it },
+                    onDeleteMaterial = { deleteMaterialId = it }
                 )
             }
         }
@@ -473,6 +487,18 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
         }
         )
     }
+    materialWorker?.let { worker ->
+        AddMaterialEntryDialog(
+            worker = worker,
+            materials = activeMaterials.filter { it.isActive },
+            onDismiss = { materialWorker = null },
+            onAddMaterial = { name, onCreated -> vm.addMaterial(name, onCreated) },
+            onSave = { materialId, amount, notes ->
+                vm.addMaterialEntry(dayId, worker.id, materialId, amount, notes)
+                materialWorker = null
+            }
+        )
+    }
     editingEntry?.let { entry ->
         AddEntryDialog(
             worker = workers.firstOrNull { it.id == entry.workerId } ?: Worker(id = entry.workerId, name = entry.workerName),
@@ -486,9 +512,26 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             }
         )
     }
+    editingMaterialEntry?.let { entry ->
+        AddMaterialEntryDialog(
+            worker = workers.firstOrNull { it.id == entry.workerId } ?: Worker(id = entry.workerId, name = entry.workerName),
+            materials = activeMaterials,
+            entry = entry,
+            onDismiss = { editingMaterialEntry = null },
+            onAddMaterial = { name, onCreated -> vm.addMaterial(name, onCreated) },
+            onSave = { materialId, amount, notes ->
+                vm.updateMaterialEntry(entry.id, entry.workDayId, entry.workerId, materialId, amount, notes)
+                editingMaterialEntry = null
+            }
+        )
+    }
     if (deleteId != 0L) ConfirmDialog(stringResource(R.string.confirm_delete_entry_title), stringResource(R.string.confirm_delete_entry_message), onDismiss = { deleteId = 0L }) {
         vm.deleteEntry(deleteId)
         deleteId = 0L
+    }
+    if (deleteMaterialId != 0L) ConfirmDialog(stringResource(R.string.confirm_delete_entry_title), stringResource(R.string.confirm_delete_entry_message), onDismiss = { deleteMaterialId = 0L }) {
+        vm.deleteMaterialEntry(deleteMaterialId)
+        deleteMaterialId = 0L
     }
     if (deletePhotoId != 0L) ConfirmDialog(stringResource(R.string.confirm_delete_photo_title), stringResource(R.string.confirm_delete_photo_message), onDismiss = { deletePhotoId = 0L }) {
         vm.deleteDayPhoto(deletePhotoId)
@@ -500,25 +543,38 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
 private fun WorkerServicesCard(
     worker: Worker,
     entries: List<EntryDetail>,
-    canAdd: Boolean,
-    onAdd: () -> Unit,
+    materialEntries: List<MaterialEntryDetail>,
+    onAddService: () -> Unit,
+    onAddMaterial: () -> Unit,
     onEdit: (EntryDetail) -> Unit,
-    onDelete: (Long) -> Unit
+    onEditMaterial: (MaterialEntryDetail) -> Unit,
+    onDelete: (Long) -> Unit,
+    onDeleteMaterial: (Long) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(worker.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(stringResource(R.string.total_format, entries.sumOf { it.amount }.money()), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Button(onClick = onAdd, enabled = canAdd) {
-                    Text(stringResource(R.string.action_add), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        stringResource(R.string.total_format, (entries.sumOf { it.amount } + materialEntries.sumOf { it.amount }).money()),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-            if (entries.isEmpty()) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onAddService, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.action_add_service), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Button(onClick = onAddMaterial, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.action_add_material), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            if (entries.isEmpty() && materialEntries.isEmpty()) {
                 Text(stringResource(R.string.empty_entries), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else {
+            }
+            if (entries.isNotEmpty()) {
+                Text(stringResource(R.string.section_proposal_services), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 entries.forEach { entry ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -532,6 +588,26 @@ private fun WorkerServicesCard(
                             Icon(Icons.Outlined.Edit, stringResource(R.string.action_edit))
                         }
                         IconButton(onClick = { onDelete(entry.id) }) {
+                            Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
+                        }
+                    }
+                }
+            }
+            if (materialEntries.isNotEmpty()) {
+                Text(stringResource(R.string.section_proposal_materials), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                materialEntries.forEach { entry ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(entry.materialName, fontWeight = FontWeight.SemiBold)
+                            entry.notes?.takeIf { it.isNotBlank() }?.let {
+                                Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        Text(entry.amount.money(), fontWeight = FontWeight.SemiBold)
+                        IconButton(onClick = { onEditMaterial(entry) }) {
+                            Icon(Icons.Outlined.Edit, stringResource(R.string.action_edit))
+                        }
+                        IconButton(onClick = { onDeleteMaterial(entry.id) }) {
                             Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
                         }
                     }
@@ -1267,6 +1343,64 @@ private fun AddEntryDialog(
         onSave = { name ->
             onAddType(name) { typeId = it }
             showNewType = false
+        }
+    )
+}
+
+@Composable
+private fun AddMaterialEntryDialog(
+    worker: Worker,
+    materials: List<Material>,
+    entry: MaterialEntryDetail? = null,
+    onDismiss: () -> Unit,
+    onAddMaterial: (String, (Long) -> Unit) -> Unit,
+    onSave: (Long, Long, String?) -> Unit
+) {
+    var materialId by remember(entry?.id, materials) {
+        mutableLongStateOf(entry?.materialId ?: materials.firstOrNull()?.id ?: 0L)
+    }
+    var amount by remember(entry?.id) { mutableStateOf(entry?.amount?.toString().orEmpty()) }
+    var notes by remember(entry?.id) { mutableStateOf(entry?.notes.orEmpty()) }
+    var showNewMaterial by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.dialog_material_entry)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(worker.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                DropdownPickerField(
+                    label = stringResource(R.string.label_material),
+                    items = materials,
+                    selectedId = materialId,
+                    idOf = { it.id },
+                    titleOf = { it.name },
+                    onSelect = { materialId = it },
+                    onAddNew = { showNewMaterial = true }
+                )
+                OutlinedTextField(
+                    amount,
+                    { amount = it.filter(Char::isDigit) },
+                    label = { Text(stringResource(R.string.label_amount)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(materialId, amount.toLongOrNull() ?: 0L, notes) },
+                enabled = materialId != 0L && (amount.toLongOrNull() ?: 0L) >= 0
+            ) {
+                Text(stringResource(if (entry == null) R.string.action_add else R.string.action_save))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
+    )
+    if (showNewMaterial) QuickAddMaterialDialog(
+        onDismiss = { showNewMaterial = false },
+        onSave = { name ->
+            onAddMaterial(name) { materialId = it }
+            showNewMaterial = false
         }
     )
 }

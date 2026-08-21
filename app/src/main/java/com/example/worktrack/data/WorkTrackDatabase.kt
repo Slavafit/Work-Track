@@ -17,12 +17,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkDay::class,
         WorkDayWorker::class,
         WorkEntry::class,
+        WorkMaterialEntry::class,
         WorkDayPhoto::class,
         Proposal::class,
         ProposalItem::class,
         ProposalMaterialItem::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class WorkTrackDatabase : RoomDatabase() {
@@ -37,7 +38,7 @@ abstract class WorkTrackDatabase : RoomDatabase() {
                     context.applicationContext,
                     WorkTrackDatabase::class.java,
                     "worktrack.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { instance = it }
             }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -109,6 +110,27 @@ abstract class WorkTrackDatabase : RoomDatabase() {
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_ProposalMaterialItem_proposalId` ON `ProposalMaterialItem` (`proposalId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_ProposalMaterialItem_materialId` ON `ProposalMaterialItem` (`materialId`)")
+            }
+        }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `WorkMaterialEntry` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `workDayId` INTEGER NOT NULL,
+                        `workerId` INTEGER NOT NULL,
+                        `materialId` INTEGER NOT NULL,
+                        `amount` INTEGER NOT NULL,
+                        `notes` TEXT,
+                        FOREIGN KEY(`workDayId`) REFERENCES `WorkDay`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`workerId`) REFERENCES `Worker`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
+                        FOREIGN KEY(`materialId`) REFERENCES `Material`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_WorkMaterialEntry_workDayId` ON `WorkMaterialEntry` (`workDayId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_WorkMaterialEntry_workerId` ON `WorkMaterialEntry` (`workerId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_WorkMaterialEntry_materialId` ON `WorkMaterialEntry` (`materialId`)")
             }
         }
     }

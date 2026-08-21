@@ -1,5 +1,11 @@
 # News
 
+## Version 2.13
+
+- Added priced materials directly to each worker inside a work day, alongside services.
+- Added creation, editing, and deletion of worker material entries.
+- Included worker materials in worker, day, object, and report totals.
+
 ## Version 2.12
 
 - Redesigned the directory shortcuts in Settings as cleaner icon cards.

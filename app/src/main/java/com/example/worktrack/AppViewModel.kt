@@ -45,6 +45,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun workDays(objectId: Long) = repo.workDays(objectId)
     fun dayWorkerIds(dayId: Long) = repo.dayWorkerIds(dayId)
     fun entries(dayId: Long) = repo.entries(dayId)
+    fun materialEntries(dayId: Long) = repo.materialEntries(dayId)
     fun dayPhotos(dayId: Long) = repo.dayPhotos(dayId)
     fun proposalItems(proposalId: Long) = repo.proposalItems(proposalId)
     fun proposalMaterialItems(proposalId: Long) = repo.proposalMaterialItems(proposalId)
@@ -90,6 +91,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun deleteEntry(id: Long) = viewModelScope.launch { repo.deleteEntry(id) }
+    fun addMaterialEntry(dayId: Long, workerId: Long, materialId: Long, amount: Long, notes: String?) = viewModelScope.launch {
+        if (amount >= 0) repo.addMaterialEntry(dayId, workerId, materialId, amount, notes)
+    }
+    fun updateMaterialEntry(id: Long, dayId: Long, workerId: Long, materialId: Long, amount: Long, notes: String?) = viewModelScope.launch {
+        if (id != 0L && amount >= 0) repo.updateMaterialEntry(id, dayId, workerId, materialId, amount, notes)
+    }
+    fun deleteMaterialEntry(id: Long) = viewModelScope.launch { repo.deleteMaterialEntry(id) }
     fun addDayPhotos(dayId: Long, uris: List<String>) = viewModelScope.launch {
         uris.distinct().forEach { uri -> repo.addDayPhoto(dayId, uri) }
     }

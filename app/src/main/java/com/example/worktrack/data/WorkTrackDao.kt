@@ -17,9 +17,13 @@ interface WorkTrackDao {
         FROM WorkObject o
         JOIN Client c ON c.id = o.clientId
         LEFT JOIN (
-            SELECT d.objectId, SUM(e.amount) AS totalAmount
+            SELECT d.objectId, SUM(x.amount) AS totalAmount
             FROM WorkDay d
-            JOIN WorkEntry e ON e.workDayId = d.id
+            JOIN (
+                SELECT workDayId, amount FROM WorkEntry
+                UNION ALL
+                SELECT workDayId, amount FROM WorkMaterialEntry
+            ) x ON x.workDayId = d.id
             GROUP BY d.objectId
         ) totals ON totals.objectId = o.id
         LEFT JOIN (
@@ -38,8 +42,12 @@ interface WorkTrackDao {
                COALESCE(entries.entryCount, 0) AS entryCount
         FROM WorkDay d
         LEFT JOIN (
-            SELECT workDayId, SUM(amount) AS totalAmount, COUNT(id) AS entryCount
-            FROM WorkEntry
+            SELECT workDayId, SUM(amount) AS totalAmount, COUNT(*) AS entryCount
+            FROM (
+                SELECT workDayId, amount FROM WorkEntry
+                UNION ALL
+                SELECT workDayId, amount FROM WorkMaterialEntry
+            )
             GROUP BY workDayId
         ) entries ON entries.workDayId = d.id
         LEFT JOIN (
@@ -126,6 +134,16 @@ interface WorkTrackDao {
     """)
     fun entries(dayId: Long): Flow<List<EntryDetail>>
 
+    @Query("""
+        SELECT e.id, e.workDayId, e.workerId, w.name AS workerName, e.materialId, m.name AS materialName, e.amount, e.notes
+        FROM WorkMaterialEntry e
+        JOIN Worker w ON w.id = e.workerId
+        JOIN Material m ON m.id = e.materialId
+        WHERE e.workDayId = :dayId
+        ORDER BY e.id DESC
+    """)
+    fun materialEntries(dayId: Long): Flow<List<MaterialEntryDetail>>
+
     @Query("SELECT * FROM WorkDayPhoto WHERE workDayId = :dayId ORDER BY createdAt DESC")
     fun dayPhotos(dayId: Long): Flow<List<WorkDayPhoto>>
 
@@ -163,6 +181,9 @@ interface WorkTrackDao {
     suspend fun insertEntry(entry: WorkEntry): Long
 
     @Insert
+    suspend fun insertMaterialEntry(entry: WorkMaterialEntry): Long
+
+    @Insert
     suspend fun insertDayPhoto(photo: WorkDayPhoto): Long
 
     @Insert
@@ -192,11 +213,17 @@ interface WorkTrackDao {
     @Update
     suspend fun updateEntry(entry: WorkEntry)
 
+    @Update
+    suspend fun updateMaterialEntry(entry: WorkMaterialEntry)
+
     @Delete
     suspend fun deleteEntry(entry: WorkEntry)
 
     @Query("DELETE FROM WorkEntry WHERE id = :id")
     suspend fun deleteEntryById(id: Long)
+
+    @Query("DELETE FROM WorkMaterialEntry WHERE id = :id")
+    suspend fun deleteMaterialEntryById(id: Long)
 
     @Query("DELETE FROM WorkDayPhoto WHERE id = :id")
     suspend fun deleteDayPhotoById(id: Long)
@@ -269,7 +296,15 @@ interface WorkTrackDao {
         JOIN Worker w ON w.id = e.workerId
         JOIN WorkType t ON t.id = e.workTypeId
         WHERE d.date BETWEEN :start AND :end
-        ORDER BY o.address, w.name, t.name
+        UNION ALL
+        SELECT o.address AS objectAddress, w.name AS workerName, m.name AS workTypeName, e.amount
+        FROM WorkMaterialEntry e
+        JOIN WorkDay d ON d.id = e.workDayId
+        JOIN WorkObject o ON o.id = d.objectId
+        JOIN Worker w ON w.id = e.workerId
+        JOIN Material m ON m.id = e.materialId
+        WHERE d.date BETWEEN :start AND :end
+        ORDER BY objectAddress, workerName, workTypeName
     """)
     suspend fun reportByDate(start: Long, end: Long): List<DateReportRow>
 
@@ -280,7 +315,14 @@ interface WorkTrackDao {
         JOIN WorkObject o ON o.id = d.objectId
         JOIN WorkType t ON t.id = e.workTypeId
         WHERE e.workerId = :workerId AND d.date BETWEEN :start AND :end
-        ORDER BY d.date DESC, o.address
+        UNION ALL
+        SELECT d.date, o.address AS objectAddress, m.name AS workTypeName, e.amount
+        FROM WorkMaterialEntry e
+        JOIN WorkDay d ON d.id = e.workDayId
+        JOIN WorkObject o ON o.id = d.objectId
+        JOIN Material m ON m.id = e.materialId
+        WHERE e.workerId = :workerId AND d.date BETWEEN :start AND :end
+        ORDER BY date DESC, objectAddress
     """)
     suspend fun reportByWorker(workerId: Long, start: Long, end: Long): List<WorkerReportRow>
 
@@ -292,7 +334,15 @@ interface WorkTrackDao {
         JOIN Worker w ON w.id = e.workerId
         JOIN WorkType t ON t.id = e.workTypeId
         WHERE d.objectId = :objectId
-        ORDER BY d.date DESC, w.name, e.id
+        UNION ALL
+        SELECT d.id AS workDayId, d.date, w.id AS workerId, w.name AS workerName,
+               m.name AS workTypeName, e.amount, e.notes
+        FROM WorkMaterialEntry e
+        JOIN WorkDay d ON d.id = e.workDayId
+        JOIN Worker w ON w.id = e.workerId
+        JOIN Material m ON m.id = e.materialId
+        WHERE d.objectId = :objectId
+        ORDER BY date DESC, workerName, workDayId
     """)
     suspend fun reportByObject(objectId: Long): List<ObjectReportRow>
 }

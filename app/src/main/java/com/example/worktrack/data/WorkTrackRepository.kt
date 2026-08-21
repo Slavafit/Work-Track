@@ -13,6 +13,7 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
     fun workDays(objectId: Long) = dao.workDays(objectId)
     fun dayWorkerIds(dayId: Long) = dao.dayWorkerIds(dayId)
     fun entries(dayId: Long) = dao.entries(dayId)
+    fun materialEntries(dayId: Long) = dao.materialEntries(dayId)
     fun dayPhotos(dayId: Long) = dao.dayPhotos(dayId)
     fun proposalItems(proposalId: Long) = dao.proposalItems(proposalId)
     fun proposalMaterialItems(proposalId: Long) = dao.proposalMaterialItems(proposalId)
@@ -31,6 +32,11 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
     suspend fun updateEntry(id: Long, dayId: Long, workerId: Long, typeId: Long, amount: Long, notes: String?) =
         dao.updateEntry(WorkEntry(id = id, workDayId = dayId, workerId = workerId, workTypeId = typeId, amount = amount, notes = notes?.ifBlank { null }))
     suspend fun deleteEntry(id: Long) = dao.deleteEntryById(id)
+    suspend fun addMaterialEntry(dayId: Long, workerId: Long, materialId: Long, amount: Long, notes: String?) =
+        dao.insertMaterialEntry(WorkMaterialEntry(workDayId = dayId, workerId = workerId, materialId = materialId, amount = amount, notes = notes?.ifBlank { null }))
+    suspend fun updateMaterialEntry(id: Long, dayId: Long, workerId: Long, materialId: Long, amount: Long, notes: String?) =
+        dao.updateMaterialEntry(WorkMaterialEntry(id = id, workDayId = dayId, workerId = workerId, materialId = materialId, amount = amount, notes = notes?.ifBlank { null }))
+    suspend fun deleteMaterialEntry(id: Long) = dao.deleteMaterialEntryById(id)
     suspend fun addDayPhoto(dayId: Long, uri: String) =
         dao.insertDayPhoto(WorkDayPhoto(workDayId = dayId, uri = uri, createdAt = System.currentTimeMillis()))
     suspend fun deleteDayPhoto(id: Long) = dao.deleteDayPhotoById(id)

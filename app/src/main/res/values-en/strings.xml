@@ -103,6 +103,7 @@
     <string name="dialog_new_client">New client</string>
     <string name="dialog_new_work_day">New work day</string>
     <string name="dialog_work_entry">Work entry</string>
+    <string name="dialog_material_entry">Worker material</string>
     <string name="dialog_new_worker">New worker</string>
     <string name="dialog_new_work_type">New work type</string>
     <string name="dialog_new_material">New material</string>
