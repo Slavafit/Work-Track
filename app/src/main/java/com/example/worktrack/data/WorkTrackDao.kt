@@ -72,13 +72,19 @@ interface WorkTrackDao {
 
     @Query("""
         SELECT p.id, p.objectId, o.address, c.name AS clientName, p.updatedAt,
-               COALESCE(SUM(i.amount), 0) AS totalAmount,
-               COUNT(i.id) AS itemCount
+               COALESCE(services.totalAmount, 0) + COALESCE(materials.totalAmount, 0) AS totalAmount,
+               COALESCE(services.itemCount, 0) + COALESCE(materials.itemCount, 0) AS itemCount
         FROM Proposal p
         JOIN WorkObject o ON o.id = p.objectId
         JOIN Client c ON c.id = o.clientId
-        LEFT JOIN ProposalItem i ON i.proposalId = p.id
-        GROUP BY p.id
+        LEFT JOIN (
+            SELECT proposalId, SUM(amount) AS totalAmount, COUNT(id) AS itemCount
+            FROM ProposalItem GROUP BY proposalId
+        ) services ON services.proposalId = p.id
+        LEFT JOIN (
+            SELECT proposalId, SUM(amount) AS totalAmount, COUNT(id) AS itemCount
+            FROM ProposalMaterialItem GROUP BY proposalId
+        ) materials ON materials.proposalId = p.id
         ORDER BY p.updatedAt DESC
     """)
     fun proposals(): Flow<List<ProposalSummary>>
@@ -91,6 +97,15 @@ interface WorkTrackDao {
         ORDER BY i.id
     """)
     fun proposalItems(proposalId: Long): Flow<List<ProposalItemDetail>>
+
+    @Query("""
+        SELECT i.id, i.proposalId, i.materialId, m.name AS materialName, i.amount
+        FROM ProposalMaterialItem i
+        JOIN Material m ON m.id = i.materialId
+        WHERE i.proposalId = :proposalId
+        ORDER BY i.id
+    """)
+    fun proposalMaterialItems(proposalId: Long): Flow<List<ProposalMaterialItemDetail>>
 
     @Query("SELECT * FROM WorkObject WHERE id = :id")
     suspend fun objectById(id: Long): WorkObject?
@@ -156,6 +171,9 @@ interface WorkTrackDao {
     @Insert
     suspend fun insertProposalItem(item: ProposalItem): Long
 
+    @Insert
+    suspend fun insertProposalMaterialItem(item: ProposalMaterialItem): Long
+
     @Update
     suspend fun updateClient(client: Client)
 
@@ -185,6 +203,9 @@ interface WorkTrackDao {
 
     @Query("DELETE FROM ProposalItem WHERE proposalId = :proposalId")
     suspend fun deleteProposalItems(proposalId: Long)
+
+    @Query("DELETE FROM ProposalMaterialItem WHERE proposalId = :proposalId")
+    suspend fun deleteProposalMaterialItems(proposalId: Long)
 
     @Query("DELETE FROM Proposal WHERE id = :id")
     suspend fun deleteProposalById(id: Long)
@@ -216,14 +237,21 @@ interface WorkTrackDao {
     }
 
     @Transaction
-    suspend fun saveProposal(proposalId: Long?, objectId: Long, items: List<ProposalItem>): Long {
+    suspend fun saveProposal(
+        proposalId: Long?,
+        objectId: Long,
+        items: List<ProposalItem>,
+        materialItems: List<ProposalMaterialItem>
+    ): Long {
         val now = System.currentTimeMillis()
         val id = proposalId?.takeIf { it != 0L } ?: insertProposal(Proposal(objectId = objectId, createdAt = now, updatedAt = now))
         if (proposalId != null && proposalId != 0L) {
             updateProposalTimestamp(id, objectId, now)
             deleteProposalItems(id)
+            deleteProposalMaterialItems(id)
         }
         items.forEach { item -> insertProposalItem(item.copy(proposalId = id)) }
+        materialItems.forEach { item -> insertProposalMaterialItem(item.copy(proposalId = id)) }
         return id
     }
 

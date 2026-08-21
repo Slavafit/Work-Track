@@ -60,6 +60,7 @@
     <string name="action_pick_contact">Выбрать из контактов</string>
     <string name="action_select">Выбрать</string>
     <string name="action_add_service">Добавить услугу</string>
+    <string name="action_add_material">Добавить материал</string>
     <string name="action_add_new">+ Добавить новую</string>
     <string name="action_send_to_customer">Отправить клиенту</string>
     <string name="action_new_proposal">Новое</string>
@@ -83,6 +84,7 @@
     <string name="label_phone">Телефон</string>
     <string name="label_notes">Заметки</string>
     <string name="label_work_type">Вид работы</string>
+    <string name="label_material">Материал</string>
     <string name="label_amount">Стоимость</string>
     <string name="label_name">Имя</string>
     <string name="label_email">Email</string>
@@ -90,6 +92,8 @@
     <string name="label_search">Поиск</string>
     <string name="empty_search_results">Ничего не найдено</string>
     <string name="empty_proposal_services">Добавьте услуги для предложения</string>
+    <string name="section_proposal_materials">Материалы</string>
+    <string name="section_proposal_services">Услуги</string>
     <string name="empty_proposals">Сохранённых предложений пока нет</string>
     <string name="empty_photos">Фото к этому дню пока не добавлены</string>
     <string name="photos_count_format">Фото: %1$d</string>

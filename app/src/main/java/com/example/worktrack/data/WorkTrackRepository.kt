@@ -15,6 +15,7 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
     fun entries(dayId: Long) = dao.entries(dayId)
     fun dayPhotos(dayId: Long) = dao.dayPhotos(dayId)
     fun proposalItems(proposalId: Long) = dao.proposalItems(proposalId)
+    fun proposalMaterialItems(proposalId: Long) = dao.proposalMaterialItems(proposalId)
 
     suspend fun createObject(address: String, selectedClientId: Long?, clientName: String, phone: String?) =
         dao.createObject(address, selectedClientId, clientName, phone)
@@ -34,7 +35,8 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
         dao.insertDayPhoto(WorkDayPhoto(workDayId = dayId, uri = uri, createdAt = System.currentTimeMillis()))
     suspend fun deleteDayPhoto(id: Long) = dao.deleteDayPhotoById(id)
     suspend fun completeObject(objectId: Long) = dao.completeObject(objectId, System.currentTimeMillis())
-    suspend fun saveProposal(proposalId: Long?, objectId: Long, items: List<ProposalItem>) = dao.saveProposal(proposalId, objectId, items)
+    suspend fun saveProposal(proposalId: Long?, objectId: Long, items: List<ProposalItem>, materialItems: List<ProposalMaterialItem>) =
+        dao.saveProposal(proposalId, objectId, items, materialItems)
     suspend fun deleteProposal(id: Long) = dao.deleteProposalById(id)
     suspend fun objectById(id: Long) = dao.objectById(id)
     suspend fun clientById(id: Long) = dao.clientById(id)

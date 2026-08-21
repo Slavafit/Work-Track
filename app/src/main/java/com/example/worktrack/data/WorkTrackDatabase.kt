@@ -19,9 +19,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkEntry::class,
         WorkDayPhoto::class,
         Proposal::class,
-        ProposalItem::class
+        ProposalItem::class,
+        ProposalMaterialItem::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class WorkTrackDatabase : RoomDatabase() {
@@ -36,7 +37,7 @@ abstract class WorkTrackDatabase : RoomDatabase() {
                     context.applicationContext,
                     WorkTrackDatabase::class.java,
                     "worktrack.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
             }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -91,6 +92,23 @@ abstract class WorkTrackDatabase : RoomDatabase() {
                         `isActive` INTEGER NOT NULL
                     )
                 """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `ProposalMaterialItem` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `proposalId` INTEGER NOT NULL,
+                        `materialId` INTEGER NOT NULL,
+                        `amount` INTEGER NOT NULL,
+                        FOREIGN KEY(`proposalId`) REFERENCES `Proposal`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`materialId`) REFERENCES `Material`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_ProposalMaterialItem_proposalId` ON `ProposalMaterialItem` (`proposalId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_ProposalMaterialItem_materialId` ON `ProposalMaterialItem` (`materialId`)")
             }
         }
     }

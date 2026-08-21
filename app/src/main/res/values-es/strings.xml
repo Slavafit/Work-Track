@@ -58,6 +58,7 @@
     <string name="action_pick_contact">Elegir de contactos</string>
     <string name="action_select">Elegir</string>
     <string name="action_add_service">Añadir servicio</string>
+    <string name="action_add_material">Añadir material</string>
     <string name="action_add_new">+ Añadir nuevo</string>
     <string name="action_send_to_customer">Enviar al cliente</string>
     <string name="action_new_proposal">Nuevo</string>
@@ -83,6 +84,7 @@
     <string name="label_phone">Teléfono</string>
     <string name="label_notes">Notas</string>
     <string name="label_work_type">Tipo de trabajo</string>
+    <string name="label_material">Material</string>
     <string name="label_amount">Coste</string>
     <string name="label_name">Nombre</string>
     <string name="label_email">Email</string>
@@ -90,6 +92,8 @@
     <string name="label_search">Buscar</string>
     <string name="empty_search_results">No se encontraron resultados</string>
     <string name="empty_proposal_services">Añade servicios para el presupuesto</string>
+    <string name="section_proposal_materials">Materiales</string>
+    <string name="section_proposal_services">Servicios</string>
     <string name="empty_proposals">Aún no hay presupuestos guardados</string>
     <string name="empty_photos">Aún no hay fotos añadidas a este día</string>
     <string name="photos_count_format">Fotos: %1$d</string>

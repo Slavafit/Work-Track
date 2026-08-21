@@ -1,5 +1,11 @@
 # News
 
+## Version 2.12
+
+- Redesigned the directory shortcuts in Settings as cleaner icon cards.
+- Added materials with prices to proposals alongside services.
+- Included materials in saved proposals, shared proposal text, item counts, and the combined total.
+
 ## Version 2.11
 
 - Added inline creation of new services while selecting a service in work entries and proposals.

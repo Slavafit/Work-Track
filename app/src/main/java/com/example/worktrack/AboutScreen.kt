@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Construction
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -116,21 +117,9 @@ fun AboutScreen(
                     Spacer(Modifier.width(8.dp))
                     SectionTitle(stringResource(R.string.section_directories))
                 }
-                OutlinedButton(onClick = onOpenWorkers, modifier = Modifier.fillMaxWidth().appButtonEffect()) {
-                    Icon(Icons.Outlined.People, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.tab_workers))
-                }
-                OutlinedButton(onClick = onOpenTypes, modifier = Modifier.fillMaxWidth().appButtonEffect()) {
-                    Icon(Icons.Outlined.Construction, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.tab_types))
-                }
-                OutlinedButton(onClick = onOpenMaterials, modifier = Modifier.fillMaxWidth().appButtonEffect()) {
-                    Icon(Icons.Outlined.Inventory2, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.tab_materials))
-                }
+                DirectoryRow(Icons.Outlined.People, stringResource(R.string.tab_workers), onOpenWorkers)
+                DirectoryRow(Icons.Outlined.Construction, stringResource(R.string.tab_types), onOpenTypes)
+                DirectoryRow(Icons.Outlined.Inventory2, stringResource(R.string.tab_materials), onOpenMaterials)
             }
         }
         item {
@@ -180,6 +169,36 @@ fun AboutScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DirectoryRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Card(
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(9.dp)
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

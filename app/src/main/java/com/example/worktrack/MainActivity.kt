@@ -92,6 +92,7 @@ import com.example.worktrack.data.LanguageMode
 import com.example.worktrack.data.Material
 import com.example.worktrack.data.ObjectSummary
 import com.example.worktrack.data.ProposalItem
+import com.example.worktrack.data.ProposalMaterialItem
 import com.example.worktrack.data.ProposalSummary
 import com.example.worktrack.data.ThemeMode
 import com.example.worktrack.data.WorkType
@@ -160,6 +161,12 @@ private enum class SettingsSection(@StringRes val titleRes: Int) {
 private data class ProposalLine(
     val id: Long,
     val workTypeId: Long,
+    val amount: String
+)
+
+private data class ProposalMaterialLine(
+    val id: Long,
+    val materialId: Long,
     val amount: String
 )
 
@@ -685,6 +692,7 @@ private fun MaterialsScreen(vm: AppViewModel, padding: PaddingValues, onBack: ()
 private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
     val objects by vm.objects.collectAsState()
     val types by vm.activeWorkTypes.collectAsState()
+    val materials by vm.materials.collectAsState()
     val proposals by vm.proposals.collectAsState()
     val settings by vm.settings.collectAsState()
     val context = LocalContext.current
@@ -692,18 +700,28 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
     var objectId by remember { mutableLongStateOf(0L) }
     var nextLineId by remember { mutableLongStateOf(-1L) }
     var lines by remember { mutableStateOf<List<ProposalLine>>(emptyList()) }
+    var materialLines by remember { mutableStateOf<List<ProposalMaterialLine>>(emptyList()) }
+    var showNewProposalType by remember { mutableStateOf(false) }
+    var showNewProposalMaterial by remember { mutableStateOf(false) }
     val selectedObject = objects.firstOrNull { it.id == objectId }
     val proposalTitle = stringResource(R.string.proposal_title)
     val companyFormat = stringResource(R.string.report_company_format)
     val addressFormat = stringResource(R.string.report_address_format)
     val customerFormat = stringResource(R.string.report_customer_format)
     val totalFormat = stringResource(R.string.report_total_format)
+    val servicesLabel = stringResource(R.string.section_proposal_services)
+    val materialsLabel = stringResource(R.string.section_proposal_materials)
     val validLines = lines.mapNotNull { line ->
         val type = types.firstOrNull { it.id == line.workTypeId }
         val amount = line.amount.toLongOrNull()
         if (type != null && amount != null && amount >= 0L) type to amount else null
     }
-    val total = validLines.sumOf { it.second }
+    val validMaterialLines = materialLines.mapNotNull { line ->
+        val material = materials.firstOrNull { it.id == line.materialId }
+        val amount = line.amount.toLongOrNull()
+        if (material != null && amount != null && amount >= 0L) material to amount else null
+    }
+    val total = validLines.sumOf { it.second } + validMaterialLines.sumOf { it.second }
 
     LaunchedEffect(selectedProposalId) {
         val id = selectedProposalId ?: return@LaunchedEffect
@@ -712,6 +730,9 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
         vm.loadProposalItems(id) { savedItems ->
             lines = savedItems.map { ProposalLine(it.id, it.workTypeId, it.amount.toString()) }
             nextLineId = -1L
+        }
+        vm.loadProposalMaterialItems(id) { savedItems ->
+            materialLines = savedItems.map { ProposalMaterialLine(it.id, it.materialId, it.amount.toString()) }
         }
     }
 
@@ -730,6 +751,7 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
                                 selectedProposalId = null
                                 objectId = 0L
                                 lines = emptyList()
+                                materialLines = emptyList()
                                 nextLineId = -1L
                             }
                         ) {
@@ -752,6 +774,7 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
                                         selectedProposalId = null
                                         objectId = 0L
                                         lines = emptyList()
+                                        materialLines = emptyList()
                                     }
                                 }
                             )
@@ -777,23 +800,42 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
                     }
                     Button(
                         onClick = {
-                            val firstType = types.firstOrNull() ?: return@Button
+                            val firstType = types.firstOrNull() ?: run {
+                                showNewProposalType = true
+                                return@Button
+                            }
                             lines = lines + ProposalLine(nextLineId, firstType.id, "")
                             nextLineId -= 1
                         },
-                        enabled = types.isNotEmpty(),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Outlined.Add, null)
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.action_add_service))
                     }
+                    Button(
+                        onClick = {
+                            val firstMaterial = materials.firstOrNull { it.isActive } ?: run {
+                                showNewProposalMaterial = true
+                                return@Button
+                            }
+                            materialLines = materialLines + ProposalMaterialLine(nextLineId, firstMaterial.id, "")
+                            nextLineId -= 1
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Outlined.Add, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.action_add_material))
+                    }
                 }
             }
         }
-        if (lines.isEmpty()) {
+        if (lines.isEmpty() && materialLines.isEmpty()) {
             item { EmptyText(stringResource(R.string.empty_proposal_services)) }
-        } else {
+        }
+        if (lines.isNotEmpty()) {
+            item { SectionTitle(stringResource(R.string.section_proposal_services)) }
             items(lines, key = { it.id }) { line ->
                 ProposalLineCard(
                     line = line,
@@ -801,6 +843,18 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
                     onAddType = { name, onCreated -> vm.addWorkType(name, onCreated) },
                     onChange = { updated -> lines = lines.map { if (it.id == updated.id) updated else it } },
                     onDelete = { lines = lines.filterNot { it.id == line.id } }
+                )
+            }
+        }
+        if (materialLines.isNotEmpty()) {
+            item { SectionTitle(stringResource(R.string.section_proposal_materials)) }
+            items(materialLines, key = { "material-${it.id}" }) { line ->
+                ProposalMaterialLineCard(
+                    line = line,
+                    materials = materials,
+                    onAddMaterial = { name, onCreated -> vm.addMaterial(name, onCreated) },
+                    onChange = { updated -> materialLines = materialLines.map { if (it.id == updated.id) updated else it } },
+                    onDelete = { materialLines = materialLines.filterNot { it.id == line.id } }
                 )
             }
         }
@@ -814,10 +868,13 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
                                 proposalId = selectedProposalId,
                                 objectId = objectId,
                                 items = validLines.map { (type, amount) -> ProposalItem(proposalId = 0L, workTypeId = type.id, amount = amount) },
+                                materialItems = validMaterialLines.map { (material, amount) ->
+                                    ProposalMaterialItem(proposalId = 0L, materialId = material.id, amount = amount)
+                                },
                                 onSaved = { selectedProposalId = it }
                             )
                         },
-                        enabled = selectedObject != null && validLines.isNotEmpty(),
+                        enabled = selectedObject != null && (validLines.isNotEmpty() || validMaterialLines.isNotEmpty()),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(stringResource(R.string.action_save_proposal))
@@ -833,11 +890,14 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
                                     totalFormat = totalFormat,
                                     companyName = settings.companyName,
                                     objectSummary = selectedObject,
-                                    lines = validLines
+                                    lines = validLines,
+                                    materialLines = validMaterialLines,
+                                    servicesLabel = servicesLabel,
+                                    materialsLabel = materialsLabel
                                 )
                             )
                         },
-                        enabled = selectedObject != null && validLines.isNotEmpty(),
+                        enabled = selectedObject != null && (validLines.isNotEmpty() || validMaterialLines.isNotEmpty()),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Outlined.Share, null)
@@ -848,6 +908,26 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
             }
         }
     }
+    if (showNewProposalType) QuickAddTypeDialog(
+        onDismiss = { showNewProposalType = false },
+        onSave = { name ->
+            vm.addWorkType(name) { id ->
+                lines = lines + ProposalLine(nextLineId, id, "")
+                nextLineId -= 1
+            }
+            showNewProposalType = false
+        }
+    )
+    if (showNewProposalMaterial) QuickAddMaterialDialog(
+        onDismiss = { showNewProposalMaterial = false },
+        onSave = { name ->
+            vm.addMaterial(name) { id ->
+                materialLines = materialLines + ProposalMaterialLine(nextLineId, id, "")
+                nextLineId -= 1
+            }
+            showNewProposalMaterial = false
+        }
+    )
 }
 
 @Composable
@@ -925,6 +1005,50 @@ private fun ProposalLineCard(
     )
 }
 
+@Composable
+private fun ProposalMaterialLineCard(
+    line: ProposalMaterialLine,
+    materials: List<Material>,
+    onAddMaterial: (String, (Long) -> Unit) -> Unit,
+    onChange: (ProposalMaterialLine) -> Unit,
+    onDelete: () -> Unit
+) {
+    var showNewMaterial by remember { mutableStateOf(false) }
+    Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            DropdownPickerField(
+                label = stringResource(R.string.label_material),
+                items = materials.filter { it.isActive || it.id == line.materialId },
+                selectedId = line.materialId,
+                idOf = { it.id },
+                titleOf = { it.name },
+                onSelect = { onChange(line.copy(materialId = it)) },
+                onAddNew = { showNewMaterial = true }
+            )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = line.amount,
+                    onValueChange = { onChange(line.copy(amount = it.filter(Char::isDigit))) },
+                    label = { Text(stringResource(R.string.label_amount)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
+                }
+            }
+        }
+    }
+    if (showNewMaterial) QuickAddMaterialDialog(
+        onDismiss = { showNewMaterial = false },
+        onSave = { name ->
+            onAddMaterial(name) { id -> onChange(line.copy(materialId = id)) }
+            showNewMaterial = false
+        }
+    )
+}
+
 private fun buildProposalText(
     proposalTitle: String,
     companyFormat: String,
@@ -933,9 +1057,12 @@ private fun buildProposalText(
     totalFormat: String,
     companyName: String,
     objectSummary: ObjectSummary?,
-    lines: List<Pair<WorkType, Long>>
+    lines: List<Pair<WorkType, Long>>,
+    materialLines: List<Pair<Material, Long>>,
+    servicesLabel: String,
+    materialsLabel: String
 ): String {
-    val total = lines.sumOf { it.second }
+    val total = lines.sumOf { it.second } + materialLines.sumOf { it.second }
     return buildString {
         appendLine(proposalTitle)
         companyName.trim().takeIf { it.isNotEmpty() }?.let {
@@ -944,8 +1071,14 @@ private fun buildProposalText(
         appendLine(addressFormat.format(objectSummary?.address.orEmpty()))
         appendLine(customerFormat.format(objectSummary?.clientName.orEmpty()))
         appendLine()
-        lines.forEach { (type, amount) ->
-            appendLine("- ${type.name}: ${amount.money()}")
+        if (lines.isNotEmpty()) {
+            appendLine("$servicesLabel:")
+            lines.forEach { (type, amount) -> appendLine("- ${type.name}: ${amount.money()}") }
+        }
+        if (materialLines.isNotEmpty()) {
+            if (lines.isNotEmpty()) appendLine()
+            appendLine("$materialsLabel:")
+            materialLines.forEach { (material, amount) -> appendLine("- ${material.name}: ${amount.money()}") }
         }
         appendLine()
         appendLine(totalFormat.format(total.money()))
@@ -1216,6 +1349,18 @@ private fun QuickAddTypeDialog(onDismiss: () -> Unit, onSave: (String) -> Unit) 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.dialog_new_work_type)) },
+        text = { OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.label_name)) }, singleLine = true) },
+        confirmButton = { Button(onClick = { onSave(name) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_add)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
+    )
+}
+
+@Composable
+private fun QuickAddMaterialDialog(onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.dialog_new_material)) },
         text = { OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.label_name)) }, singleLine = true) },
         confirmButton = { Button(onClick = { onSave(name) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_add)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }

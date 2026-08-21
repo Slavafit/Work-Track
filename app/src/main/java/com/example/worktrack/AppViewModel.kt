@@ -13,6 +13,8 @@ import com.example.worktrack.data.Material
 import com.example.worktrack.data.ObjectSummary
 import com.example.worktrack.data.ProposalItem
 import com.example.worktrack.data.ProposalItemDetail
+import com.example.worktrack.data.ProposalMaterialItem
+import com.example.worktrack.data.ProposalMaterialItemDetail
 import com.example.worktrack.data.SettingsStore
 import com.example.worktrack.data.ThemeMode
 import com.example.worktrack.data.WorkTrackDatabase
@@ -45,6 +47,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun entries(dayId: Long) = repo.entries(dayId)
     fun dayPhotos(dayId: Long) = repo.dayPhotos(dayId)
     fun proposalItems(proposalId: Long) = repo.proposalItems(proposalId)
+    fun proposalMaterialItems(proposalId: Long) = repo.proposalMaterialItems(proposalId)
 
     fun createObject(address: String, selectedClientId: Long?, clientName: String, phone: String?) = viewModelScope.launch {
         if (address.isNotBlank() && clientName.isNotBlank()) repo.createObject(address, selectedClientId, clientName, phone)
@@ -66,8 +69,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (type.name.isNotBlank()) repo.updateWorkType(type)
     }
 
-    fun addMaterial(name: String) = viewModelScope.launch {
-        if (name.isNotBlank()) repo.addMaterial(name)
+    fun addMaterial(name: String, onCreated: (Long) -> Unit = {}) = viewModelScope.launch {
+        if (name.isNotBlank()) onCreated(repo.addMaterial(name))
     }
 
     fun saveMaterial(material: Material) = viewModelScope.launch {
@@ -92,11 +95,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
     fun deleteDayPhoto(id: Long) = viewModelScope.launch { repo.deleteDayPhoto(id) }
     fun completeObject(objectId: Long) = viewModelScope.launch { repo.completeObject(objectId) }
-    fun saveProposal(proposalId: Long?, objectId: Long, items: List<ProposalItem>, onSaved: (Long) -> Unit) = viewModelScope.launch {
-        if (objectId != 0L && items.isNotEmpty()) onSaved(repo.saveProposal(proposalId, objectId, items))
+    fun saveProposal(
+        proposalId: Long?,
+        objectId: Long,
+        items: List<ProposalItem>,
+        materialItems: List<ProposalMaterialItem>,
+        onSaved: (Long) -> Unit
+    ) = viewModelScope.launch {
+        if (objectId != 0L && (items.isNotEmpty() || materialItems.isNotEmpty())) {
+            onSaved(repo.saveProposal(proposalId, objectId, items, materialItems))
+        }
     }
     fun loadProposalItems(proposalId: Long, onLoaded: (List<ProposalItemDetail>) -> Unit) = viewModelScope.launch {
         onLoaded(repo.proposalItems(proposalId).first())
+    }
+    fun loadProposalMaterialItems(proposalId: Long, onLoaded: (List<ProposalMaterialItemDetail>) -> Unit) = viewModelScope.launch {
+        onLoaded(repo.proposalMaterialItems(proposalId).first())
     }
     fun deleteProposal(id: Long) = viewModelScope.launch { repo.deleteProposal(id) }
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { settingsStore.setTheme(mode) }

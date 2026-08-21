@@ -58,6 +58,7 @@
     <string name="action_pick_contact">Pick from contacts</string>
     <string name="action_select">Select</string>
     <string name="action_add_service">Add service</string>
+    <string name="action_add_material">Add material</string>
     <string name="action_add_new">+ Add new</string>
     <string name="action_send_to_customer">Send to customer</string>
     <string name="action_new_proposal">New</string>
@@ -83,6 +84,7 @@
     <string name="label_phone">Phone</string>
     <string name="label_notes">Notes</string>
     <string name="label_work_type">Work type</string>
+    <string name="label_material">Material</string>
     <string name="label_amount">Cost</string>
     <string name="label_name">Name</string>
     <string name="label_email">Email</string>
@@ -90,6 +92,8 @@
     <string name="label_search">Search</string>
     <string name="empty_search_results">No results found</string>
     <string name="empty_proposal_services">Add services for the proposal</string>
+    <string name="section_proposal_materials">Materials</string>
+    <string name="section_proposal_services">Services</string>
     <string name="empty_proposals">No saved proposals yet</string>
     <string name="empty_photos">No photos added to this day yet</string>
     <string name="photos_count_format">Photos: %1$d</string>
