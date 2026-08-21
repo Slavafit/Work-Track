@@ -3,6 +3,7 @@
     <string name="tab_objects">Объекты</string>
     <string name="tab_workers">Работники</string>
     <string name="tab_types">Виды работ</string>
+    <string name="tab_materials">Материалы</string>
     <string name="tab_proposal">Предложение</string>
     <string name="tab_reports">Отчёты</string>
     <string name="tab_about">Настройки</string>
@@ -19,6 +20,7 @@
     <string name="empty_entries">Добавьте выполненные работы</string>
     <string name="empty_workers">Добавьте работников</string>
     <string name="empty_work_types">Добавьте виды работ</string>
+    <string name="empty_materials">Добавьте материалы</string>
     <string name="section_completed">Завершённые</string>
     <string name="section_theme">Тема</string>
     <string name="section_language">Язык</string>
@@ -58,6 +60,7 @@
     <string name="action_pick_contact">Выбрать из контактов</string>
     <string name="action_select">Выбрать</string>
     <string name="action_add_service">Добавить услугу</string>
+    <string name="action_add_new">+ Добавить новую</string>
     <string name="action_send_to_customer">Отправить клиенту</string>
     <string name="action_new_proposal">Новое</string>
     <string name="action_save_proposal">Сохранить предложение</string>
@@ -98,6 +101,7 @@
     <string name="dialog_work_entry">Запись работы</string>
     <string name="dialog_new_worker">Новый работник</string>
     <string name="dialog_new_work_type">Новый вид работ</string>
+    <string name="dialog_new_material">Новый материал</string>
     <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>

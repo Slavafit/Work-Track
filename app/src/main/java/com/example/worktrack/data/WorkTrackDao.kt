@@ -58,6 +58,9 @@ interface WorkTrackDao {
     @Query("SELECT * FROM WorkType ORDER BY isActive DESC, name")
     fun workTypes(): Flow<List<WorkType>>
 
+    @Query("SELECT * FROM Material ORDER BY isActive DESC, name")
+    fun materials(): Flow<List<Material>>
+
     @Query("SELECT * FROM Client ORDER BY name")
     fun clients(): Flow<List<Client>>
 
@@ -133,6 +136,9 @@ interface WorkTrackDao {
     suspend fun insertWorkType(type: WorkType): Long
 
     @Insert
+    suspend fun insertMaterial(material: Material): Long
+
+    @Insert
     suspend fun insertWorkDay(day: WorkDay): Long
 
     @Insert
@@ -158,6 +164,9 @@ interface WorkTrackDao {
 
     @Update
     suspend fun updateWorkType(type: WorkType)
+
+    @Update
+    suspend fun updateMaterial(material: Material)
 
     @Update
     suspend fun updateObject(obj: WorkObject)

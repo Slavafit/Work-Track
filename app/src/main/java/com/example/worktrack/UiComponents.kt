@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -42,6 +44,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +54,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.example.worktrack.data.LanguageMode
+
+fun Modifier.appCardEffect(shape: Shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)): Modifier =
+    shadow(elevation = 5.dp, shape = shape, clip = false)
+        .animateContentSize(animationSpec = spring(dampingRatio = 0.82f, stiffness = 420f))
+
+fun Modifier.appButtonEffect(shape: Shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)): Modifier =
+    shadow(elevation = 3.dp, shape = shape, clip = false)
 
 @Composable
 fun <T> EntityChips(items: List<T>, selectedId: Long, idOf: (T) -> Long, titleOf: (T) -> String, onSelect: (Long) -> Unit) {
@@ -222,7 +233,8 @@ fun <T> DropdownPickerField(
     selectedId: Long,
     idOf: (T) -> Long,
     titleOf: (T) -> String,
-    onSelect: (Long) -> Unit
+    onSelect: (Long) -> Unit,
+    onAddNew: (() -> Unit)? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedTitle = items.firstOrNull { idOf(it) == selectedId }?.let(titleOf).orEmpty()
@@ -246,6 +258,15 @@ fun <T> DropdownPickerField(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
+            onAddNew?.let { addNew ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.action_add_new), fontWeight = FontWeight.SemiBold) },
+                    onClick = {
+                        expanded = false
+                        addNew()
+                    }
+                )
+            }
             items.forEach { item ->
                 DropdownMenuItem(
                     text = { Text(titleOf(item), maxLines = 1, overflow = TextOverflow.Ellipsis) },

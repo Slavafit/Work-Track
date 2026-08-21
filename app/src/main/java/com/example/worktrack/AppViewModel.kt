@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.worktrack.data.AppSettings
 import com.example.worktrack.data.LanguageMode
+import com.example.worktrack.data.Material
 import com.example.worktrack.data.ObjectSummary
 import com.example.worktrack.data.ProposalItem
 import com.example.worktrack.data.ProposalItemDetail
@@ -33,6 +34,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val clients = repo.clients.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val workers = repo.workers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val workTypes = repo.workTypes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val materials = repo.materials.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val activeWorkers = repo.activeWorkers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val activeWorkTypes = repo.activeWorkTypes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val proposals = repo.proposals.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -56,12 +58,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (worker.name.isNotBlank()) repo.updateWorker(worker)
     }
 
-    fun addWorkType(name: String) = viewModelScope.launch {
-        if (name.isNotBlank()) repo.addWorkType(name)
+    fun addWorkType(name: String, onCreated: (Long) -> Unit = {}) = viewModelScope.launch {
+        if (name.isNotBlank()) onCreated(repo.addWorkType(name))
     }
 
     fun saveWorkType(type: WorkType) = viewModelScope.launch {
         if (type.name.isNotBlank()) repo.updateWorkType(type)
+    }
+
+    fun addMaterial(name: String) = viewModelScope.launch {
+        if (name.isNotBlank()) repo.addMaterial(name)
+    }
+
+    fun saveMaterial(material: Material) = viewModelScope.launch {
+        if (material.name.isNotBlank()) repo.updateMaterial(material)
     }
 
     fun createDay(objectId: Long, date: Long, workerIds: Set<Long>, notes: String?, onCreated: (Long) -> Unit) = viewModelScope.launch {

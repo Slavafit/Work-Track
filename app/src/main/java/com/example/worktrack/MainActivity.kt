@@ -89,6 +89,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.worktrack.data.Client
 import com.example.worktrack.data.EntryDetail
 import com.example.worktrack.data.LanguageMode
+import com.example.worktrack.data.Material
 import com.example.worktrack.data.ObjectSummary
 import com.example.worktrack.data.ProposalItem
 import com.example.worktrack.data.ProposalSummary
@@ -152,7 +153,8 @@ private enum class MainTab(@StringRes val titleRes: Int, @StringRes val navLabel
 
 private enum class SettingsSection(@StringRes val titleRes: Int) {
     Workers(R.string.tab_workers),
-    Types(R.string.tab_types)
+    Types(R.string.tab_types),
+    Materials(R.string.tab_materials)
 }
 
 private data class ProposalLine(
@@ -215,6 +217,7 @@ private fun WorkTrackApp(vm: AppViewModel) {
             objectId != 0L -> ObjectDetailsScreen(vm, objectId, padding, onBack = { objectId = 0L }, onOpenDay = { dayId = it })
             settingsSection == SettingsSection.Workers -> WorkersScreen(vm, padding, onBack = { settingsSection = null })
             settingsSection == SettingsSection.Types -> WorkTypesScreen(vm, padding, onBack = { settingsSection = null })
+            settingsSection == SettingsSection.Materials -> MaterialsScreen(vm, padding, onBack = { settingsSection = null })
             tab == MainTab.Objects -> ObjectsScreen(vm, padding, onOpen = { objectId = it })
             tab == MainTab.Proposal -> ProposalScreen(vm, padding)
             tab == MainTab.Reports -> ReportsScreen(vm, padding)
@@ -222,7 +225,8 @@ private fun WorkTrackApp(vm: AppViewModel) {
                 vm = vm,
                 padding = padding,
                 onOpenWorkers = { settingsSection = SettingsSection.Workers },
-                onOpenTypes = { settingsSection = SettingsSection.Types }
+                onOpenTypes = { settingsSection = SettingsSection.Types },
+                onOpenMaterials = { settingsSection = SettingsSection.Materials }
             )
         }
     }
@@ -248,7 +252,7 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
             onClick = { showCreate = true },
             icon = { Icon(Icons.Outlined.Add, null) },
             text = { Text(stringResource(R.string.title_object)) },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).appButtonEffect(RoundedCornerShape(16.dp))
         )
     }
     if (showCreate) CreateObjectDialog(clients, onDismiss = { showCreate = false }, onSave = { address, clientId, client, phone ->
@@ -261,7 +265,7 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
 private fun ObjectCard(item: ObjectSummary, onOpen: (Long) -> Unit) {
     Card(
         onClick = { onOpen(item.id) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     ) {
@@ -347,7 +351,7 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
             item {
                 OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Spacer(Modifier.height(12.dp))
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(obj?.address.orEmpty(), style = MaterialTheme.typography.titleLarge)
                         Text(stringResource(R.string.customer_format, obj?.clientName.orEmpty()))
@@ -377,7 +381,7 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
             }
             if (days.isEmpty()) item { EmptyText(stringResource(R.string.empty_work_days)) }
             items(days, key = { it.id }) { day ->
-                Card(onClick = { onOpenDay(day.id) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                Card(onClick = { onOpenDay(day.id) }, modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(day.date.formatDate(), style = MaterialTheme.typography.titleMedium)
                         Text(stringResource(R.string.day_counts_format, day.workerCount, day.entryCount))
@@ -455,6 +459,7 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
         worker = worker,
         types = activeTypes,
         onDismiss = { entryWorker = null },
+        onAddType = { name, onCreated -> vm.addWorkType(name, onCreated) },
         onSave = { typeId, amount, notes ->
             vm.addEntry(dayId, worker.id, typeId, amount, notes)
             entryWorker = null
@@ -467,6 +472,7 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             types = allTypes,
             entry = entry,
             onDismiss = { editingEntry = null },
+            onAddType = { name, onCreated -> vm.addWorkType(name, onCreated) },
             onSave = { typeId, amount, notes ->
                 vm.updateEntry(entry.id, entry.workDayId, entry.workerId, typeId, amount, notes)
                 editingEntry = null
@@ -492,7 +498,7 @@ private fun WorkerServicesCard(
     onEdit: (EntryDetail) -> Unit,
     onDelete: (Long) -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+    Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -535,7 +541,7 @@ private fun DayPhotosCard(
     onDelete: (Long) -> Unit
 ) {
     val context = LocalContext.current
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+    Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -582,7 +588,7 @@ private fun WorkersScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -
             item { OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) } }
             if (workers.isEmpty()) item { EmptyText(stringResource(R.string.empty_workers)) }
             items(workers, key = { it.id }) { worker ->
-                Card(onClick = { editing = worker }, shape = RoundedCornerShape(8.dp)) {
+                Card(onClick = { editing = worker }, modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
                     ListItem(
                         headlineContent = { Text(worker.name) },
                         supportingContent = { Text(worker.phone.orEmpty()) },
@@ -617,7 +623,7 @@ private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues, onBack: ()
             item { OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) } }
             if (types.isEmpty()) item { EmptyText(stringResource(R.string.empty_work_types)) }
             items(types, key = { it.id }) { type ->
-                Card(onClick = { editing = type }, shape = RoundedCornerShape(8.dp)) {
+                Card(onClick = { editing = type }, modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
                     ListItem(
                         headlineContent = { Text(type.name) },
                         trailingContent = { Text(if (type.isActive) stringResource(R.string.status_active) else stringResource(R.string.status_hidden)) }
@@ -636,6 +642,40 @@ private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues, onBack: ()
     editing?.let { type ->
         WorkTypeDialog(type, onDismiss = { editing = null }, onSave = { name, active ->
             vm.saveWorkType(type.copy(name = name, isActive = active))
+            editing = null
+        })
+    }
+}
+
+@Composable
+private fun MaterialsScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -> Unit) {
+    val materials by vm.materials.collectAsState()
+    var editing by remember { mutableStateOf<Material?>(null) }
+    var showAdd by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxSize().padding(padding)) {
+        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) } }
+            if (materials.isEmpty()) item { EmptyText(stringResource(R.string.empty_materials)) }
+            items(materials, key = { it.id }) { material ->
+                Card(onClick = { editing = material }, modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
+                    ListItem(
+                        headlineContent = { Text(material.name) },
+                        trailingContent = { Text(if (material.isActive) stringResource(R.string.status_active) else stringResource(R.string.status_hidden)) }
+                    )
+                }
+            }
+        }
+        FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+            Icon(Icons.Outlined.Add, stringResource(R.string.action_add))
+        }
+    }
+    if (showAdd) MaterialDialog(null, onDismiss = { showAdd = false }, onSave = { name, _ ->
+        vm.addMaterial(name)
+        showAdd = false
+    })
+    editing?.let { material ->
+        MaterialDialog(material, onDismiss = { editing = null }, onSave = { name, active ->
+            vm.saveMaterial(material.copy(name = name, isActive = active))
             editing = null
         })
     }
@@ -681,7 +721,7 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+            Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.section_saved_proposals), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -721,7 +761,7 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
             }
         }
         item {
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+            Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.tab_proposal), style = MaterialTheme.typography.titleLarge)
                     EntityPickerField(
@@ -758,13 +798,14 @@ private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
                 ProposalLineCard(
                     line = line,
                     types = types,
+                    onAddType = { name, onCreated -> vm.addWorkType(name, onCreated) },
                     onChange = { updated -> lines = lines.map { if (it.id == updated.id) updated else it } },
                     onDelete = { lines = lines.filterNot { it.id == line.id } }
                 )
             }
         }
         item {
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+            Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(stringResource(R.string.report_total_format, total.money()), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Button(
@@ -818,7 +859,7 @@ private fun ProposalSummaryCard(
 ) {
     Card(
         onClick = onOpen,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
@@ -844,10 +885,12 @@ private fun ProposalSummaryCard(
 private fun ProposalLineCard(
     line: ProposalLine,
     types: List<WorkType>,
+    onAddType: (String, (Long) -> Unit) -> Unit,
     onChange: (ProposalLine) -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+    var showNewType by remember { mutableStateOf(false) }
+    Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             DropdownPickerField(
                 label = stringResource(R.string.label_work_type),
@@ -856,6 +899,7 @@ private fun ProposalLineCard(
                 idOf = { it.id },
                 titleOf = { it.name },
                 onSelect = { onChange(line.copy(workTypeId = it)) }
+                ,onAddNew = { showNewType = true }
             )
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -872,6 +916,13 @@ private fun ProposalLineCard(
             }
         }
     }
+    if (showNewType) QuickAddTypeDialog(
+        onDismiss = { showNewType = false },
+        onSave = { name ->
+            onAddType(name) { id -> onChange(line.copy(workTypeId = id)) }
+            showNewType = false
+        }
+    )
 }
 
 private fun buildProposalText(
@@ -1045,8 +1096,10 @@ private fun AddEntryDialog(
     types: List<WorkType>,
     entry: EntryDetail? = null,
     onDismiss: () -> Unit,
+    onAddType: (String, (Long) -> Unit) -> Unit,
     onSave: (Long, Long, String?) -> Unit
 ) {
+    var showNewType by remember { mutableStateOf(false) }
     var typeId by remember(entry?.id, types) { mutableLongStateOf(entry?.workTypeId ?: types.firstOrNull()?.id ?: 0L) }
     var amount by remember(entry?.id) { mutableStateOf(entry?.amount?.toString().orEmpty()) }
     var notes by remember(entry?.id) { mutableStateOf(entry?.notes.orEmpty()) }
@@ -1063,6 +1116,7 @@ private fun AddEntryDialog(
                     idOf = { it.id },
                     titleOf = { it.name },
                     onSelect = { typeId = it }
+                    ,onAddNew = { showNewType = true }
                 )
                 OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text(stringResource(R.string.label_amount)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
@@ -1074,6 +1128,13 @@ private fun AddEntryDialog(
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
+    )
+    if (showNewType) QuickAddTypeDialog(
+        onDismiss = { showNewType = false },
+        onSave = { name ->
+            onAddType(name) { typeId = it }
+            showNewType = false
+        }
     )
 }
 
@@ -1124,6 +1185,39 @@ private fun WorkTypeDialog(type: WorkType?, onDismiss: () -> Unit, onSave: (Stri
             }
         },
         confirmButton = { Button(onClick = { onSave(name, active) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
+    )
+}
+
+@Composable
+private fun MaterialDialog(material: Material?, onDismiss: () -> Unit, onSave: (String, Boolean) -> Unit) {
+    var name by remember { mutableStateOf(material?.name.orEmpty()) }
+    var active by remember { mutableStateOf(material?.isActive ?: true) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (material == null) R.string.dialog_new_material else R.string.tab_materials)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.label_name)) }, singleLine = true)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.status_active), modifier = Modifier.weight(1f))
+                    Switch(checked = active, onCheckedChange = { active = it })
+                }
+            }
+        },
+        confirmButton = { Button(onClick = { onSave(name, active) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
+    )
+}
+
+@Composable
+private fun QuickAddTypeDialog(onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.dialog_new_work_type)) },
+        text = { OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.label_name)) }, singleLine = true) },
+        confirmButton = { Button(onClick = { onSave(name) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_add)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }

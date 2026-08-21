@@ -3,6 +3,7 @@
     <string name="tab_objects">Objetos</string>
     <string name="tab_workers">Trabajadores</string>
     <string name="tab_types">Tipos de trabajo</string>
+    <string name="tab_materials">Materiales</string>
     <string name="tab_proposal">Presupuesto</string>
     <string name="tab_reports">Informes</string>
     <string name="tab_about">Ajustes</string>
@@ -19,6 +20,7 @@
     <string name="empty_entries">Añade trabajos completados</string>
     <string name="empty_workers">Añade trabajadores</string>
     <string name="empty_work_types">Añade tipos de trabajo</string>
+    <string name="empty_materials">Añade materiales</string>
     <string name="section_completed">Completados</string>
     <string name="section_theme">Tema</string>
     <string name="section_language">Idioma</string>
@@ -56,6 +58,7 @@
     <string name="action_pick_contact">Elegir de contactos</string>
     <string name="action_select">Elegir</string>
     <string name="action_add_service">Añadir servicio</string>
+    <string name="action_add_new">+ Añadir nuevo</string>
     <string name="action_send_to_customer">Enviar al cliente</string>
     <string name="action_new_proposal">Nuevo</string>
     <string name="action_save_proposal">Guardar presupuesto</string>
@@ -98,6 +101,7 @@
     <string name="dialog_work_entry">Entrada de trabajo</string>
     <string name="dialog_new_worker">Nuevo trabajador</string>
     <string name="dialog_new_work_type">Nuevo tipo de trabajo</string>
+    <string name="dialog_new_material">Nuevo material</string>
     <string name="theme_system">Sistema</string>
     <string name="theme_light">Claro</string>
     <string name="theme_dark">Oscuro</string>

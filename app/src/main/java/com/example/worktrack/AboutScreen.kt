@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Construction
 import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -54,6 +55,7 @@ fun AboutScreen(
     padding: PaddingValues,
     onOpenWorkers: () -> Unit,
     onOpenTypes: () -> Unit,
+    onOpenMaterials: () -> Unit,
     licenseViewModel: LicenseViewModel = viewModel()
 ) {
     val settings by vm.settings.collectAsState()
@@ -114,15 +116,20 @@ fun AboutScreen(
                     Spacer(Modifier.width(8.dp))
                     SectionTitle(stringResource(R.string.section_directories))
                 }
-                OutlinedButton(onClick = onOpenWorkers, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onOpenWorkers, modifier = Modifier.fillMaxWidth().appButtonEffect()) {
                     Icon(Icons.Outlined.People, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.tab_workers))
                 }
-                OutlinedButton(onClick = onOpenTypes, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onOpenTypes, modifier = Modifier.fillMaxWidth().appButtonEffect()) {
                     Icon(Icons.Outlined.Construction, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.tab_types))
+                }
+                OutlinedButton(onClick = onOpenMaterials, modifier = Modifier.fillMaxWidth().appButtonEffect()) {
+                    Icon(Icons.Outlined.Inventory2, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.tab_materials))
                 }
             }
         }
@@ -183,7 +190,7 @@ private fun SettingsCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     ) {

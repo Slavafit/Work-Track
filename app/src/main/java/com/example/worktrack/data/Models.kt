@@ -39,6 +39,13 @@ data class WorkType(
     val isActive: Boolean = true
 )
 
+@Entity
+data class Material(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val isActive: Boolean = true
+)
+
 @Entity(
     foreignKeys = [ForeignKey(WorkObject::class, ["id"], ["objectId"], onDelete = ForeignKey.CASCADE)],
     indices = [Index("objectId")]

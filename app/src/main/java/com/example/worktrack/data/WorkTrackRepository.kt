@@ -5,6 +5,7 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
     val clients = dao.clients()
     val workers = dao.workers()
     val workTypes = dao.workTypes()
+    val materials = dao.materials()
     val activeWorkers = dao.activeWorkers()
     val activeWorkTypes = dao.activeWorkTypes()
     val proposals = dao.proposals()
@@ -21,6 +22,8 @@ class WorkTrackRepository(private val dao: WorkTrackDao) {
     suspend fun updateWorker(worker: Worker) = dao.updateWorker(worker)
     suspend fun addWorkType(name: String) = dao.insertWorkType(WorkType(name = name.trim()))
     suspend fun updateWorkType(type: WorkType) = dao.updateWorkType(type)
+    suspend fun addMaterial(name: String) = dao.insertMaterial(Material(name = name.trim()))
+    suspend fun updateMaterial(material: Material) = dao.updateMaterial(material)
     suspend fun createDay(objectId: Long, date: Long, workerIds: Set<Long>, notes: String?) = dao.createDay(objectId, date, workerIds, notes)
     suspend fun addEntry(dayId: Long, workerId: Long, typeId: Long, amount: Long, notes: String?) =
         dao.insertEntry(WorkEntry(workDayId = dayId, workerId = workerId, workTypeId = typeId, amount = amount, notes = notes?.ifBlank { null }))

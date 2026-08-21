@@ -13,6 +13,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkObject::class,
         Worker::class,
         WorkType::class,
+        Material::class,
         WorkDay::class,
         WorkDayWorker::class,
         WorkEntry::class,
@@ -20,7 +21,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         Proposal::class,
         ProposalItem::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class WorkTrackDatabase : RoomDatabase() {
@@ -35,7 +36,7 @@ abstract class WorkTrackDatabase : RoomDatabase() {
                     context.applicationContext,
                     WorkTrackDatabase::class.java,
                     "worktrack.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
             }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -78,6 +79,18 @@ abstract class WorkTrackDatabase : RoomDatabase() {
                     )
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_WorkDayPhoto_workDayId` ON `WorkDayPhoto` (`workDayId`)")
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `Material` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `isActive` INTEGER NOT NULL
+                    )
+                """.trimIndent())
             }
         }
     }
