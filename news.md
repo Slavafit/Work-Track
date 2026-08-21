@@ -1,5 +1,11 @@
 # News
 
+## Version 2.11
+
+- Added inline creation of new services while selecting a service in work entries and proposals.
+- Added a materials directory with creation, editing, activation, and hiding.
+- Added soft shadows to cards and key buttons, plus smooth card content animations.
+
 ## Version 2.10
 
 - Redesigned object cards with clearer address and customer grouping, a status badge, and separate total and work-day statistics.
