@@ -158,6 +158,7 @@ private enum class SettingsSection(@StringRes val titleRes: Int) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WorkTrackApp(vm: AppViewModel) {
+    com.example.worktrack.backup.BackupDialogs(vm.backup)
     var tab by rememberSaveable { mutableStateOf(MainTab.Objects) }
     var settingsSection by rememberSaveable { mutableStateOf<SettingsSection?>(null) }
     var objectId by rememberSaveable { mutableLongStateOf(0L) }

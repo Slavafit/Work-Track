@@ -71,6 +71,9 @@ fun AboutScreen(
     }
     LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
+            SettingsCard { com.example.worktrack.backup.BackupPanel(vm.backup) }
+        }
+        item {
             SettingsCard {
                 Text("WorkTrack", style = MaterialTheme.typography.headlineMedium)
                 Text(stringResource(id = R.string.app_version, BuildConfig.VERSION_NAME), color = MaterialTheme.colorScheme.onSurfaceVariant)

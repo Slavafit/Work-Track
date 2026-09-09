@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import com.example.worktrack.data.ClosedObjectException
 import java.util.Locale
+import com.example.worktrack.backup.BackupController
+import com.example.worktrack.backup.BackupService
 
 class AppViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
     private val repo = WorkTrackRepository(WorkTrackDatabase.get(app))
@@ -37,11 +39,14 @@ class AppViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andro
     val isSaving = mutableSaving.asStateFlow()
     private val mutableError = MutableStateFlow<Int?>(null)
     val operationError = mutableError.asStateFlow()
+    val backup = BackupController(app, BackupService(app, WorkTrackDatabase.get(app)), viewModelScope,
+        canStart = { !mutableSaving.value && !proposalEditor.state.value.busy },
+        onRestored = { proposalEditor.newDraft() })
     fun clearError() { mutableError.value = null }
     fun dayCompleted(dayId: Long) = repo.dayCompleted(dayId)
 
     private fun write(action: suspend () -> Unit) {
-        if (mutableSaving.value) return
+        if (mutableSaving.value || backup.state.value.busy || backup.state.value.preview != null) return
         mutableSaving.value = true
         viewModelScope.launch {
             try {

@@ -1,5 +1,14 @@
 # News
 
+## Version 2.15
+
+- Added manual ZIP backup and restore in Settings using the Android document picker.
+- Included all saved work records and available photo files, with a count of missing photos.
+- Added archive validation and a preview before confirming replacement of current work data.
+- Restored database records in one transaction and copied photos into private app storage for sharing through FileProvider.
+- Kept settings, company name, and license unchanged during manual restore; excluded device-bound license state from Android backup/transfer.
+- Added regression tests for archive round trips, rollback, missing photos, invalid data, checksums, paths, and size limits.
+
 ## Version 2.14
 
 - Preserved hidden services in existing proposals and required all lines to be valid before saving or sharing.

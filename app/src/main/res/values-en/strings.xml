@@ -170,4 +170,20 @@
     <string name="delete_proposal_title">Delete proposal?</string>
     <string name="delete_proposal_message">The proposal and all its lines will be deleted. This cannot be undone.</string>
     <string name="amount_total_invalid">The amount or combined total is out of range. Enter a smaller amount.</string>
+    <string name="backup_title">Backup</string>
+    <string name="backup_description">Includes saved objects, customers, work days, directories, proposals and available photos. Unsaved changes are excluded. Settings, company name and license remain unchanged when restoring.</string>
+    <string name="backup_last_export">Last successful backup: %1$s</string>
+    <string name="backup_export">Save backup to a file</string>
+    <string name="backup_import">Restore from a file</string>
+    <string name="backup_working">Preparing data… Please wait until the operation finishes.</string>
+    <string name="backup_confirm_title">Restore this backup?</string>
+    <string name="backup_replace_warning">All current work data and the unsaved proposal draft will be replaced. Back up the current data first if you need to keep it.</string>
+    <string name="backup_replace">Replace data</string>
+    <string name="backup_export_success">Backup saved. Keep it outside this phone so you can recover your data if the phone is lost.</string>
+    <string name="backup_restore_success">Data restored from the backup.</string>
+    <string name="backup_invalid">This file is damaged, incompatible or not a WorkTrack backup. Current data has not changed.</string>
+    <string name="backup_failed">The operation failed. Check available storage and file access. Do not use an unfinished file as a backup.</string>
+    <string name="backup_too_large">Backup exceeds the supported limits: 512 MB unpacked, 32 MB per photo, 16 MB of records, 10,000 photos and 100,000 rows per table.</string>
+    <string name="backup_summary">Backup date: %1$s\nObjects: %2$d\nWork days: %3$d\nProposals: %4$d\nIncluded photos: %5$d\nUnavailable photos: %6$d</string>
+    <string name="backup_busy">Wait for the current save to finish, then try again.</string>
 </resources>

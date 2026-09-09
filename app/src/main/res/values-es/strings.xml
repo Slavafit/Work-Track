@@ -170,4 +170,20 @@
     <string name="delete_proposal_title">¿Eliminar el presupuesto?</string>
     <string name="delete_proposal_message">Se eliminarán el presupuesto y todas sus líneas. Esta acción no se puede deshacer.</string>
     <string name="amount_total_invalid">El importe o el total supera el rango admitido. Introduce un importe menor.</string>
+    <string name="backup_title">Copia de seguridad</string>
+    <string name="backup_description">Incluye obras, clientes, jornadas, directorios, presupuestos y fotos disponibles guardados. No incluye cambios sin guardar. Los ajustes, el nombre de la empresa y la licencia se mantienen al restaurar.</string>
+    <string name="backup_last_export">Última copia guardada: %1$s</string>
+    <string name="backup_export">Guardar copia en un archivo</string>
+    <string name="backup_import">Restaurar desde un archivo</string>
+    <string name="backup_working">Preparando los datos… Espera hasta que termine la operación.</string>
+    <string name="backup_confirm_title">¿Restaurar esta copia?</string>
+    <string name="backup_replace_warning">Se sustituirán todos los datos de trabajo actuales y el borrador de presupuesto sin guardar. Guarda antes una copia de los datos actuales si necesitas conservarlos.</string>
+    <string name="backup_replace">Sustituir datos</string>
+    <string name="backup_export_success">Copia guardada. Consérvala fuera de este teléfono para recuperar los datos si lo pierdes.</string>
+    <string name="backup_restore_success">Datos restaurados desde la copia.</string>
+    <string name="backup_invalid">El archivo está dañado, es incompatible o no es una copia de WorkTrack. Los datos actuales no han cambiado.</string>
+    <string name="backup_failed">No se pudo completar la operación. Comprueba el espacio disponible y el acceso al archivo. No uses un archivo incompleto como copia de seguridad.</string>
+    <string name="backup_too_large">La copia supera los límites: 512 MB descomprimidos, 32 MB por foto, 16 MB de registros, 10 000 fotos y 100 000 filas por tabla.</string>
+    <string name="backup_summary">Fecha de la copia: %1$s\nObras: %2$d\nJornadas: %3$d\nPresupuestos: %4$d\nFotos incluidas: %5$d\nFotos no disponibles: %6$d</string>
+    <string name="backup_busy">Espera a que termine el guardado actual e inténtalo de nuevo.</string>
 </resources>

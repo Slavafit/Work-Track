@@ -170,4 +170,20 @@
     <string name="delete_proposal_title">Удалить предложение?</string>
     <string name="delete_proposal_message">Предложение и все его строки будут удалены. Отменить удаление нельзя.</string>
     <string name="amount_total_invalid">Сумма или общий итог выходит за допустимый диапазон. Уменьшите сумму.</string>
+    <string name="backup_title">Резервная копия</string>
+    <string name="backup_description">Копия содержит сохранённые объекты, заказчиков, дни, справочники, предложения и доступные фотографии. Несохранённые изменения не включаются. Настройки, название компании и лицензия при восстановлении остаются прежними.</string>
+    <string name="backup_last_export">Последняя успешная копия: %1$s</string>
+    <string name="backup_export">Сохранить копию в файл</string>
+    <string name="backup_import">Восстановить из файла</string>
+    <string name="backup_working">Подготовка данных… Дождитесь завершения операции.</string>
+    <string name="backup_confirm_title">Восстановить эту копию?</string>
+    <string name="backup_replace_warning">Все текущие рабочие данные и несохранённый черновик предложения будут заменены. Перед продолжением сохраните копию текущих данных, если они нужны.</string>
+    <string name="backup_replace">Заменить данные</string>
+    <string name="backup_export_success">Резервная копия сохранена. Храните её вне этого телефона, чтобы восстановить данные при его потере.</string>
+    <string name="backup_restore_success">Данные восстановлены из копии.</string>
+    <string name="backup_invalid">Файл повреждён, несовместим или не является копией WorkTrack. Текущие данные не изменены.</string>
+    <string name="backup_failed">Операция не выполнена. Проверьте свободное место и доступ к файлу. Не используйте незавершённый файл как резервную копию.</string>
+    <string name="backup_too_large">Копия превышает поддерживаемый размер: до 512 МБ распакованных данных, до 32 МБ на фото, до 16 МБ записей, до 10 000 фото и до 100 000 строк в таблице.</string>
+    <string name="backup_summary">Дата копии: %1$s\nОбъектов: %2$d\nРабочих дней: %3$d\nПредложений: %4$d\nФотографий в копии: %5$d\nНедоступных фотографий: %6$d</string>
+    <string name="backup_busy">Дождитесь завершения текущего сохранения и повторите операцию.</string>
 </resources>
