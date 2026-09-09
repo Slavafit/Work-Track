@@ -159,4 +159,15 @@
     <string name="report_period_format">Period: %1$s - %2$s</string>
     <string name="proposal_title">Proposal / Presupuesto</string>
     <string name="proposal_items_format">Services: %1$d · %2$s</string>
+
+    <string name="amount_invalid">Enter a whole euro amount of 0 or more, without decimal separators or a minus sign. The number must fit the supported range.</string>
+    <string name="proposal_invalid">Select an object and enter valid amounts in every line. Check that the total is not too large.</string>
+    <string name="operation_failed">The operation could not be completed. Check available storage and try again.</string>
+    <string name="object_read_only">This object is completed. Its data is read-only.</string>
+    <string name="draft_unsaved">Unsaved changes</string>
+    <string name="discard_draft_title">Discard changes?</string>
+    <string name="discard_draft_message">Unsaved changes to the current proposal will be lost.</string>
+    <string name="delete_proposal_title">Delete proposal?</string>
+    <string name="delete_proposal_message">The proposal and all its lines will be deleted. This cannot be undone.</string>
+    <string name="amount_total_invalid">The amount or combined total is out of range. Enter a smaller amount.</string>
 </resources>

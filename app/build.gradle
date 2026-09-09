@@ -13,8 +13,8 @@ android {
         applicationId "com.example.worktrack"
         minSdk 26
         targetSdk 35
-        versionCode 24
-        versionName "2.13"
+        versionCode 25
+        versionName "2.14"
     }
 
     buildFeatures {
@@ -29,6 +29,10 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+    }
+
+    testOptions {
+        unitTests.includeAndroidResources = true
     }
 }
 
@@ -47,5 +51,8 @@ dependencies {
     implementation "androidx.room:room-ktx:2.6.1"
     kapt "androidx.room:room-compiler:2.6.1"
     implementation "androidx.datastore:datastore-preferences:1.1.1"
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "org.robolectric:robolectric:4.14.1"
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0"
 }
 

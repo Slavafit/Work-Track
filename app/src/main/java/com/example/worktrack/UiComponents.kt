@@ -234,24 +234,26 @@ fun <T> DropdownPickerField(
     idOf: (T) -> Long,
     titleOf: (T) -> String,
     onSelect: (Long) -> Unit,
-    onAddNew: (() -> Unit)? = null
+    onAddNew: (() -> Unit)? = null,
+    enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedTitle = items.firstOrNull { idOf(it) == selectedId }?.let(titleOf).orEmpty()
 
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = it },
+        onExpandedChange = { if (enabled) expanded = it },
         modifier = Modifier.fillMaxWidth()
     ) {
         OutlinedTextField(
             value = selectedTitle,
             onValueChange = {},
             readOnly = true,
+            enabled = enabled,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true).fillMaxWidth(),
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = enabled).fillMaxWidth(),
             singleLine = true
         )
         ExposedDropdownMenu(

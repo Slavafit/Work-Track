@@ -30,11 +30,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Assessment
-import androidx.compose.material.icons.outlined.Construction
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.AlertDialog
@@ -72,6 +70,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -92,9 +91,6 @@ import com.example.worktrack.data.LanguageMode
 import com.example.worktrack.data.Material
 import com.example.worktrack.data.MaterialEntryDetail
 import com.example.worktrack.data.ObjectSummary
-import com.example.worktrack.data.ProposalItem
-import com.example.worktrack.data.ProposalMaterialItem
-import com.example.worktrack.data.ProposalSummary
 import com.example.worktrack.data.ThemeMode
 import com.example.worktrack.data.WorkType
 import com.example.worktrack.data.WorkDayPhoto
@@ -159,25 +155,19 @@ private enum class SettingsSection(@StringRes val titleRes: Int) {
     Materials(R.string.tab_materials)
 }
 
-private data class ProposalLine(
-    val id: Long,
-    val workTypeId: Long,
-    val amount: String
-)
-
-private data class ProposalMaterialLine(
-    val id: Long,
-    val materialId: Long,
-    val amount: String
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WorkTrackApp(vm: AppViewModel) {
-    var tab by remember { mutableStateOf(MainTab.Objects) }
-    var settingsSection by remember { mutableStateOf<SettingsSection?>(null) }
-    var objectId by remember { mutableLongStateOf(0L) }
-    var dayId by remember { mutableLongStateOf(0L) }
+    var tab by rememberSaveable { mutableStateOf(MainTab.Objects) }
+    var settingsSection by rememberSaveable { mutableStateOf<SettingsSection?>(null) }
+    var objectId by rememberSaveable { mutableLongStateOf(0L) }
+    var dayId by rememberSaveable { mutableLongStateOf(0L) }
+    val operationError by vm.operationError.collectAsState()
+    operationError?.let { message ->
+        AlertDialog(onDismissRequest = vm::clearError,
+            text = { Text(stringResource(message)) },
+            confirmButton = { TextButton(onClick = vm::clearError) { Text(stringResource(android.R.string.ok)) } })
+    }
     val title = when {
         dayId != 0L -> stringResource(R.string.title_work_day)
         objectId != 0L -> stringResource(R.string.title_object)
@@ -244,7 +234,7 @@ private fun WorkTrackApp(vm: AppViewModel) {
 private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Long) -> Unit) {
     val objects by vm.objects.collectAsState()
     val clients by vm.clients.collectAsState()
-    var showCreate by remember { mutableStateOf(false) }
+    var showCreate by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             val active = objects.filterNot { it.isCompleted }
@@ -264,8 +254,7 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
         )
     }
     if (showCreate) CreateObjectDialog(clients, onDismiss = { showCreate = false }, onSave = { address, clientId, client, phone ->
-        vm.createObject(address, clientId, client, phone)
-        showCreate = false
+        vm.createObject(address, clientId, client, phone) { showCreate = false }
     })
 }
 
@@ -352,8 +341,8 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
     val days by daysFlow.collectAsState(initial = emptyList())
     val context = LocalContext.current
     val obj = objects.firstOrNull { it.id == objectId }
-    var showCreateDay by remember { mutableStateOf(false) }
-    var confirmComplete by remember { mutableStateOf(false) }
+    var showCreateDay by rememberSaveable { mutableStateOf(false) }
+    var confirmComplete by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
@@ -367,7 +356,7 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = { showCreateDay = true },
-                                enabled = obj?.isCompleted != true,
+                                enabled = obj?.isCompleted == false,
                                 modifier = Modifier.weight(1f)
                             ) { Text(stringResource(R.string.action_add_day), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                             OutlinedButton(
@@ -411,6 +400,10 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
 
 @Composable
 private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues, onBack: () -> Unit) {
+    val completedFlow = remember(dayId) { vm.dayCompleted(dayId) }
+    val completed by completedFlow.collectAsState(initial = null)
+    val saving by vm.isSaving.collectAsState()
+    val editable = completed == false && !saving
     val entriesFlow = remember(dayId) { vm.entries(dayId) }
     val materialEntriesFlow = remember(dayId) { vm.materialEntries(dayId) }
     val workerIdsFlow = remember(dayId) { vm.dayWorkerIds(dayId) }
@@ -427,13 +420,17 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
     val dayWorkers = workers.filter { it.id in workerIds }
     val entriesByWorker = entries.groupBy { it.workerId }
     val materialsByWorker = materialEntries.groupBy { it.workerId }
-    var entryWorker by remember { mutableStateOf<Worker?>(null) }
-    var materialWorker by remember { mutableStateOf<Worker?>(null) }
-    var editingEntry by remember { mutableStateOf<EntryDetail?>(null) }
-    var editingMaterialEntry by remember { mutableStateOf<MaterialEntryDetail?>(null) }
-    var deleteId by remember { mutableLongStateOf(0L) }
-    var deleteMaterialId by remember { mutableLongStateOf(0L) }
-    var deletePhotoId by remember { mutableLongStateOf(0L) }
+    var entryWorkerId by rememberSaveable(dayId) { mutableLongStateOf(0L) }
+    var materialWorkerId by rememberSaveable(dayId) { mutableLongStateOf(0L) }
+    var editingEntryId by rememberSaveable(dayId) { mutableLongStateOf(0L) }
+    var editingMaterialEntryId by rememberSaveable(dayId) { mutableLongStateOf(0L) }
+    val entryWorker = workers.firstOrNull { it.id == entryWorkerId }
+    val materialWorker = workers.firstOrNull { it.id == materialWorkerId }
+    val editingEntry = entries.firstOrNull { it.id == editingEntryId }
+    val editingMaterialEntry = materialEntries.firstOrNull { it.id == editingMaterialEntryId }
+    var deleteId by rememberSaveable { mutableLongStateOf(0L) }
+    var deleteMaterialId by rememberSaveable { mutableLongStateOf(0L) }
+    var deletePhotoId by rememberSaveable { mutableLongStateOf(0L) }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         uris.forEach { uri ->
             runCatching {
@@ -447,6 +444,7 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             item {
                 OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Spacer(Modifier.height(12.dp))
+                if (completed == true) Text(stringResource(R.string.object_read_only))
                 Text(
                     stringResource(R.string.day_total_format, (entries.sumOf { it.amount } + materialEntries.sumOf { it.amount }).money()),
                     style = MaterialTheme.typography.titleMedium
@@ -455,6 +453,7 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             item {
                 DayPhotosCard(
                     photos = photos,
+                    editable = editable,
                     onAdd = { photoPicker.launch(arrayOf("image/*")) },
                     onDelete = { deletePhotoId = it }
                 )
@@ -463,12 +462,13 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             items(dayWorkers, key = { it.id }) { worker ->
                 WorkerServicesCard(
                     worker = worker,
+                    editable = editable,
                     entries = entriesByWorker[worker.id].orEmpty(),
                     materialEntries = materialsByWorker[worker.id].orEmpty(),
-                    onAddService = { entryWorker = worker },
-                    onAddMaterial = { materialWorker = worker },
-                    onEdit = { editingEntry = it },
-                    onEditMaterial = { editingMaterialEntry = it },
+                    onAddService = { entryWorkerId = worker.id },
+                    onAddMaterial = { materialWorkerId = worker.id },
+                    onEdit = { editingEntryId = it.id },
+                    onEditMaterial = { editingMaterialEntryId = it.id },
                     onDelete = { deleteId = it },
                     onDeleteMaterial = { deleteMaterialId = it }
                 )
@@ -479,11 +479,11 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
         AddEntryDialog(
         worker = worker,
         types = activeTypes,
-        onDismiss = { entryWorker = null },
+        onDismiss = { entryWorkerId = 0L },
         onAddType = { name, onCreated -> vm.addWorkType(name, onCreated) },
+        saving = saving,
         onSave = { typeId, amount, notes ->
-            vm.addEntry(dayId, worker.id, typeId, amount, notes)
-            entryWorker = null
+            vm.addEntry(dayId, worker.id, typeId, amount, notes) { entryWorkerId = 0L }
         }
         )
     }
@@ -491,11 +491,11 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
         AddMaterialEntryDialog(
             worker = worker,
             materials = activeMaterials.filter { it.isActive },
-            onDismiss = { materialWorker = null },
+            onDismiss = { materialWorkerId = 0L },
             onAddMaterial = { name, onCreated -> vm.addMaterial(name, onCreated) },
+            saving = saving,
             onSave = { materialId, amount, notes ->
-                vm.addMaterialEntry(dayId, worker.id, materialId, amount, notes)
-                materialWorker = null
+                vm.addMaterialEntry(dayId, worker.id, materialId, amount, notes) { materialWorkerId = 0L }
             }
         )
     }
@@ -504,11 +504,11 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             worker = workers.firstOrNull { it.id == entry.workerId } ?: Worker(id = entry.workerId, name = entry.workerName),
             types = allTypes,
             entry = entry,
-            onDismiss = { editingEntry = null },
+            onDismiss = { editingEntryId = 0L },
             onAddType = { name, onCreated -> vm.addWorkType(name, onCreated) },
+        saving = saving,
             onSave = { typeId, amount, notes ->
-                vm.updateEntry(entry.id, entry.workDayId, entry.workerId, typeId, amount, notes)
-                editingEntry = null
+                vm.updateEntry(entry.id, entry.workDayId, entry.workerId, typeId, amount, notes) { editingEntryId = 0L }
             }
         )
     }
@@ -517,11 +517,11 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             worker = workers.firstOrNull { it.id == entry.workerId } ?: Worker(id = entry.workerId, name = entry.workerName),
             materials = activeMaterials,
             entry = entry,
-            onDismiss = { editingMaterialEntry = null },
+            onDismiss = { editingMaterialEntryId = 0L },
             onAddMaterial = { name, onCreated -> vm.addMaterial(name, onCreated) },
+            saving = saving,
             onSave = { materialId, amount, notes ->
-                vm.updateMaterialEntry(entry.id, entry.workDayId, entry.workerId, materialId, amount, notes)
-                editingMaterialEntry = null
+                vm.updateMaterialEntry(entry.id, entry.workDayId, entry.workerId, materialId, amount, notes) { editingMaterialEntryId = 0L }
             }
         )
     }
@@ -542,6 +542,7 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
 @Composable
 private fun WorkerServicesCard(
     worker: Worker,
+    editable: Boolean,
     entries: List<EntryDetail>,
     materialEntries: List<MaterialEntryDetail>,
     onAddService: () -> Unit,
@@ -563,10 +564,10 @@ private fun WorkerServicesCard(
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onAddService, modifier = Modifier.weight(1f)) {
+                Button(onClick = onAddService, enabled = editable, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.action_add_service), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Button(onClick = onAddMaterial, modifier = Modifier.weight(1f)) {
+                Button(onClick = onAddMaterial, enabled = editable, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.action_add_material), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
@@ -584,10 +585,10 @@ private fun WorkerServicesCard(
                             }
                         }
                         Text(entry.amount.money(), fontWeight = FontWeight.SemiBold)
-                        IconButton(onClick = { onEdit(entry) }) {
+                        IconButton(onClick = { onEdit(entry) }, enabled = editable) {
                             Icon(Icons.Outlined.Edit, stringResource(R.string.action_edit))
                         }
-                        IconButton(onClick = { onDelete(entry.id) }) {
+                        IconButton(onClick = { onDelete(entry.id) }, enabled = editable) {
                             Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
                         }
                     }
@@ -604,10 +605,10 @@ private fun WorkerServicesCard(
                             }
                         }
                         Text(entry.amount.money(), fontWeight = FontWeight.SemiBold)
-                        IconButton(onClick = { onEditMaterial(entry) }) {
+                        IconButton(onClick = { onEditMaterial(entry) }, enabled = editable) {
                             Icon(Icons.Outlined.Edit, stringResource(R.string.action_edit))
                         }
-                        IconButton(onClick = { onDeleteMaterial(entry.id) }) {
+                        IconButton(onClick = { onDeleteMaterial(entry.id) }, enabled = editable) {
                             Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
                         }
                     }
@@ -620,6 +621,7 @@ private fun WorkerServicesCard(
 @Composable
 private fun DayPhotosCard(
     photos: List<WorkDayPhoto>,
+    editable: Boolean,
     onAdd: () -> Unit,
     onDelete: (Long) -> Unit
 ) {
@@ -631,7 +633,7 @@ private fun DayPhotosCard(
                     Text(stringResource(R.string.section_photos), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(stringResource(R.string.photos_count_format, photos.size), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Button(onClick = onAdd) {
+                Button(onClick = onAdd, enabled = editable) {
                     Icon(Icons.Outlined.Add, null)
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.action_add_photo), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -651,7 +653,7 @@ private fun DayPhotosCard(
                             )
                             Text(photo.uri, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        IconButton(onClick = { onDelete(photo.id) }) {
+                        IconButton(onClick = { onDelete(photo.id) }, enabled = editable) {
                             Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
                         }
                     }
@@ -665,7 +667,7 @@ private fun DayPhotosCard(
 private fun WorkersScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -> Unit) {
     val workers by vm.workers.collectAsState()
     var editing by remember { mutableStateOf<Worker?>(null) }
-    var showAdd by remember { mutableStateOf(false) }
+    var showAdd by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) } }
@@ -700,7 +702,7 @@ private fun WorkersScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -
 private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -> Unit) {
     val types by vm.workTypes.collectAsState()
     var editing by remember { mutableStateOf<WorkType?>(null) }
-    var showAdd by remember { mutableStateOf(false) }
+    var showAdd by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) } }
@@ -734,7 +736,7 @@ private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues, onBack: ()
 private fun MaterialsScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -> Unit) {
     val materials by vm.materials.collectAsState()
     var editing by remember { mutableStateOf<Material?>(null) }
-    var showAdd by remember { mutableStateOf(false) }
+    var showAdd by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) } }
@@ -765,413 +767,16 @@ private fun MaterialsScreen(vm: AppViewModel, padding: PaddingValues, onBack: ()
 }
 
 @Composable
-private fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
-    val objects by vm.objects.collectAsState()
-    val types by vm.activeWorkTypes.collectAsState()
-    val materials by vm.materials.collectAsState()
-    val proposals by vm.proposals.collectAsState()
-    val settings by vm.settings.collectAsState()
-    val context = LocalContext.current
-    var selectedProposalId by remember { mutableStateOf<Long?>(null) }
-    var objectId by remember { mutableLongStateOf(0L) }
-    var nextLineId by remember { mutableLongStateOf(-1L) }
-    var lines by remember { mutableStateOf<List<ProposalLine>>(emptyList()) }
-    var materialLines by remember { mutableStateOf<List<ProposalMaterialLine>>(emptyList()) }
-    var showNewProposalType by remember { mutableStateOf(false) }
-    var showNewProposalMaterial by remember { mutableStateOf(false) }
-    val selectedObject = objects.firstOrNull { it.id == objectId }
-    val proposalTitle = stringResource(R.string.proposal_title)
-    val companyFormat = stringResource(R.string.report_company_format)
-    val addressFormat = stringResource(R.string.report_address_format)
-    val customerFormat = stringResource(R.string.report_customer_format)
-    val totalFormat = stringResource(R.string.report_total_format)
-    val servicesLabel = stringResource(R.string.section_proposal_services)
-    val materialsLabel = stringResource(R.string.section_proposal_materials)
-    val validLines = lines.mapNotNull { line ->
-        val type = types.firstOrNull { it.id == line.workTypeId }
-        val amount = line.amount.toLongOrNull()
-        if (type != null && amount != null && amount >= 0L) type to amount else null
-    }
-    val validMaterialLines = materialLines.mapNotNull { line ->
-        val material = materials.firstOrNull { it.id == line.materialId }
-        val amount = line.amount.toLongOrNull()
-        if (material != null && amount != null && amount >= 0L) material to amount else null
-    }
-    val total = validLines.sumOf { it.second } + validMaterialLines.sumOf { it.second }
-
-    LaunchedEffect(selectedProposalId) {
-        val id = selectedProposalId ?: return@LaunchedEffect
-        val proposal = proposals.firstOrNull { it.id == id } ?: return@LaunchedEffect
-        objectId = proposal.objectId
-        vm.loadProposalItems(id) { savedItems ->
-            lines = savedItems.map { ProposalLine(it.id, it.workTypeId, it.amount.toString()) }
-            nextLineId = -1L
-        }
-        vm.loadProposalMaterialItems(id) { savedItems ->
-            materialLines = savedItems.map { ProposalMaterialLine(it.id, it.materialId, it.amount.toString()) }
-        }
-    }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(padding),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
-                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.section_saved_proposals), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                        OutlinedButton(
-                            onClick = {
-                                selectedProposalId = null
-                                objectId = 0L
-                                lines = emptyList()
-                                materialLines = emptyList()
-                                nextLineId = -1L
-                            }
-                        ) {
-                            Icon(Icons.Outlined.Add, null)
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.action_new_proposal), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                    if (proposals.isEmpty()) {
-                        Text(stringResource(R.string.empty_proposals), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        proposals.forEach { proposal ->
-                            ProposalSummaryCard(
-                                proposal = proposal,
-                                selected = selectedProposalId == proposal.id,
-                                onOpen = { selectedProposalId = proposal.id },
-                                onDelete = {
-                                    vm.deleteProposal(proposal.id)
-                                    if (selectedProposalId == proposal.id) {
-                                        selectedProposalId = null
-                                        objectId = 0L
-                                        lines = emptyList()
-                                        materialLines = emptyList()
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        item {
-            Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
-                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(R.string.tab_proposal), style = MaterialTheme.typography.titleLarge)
-                    EntityPickerField(
-                        label = stringResource(R.string.report_tab_object),
-                        items = objects,
-                        selectedId = objectId,
-                        idOf = { it.id },
-                        titleOf = { "${it.address} - ${it.clientName}" },
-                        onSelect = { objectId = it }
-                    )
-                    if (selectedObject != null) {
-                        Text(stringResource(R.string.report_customer_format, selectedObject.clientName), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Button(
-                        onClick = {
-                            val firstType = types.firstOrNull() ?: run {
-                                showNewProposalType = true
-                                return@Button
-                            }
-                            lines = lines + ProposalLine(nextLineId, firstType.id, "")
-                            nextLineId -= 1
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Outlined.Add, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.action_add_service))
-                    }
-                    Button(
-                        onClick = {
-                            val firstMaterial = materials.firstOrNull { it.isActive } ?: run {
-                                showNewProposalMaterial = true
-                                return@Button
-                            }
-                            materialLines = materialLines + ProposalMaterialLine(nextLineId, firstMaterial.id, "")
-                            nextLineId -= 1
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Outlined.Add, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.action_add_material))
-                    }
-                }
-            }
-        }
-        if (lines.isEmpty() && materialLines.isEmpty()) {
-            item { EmptyText(stringResource(R.string.empty_proposal_services)) }
-        }
-        if (lines.isNotEmpty()) {
-            item { SectionTitle(stringResource(R.string.section_proposal_services)) }
-            items(lines, key = { it.id }) { line ->
-                ProposalLineCard(
-                    line = line,
-                    types = types,
-                    onAddType = { name, onCreated -> vm.addWorkType(name, onCreated) },
-                    onChange = { updated -> lines = lines.map { if (it.id == updated.id) updated else it } },
-                    onDelete = { lines = lines.filterNot { it.id == line.id } }
-                )
-            }
-        }
-        if (materialLines.isNotEmpty()) {
-            item { SectionTitle(stringResource(R.string.section_proposal_materials)) }
-            items(materialLines, key = { "material-${it.id}" }) { line ->
-                ProposalMaterialLineCard(
-                    line = line,
-                    materials = materials,
-                    onAddMaterial = { name, onCreated -> vm.addMaterial(name, onCreated) },
-                    onChange = { updated -> materialLines = materialLines.map { if (it.id == updated.id) updated else it } },
-                    onDelete = { materialLines = materialLines.filterNot { it.id == line.id } }
-                )
-            }
-        }
-        item {
-            Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
-                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(stringResource(R.string.report_total_format, total.money()), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Button(
-                        onClick = {
-                            vm.saveProposal(
-                                proposalId = selectedProposalId,
-                                objectId = objectId,
-                                items = validLines.map { (type, amount) -> ProposalItem(proposalId = 0L, workTypeId = type.id, amount = amount) },
-                                materialItems = validMaterialLines.map { (material, amount) ->
-                                    ProposalMaterialItem(proposalId = 0L, materialId = material.id, amount = amount)
-                                },
-                                onSaved = { selectedProposalId = it }
-                            )
-                        },
-                        enabled = selectedObject != null && (validLines.isNotEmpty() || validMaterialLines.isNotEmpty()),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.action_save_proposal))
-                    }
-                    Button(
-                        onClick = {
-                            context.shareText(
-                                buildProposalText(
-                                    proposalTitle = proposalTitle,
-                                    companyFormat = companyFormat,
-                                    addressFormat = addressFormat,
-                                    customerFormat = customerFormat,
-                                    totalFormat = totalFormat,
-                                    companyName = settings.companyName,
-                                    objectSummary = selectedObject,
-                                    lines = validLines,
-                                    materialLines = validMaterialLines,
-                                    servicesLabel = servicesLabel,
-                                    materialsLabel = materialsLabel
-                                )
-                            )
-                        },
-                        enabled = selectedObject != null && (validLines.isNotEmpty() || validMaterialLines.isNotEmpty()),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Outlined.Share, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.action_send_to_customer))
-                    }
-                }
-            }
-        }
-    }
-    if (showNewProposalType) QuickAddTypeDialog(
-        onDismiss = { showNewProposalType = false },
-        onSave = { name ->
-            vm.addWorkType(name) { id ->
-                lines = lines + ProposalLine(nextLineId, id, "")
-                nextLineId -= 1
-            }
-            showNewProposalType = false
-        }
-    )
-    if (showNewProposalMaterial) QuickAddMaterialDialog(
-        onDismiss = { showNewProposalMaterial = false },
-        onSave = { name ->
-            vm.addMaterial(name) { id ->
-                materialLines = materialLines + ProposalMaterialLine(nextLineId, id, "")
-                nextLineId -= 1
-            }
-            showNewProposalMaterial = false
-        }
-    )
-}
-
-@Composable
-private fun ProposalSummaryCard(
-    proposal: ProposalSummary,
-    selected: Boolean,
-    onOpen: () -> Unit,
-    onDelete: () -> Unit
-) {
-    Card(
-        onClick = onOpen,
-        modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
-        )
-    ) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(proposal.address, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(proposal.clientName, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    stringResource(R.string.proposal_items_format, proposal.itemCount, proposal.totalAmount.money()),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProposalLineCard(
-    line: ProposalLine,
-    types: List<WorkType>,
-    onAddType: (String, (Long) -> Unit) -> Unit,
-    onChange: (ProposalLine) -> Unit,
-    onDelete: () -> Unit
-) {
-    var showNewType by remember { mutableStateOf(false) }
-    Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            DropdownPickerField(
-                label = stringResource(R.string.label_work_type),
-                items = types,
-                selectedId = line.workTypeId,
-                idOf = { it.id },
-                titleOf = { it.name },
-                onSelect = { onChange(line.copy(workTypeId = it)) }
-                ,onAddNew = { showNewType = true }
-            )
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = line.amount,
-                    onValueChange = { onChange(line.copy(amount = it.filter(Char::isDigit))) },
-                    label = { Text(stringResource(R.string.label_amount)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
-                }
-            }
-        }
-    }
-    if (showNewType) QuickAddTypeDialog(
-        onDismiss = { showNewType = false },
-        onSave = { name ->
-            onAddType(name) { id -> onChange(line.copy(workTypeId = id)) }
-            showNewType = false
-        }
-    )
-}
-
-@Composable
-private fun ProposalMaterialLineCard(
-    line: ProposalMaterialLine,
-    materials: List<Material>,
-    onAddMaterial: (String, (Long) -> Unit) -> Unit,
-    onChange: (ProposalMaterialLine) -> Unit,
-    onDelete: () -> Unit
-) {
-    var showNewMaterial by remember { mutableStateOf(false) }
-    Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            DropdownPickerField(
-                label = stringResource(R.string.label_material),
-                items = materials.filter { it.isActive || it.id == line.materialId },
-                selectedId = line.materialId,
-                idOf = { it.id },
-                titleOf = { it.name },
-                onSelect = { onChange(line.copy(materialId = it)) },
-                onAddNew = { showNewMaterial = true }
-            )
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = line.amount,
-                    onValueChange = { onChange(line.copy(amount = it.filter(Char::isDigit))) },
-                    label = { Text(stringResource(R.string.label_amount)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
-                }
-            }
-        }
-    }
-    if (showNewMaterial) QuickAddMaterialDialog(
-        onDismiss = { showNewMaterial = false },
-        onSave = { name ->
-            onAddMaterial(name) { id -> onChange(line.copy(materialId = id)) }
-            showNewMaterial = false
-        }
-    )
-}
-
-private fun buildProposalText(
-    proposalTitle: String,
-    companyFormat: String,
-    addressFormat: String,
-    customerFormat: String,
-    totalFormat: String,
-    companyName: String,
-    objectSummary: ObjectSummary?,
-    lines: List<Pair<WorkType, Long>>,
-    materialLines: List<Pair<Material, Long>>,
-    servicesLabel: String,
-    materialsLabel: String
-): String {
-    val total = lines.sumOf { it.second } + materialLines.sumOf { it.second }
-    return buildString {
-        appendLine(proposalTitle)
-        companyName.trim().takeIf { it.isNotEmpty() }?.let {
-            appendLine(companyFormat.format(it))
-        }
-        appendLine(addressFormat.format(objectSummary?.address.orEmpty()))
-        appendLine(customerFormat.format(objectSummary?.clientName.orEmpty()))
-        appendLine()
-        if (lines.isNotEmpty()) {
-            appendLine("$servicesLabel:")
-            lines.forEach { (type, amount) -> appendLine("- ${type.name}: ${amount.money()}") }
-        }
-        if (materialLines.isNotEmpty()) {
-            if (lines.isNotEmpty()) appendLine()
-            appendLine("$materialsLabel:")
-            materialLines.forEach { (material, amount) -> appendLine("- ${material.name}: ${amount.money()}") }
-        }
-        appendLine()
-        appendLine(totalFormat.format(total.money()))
-    }
-}
-
-@Composable
 private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
     val workers by vm.workers.collectAsState()
     val objects by vm.objects.collectAsState()
     val context = LocalContext.current
     var tab by remember { mutableIntStateOf(0) }
-    var date by remember { mutableLongStateOf(todayMillis()) }
-    var from by remember { mutableLongStateOf(todayMillis()) }
-    var to by remember { mutableLongStateOf(todayMillis()) }
-    var workerId by remember { mutableLongStateOf(0L) }
-    var objectId by remember { mutableLongStateOf(0L) }
+    var date by rememberSaveable { mutableLongStateOf(todayMillis()) }
+    var from by rememberSaveable { mutableLongStateOf(todayMillis()) }
+    var to by rememberSaveable { mutableLongStateOf(todayMillis()) }
+    var workerId by rememberSaveable { mutableLongStateOf(0L) }
+    var objectId by rememberSaveable { mutableLongStateOf(0L) }
 
     Column(Modifier.fillMaxSize().padding(padding)) {
         TabRow(selectedTabIndex = tab) {
@@ -1214,10 +819,10 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
 
 @Composable
 private fun CreateObjectDialog(clients: List<Client>, onDismiss: () -> Unit, onSave: (String, Long?, String, String?) -> Unit) {
-    var address by remember { mutableStateOf("") }
-    var selectedClientId by remember { mutableLongStateOf(0L) }
-    var client by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
+    var address by rememberSaveable { mutableStateOf("") }
+    var selectedClientId by rememberSaveable { mutableLongStateOf(0L) }
+    var client by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.dialog_new_object)) },
@@ -1244,14 +849,14 @@ private fun CreateObjectDialog(clients: List<Client>, onDismiss: () -> Unit, onS
                 }
                 OutlinedTextField(
                     value = client,
-                    onValueChange = { client = it },
+                    onValueChange = { client = it; selectedClientId = 0L },
                     label = { Text(stringResource(R.string.label_customer)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 PhoneField(
                     value = phone,
-                    onValueChange = { phone = it },
+                    onValueChange = { phone = it; selectedClientId = 0L },
                     onContactPicked = { contactName, contactPhone ->
                         selectedClientId = 0L
                         if (contactName.isNotBlank()) client = contactName
@@ -1274,9 +879,11 @@ private fun CreateObjectDialog(clients: List<Client>, onDismiss: () -> Unit, onS
 @Composable
 private fun CreateDayDialog(vm: AppViewModel, objectId: Long, onDismiss: () -> Unit, onCreated: (Long) -> Unit) {
     val workers by vm.activeWorkers.collectAsState()
-    var selected by remember { mutableStateOf(setOf<Long>()) }
-    var date by remember { mutableLongStateOf(todayMillis()) }
-    var notes by remember { mutableStateOf("") }
+    var selectedArray by rememberSaveable { mutableStateOf(longArrayOf()) }
+    val selected = selectedArray.toSet()
+    val saving by vm.isSaving.collectAsState()
+    var date by rememberSaveable { mutableLongStateOf(todayMillis()) }
+    var notes by rememberSaveable { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.dialog_new_work_day)) },
@@ -1289,12 +896,12 @@ private fun CreateDayDialog(vm: AppViewModel, objectId: Long, onDismiss: () -> U
                     selectedIds = selected,
                     idOf = { it.id },
                     titleOf = { it.name },
-                    onSelectionChange = { selected = it }
+                    onSelectionChange = { selectedArray = it.toLongArray() }
                 )
                 OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
             }
         },
-        confirmButton = { Button(onClick = { vm.createDay(objectId, date, selected, notes, onCreated) }, enabled = selected.isNotEmpty()) { Text(stringResource(R.string.action_create)) } },
+        confirmButton = { Button(onClick = { vm.createDay(objectId, date, selected, notes, onCreated) }, enabled = selected.isNotEmpty() && !saving) { Text(stringResource(R.string.action_create)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
@@ -1306,14 +913,16 @@ private fun AddEntryDialog(
     entry: EntryDetail? = null,
     onDismiss: () -> Unit,
     onAddType: (String, (Long) -> Unit) -> Unit,
+    saving: Boolean = false,
     onSave: (Long, Long, String?) -> Unit
 ) {
-    var showNewType by remember { mutableStateOf(false) }
-    var typeId by remember(entry?.id, types) { mutableLongStateOf(entry?.workTypeId ?: types.firstOrNull()?.id ?: 0L) }
-    var amount by remember(entry?.id) { mutableStateOf(entry?.amount?.toString().orEmpty()) }
-    var notes by remember(entry?.id) { mutableStateOf(entry?.notes.orEmpty()) }
+    var showNewType by rememberSaveable { mutableStateOf(false) }
+    var typeId by rememberSaveable(entry?.id) { mutableLongStateOf(entry?.workTypeId ?: types.firstOrNull()?.id ?: 0L) }
+    var amount by rememberSaveable(entry?.id) { mutableStateOf(entry?.amount?.toString().orEmpty()) }
+    var notes by rememberSaveable(entry?.id) { mutableStateOf(entry?.notes.orEmpty()) }
+    LaunchedEffect(types) { if (typeId == 0L) typeId = types.firstOrNull()?.id ?: 0L }
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(stringResource(R.string.dialog_work_entry)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1327,16 +936,19 @@ private fun AddEntryDialog(
                     onSelect = { typeId = it }
                     ,onAddNew = { showNewType = true }
                 )
-                OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text(stringResource(R.string.label_amount)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
+                OutlinedTextField(amount, { amount = it }, label = { Text(stringResource(R.string.label_amount)) },
+                    isError = amount.isNotEmpty() && parseAmount(amount) == null,
+                    supportingText = { if (amount.isNotEmpty() && parseAmount(amount) == null) Text(stringResource(R.string.amount_invalid)) },
+                    enabled = !saving, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) }, enabled = !saving)
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(typeId, amount.toLongOrNull() ?: 0L, notes) }, enabled = typeId != 0L && (amount.toLongOrNull() ?: 0L) >= 0) {
+            Button(onClick = { onSave(typeId, requireNotNull(parseAmount(amount)), notes) }, enabled = typeId != 0L && parseAmount(amount) != null && !saving) {
                 Text(stringResource(if (entry == null) R.string.action_add else R.string.action_save))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text(stringResource(R.string.action_cancel)) } }
     )
     if (showNewType) QuickAddTypeDialog(
         onDismiss = { showNewType = false },
@@ -1354,16 +966,18 @@ private fun AddMaterialEntryDialog(
     entry: MaterialEntryDetail? = null,
     onDismiss: () -> Unit,
     onAddMaterial: (String, (Long) -> Unit) -> Unit,
+    saving: Boolean = false,
     onSave: (Long, Long, String?) -> Unit
 ) {
-    var materialId by remember(entry?.id, materials) {
+    var materialId by rememberSaveable(entry?.id) {
         mutableLongStateOf(entry?.materialId ?: materials.firstOrNull()?.id ?: 0L)
     }
-    var amount by remember(entry?.id) { mutableStateOf(entry?.amount?.toString().orEmpty()) }
-    var notes by remember(entry?.id) { mutableStateOf(entry?.notes.orEmpty()) }
-    var showNewMaterial by remember { mutableStateOf(false) }
+    var amount by rememberSaveable(entry?.id) { mutableStateOf(entry?.amount?.toString().orEmpty()) }
+    var notes by rememberSaveable(entry?.id) { mutableStateOf(entry?.notes.orEmpty()) }
+    var showNewMaterial by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(materials) { if (materialId == 0L) materialId = materials.firstOrNull()?.id ?: 0L }
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(stringResource(R.string.dialog_material_entry)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1379,22 +993,25 @@ private fun AddMaterialEntryDialog(
                 )
                 OutlinedTextField(
                     amount,
-                    { amount = it.filter(Char::isDigit) },
+                    { amount = it },
                     label = { Text(stringResource(R.string.label_amount)) },
+                    isError = amount.isNotEmpty() && parseAmount(amount) == null,
+                    supportingText = { if (amount.isNotEmpty() && parseAmount(amount) == null) Text(stringResource(R.string.amount_invalid)) },
+                    enabled = !saving,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
-                OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) })
+                OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) }, enabled = !saving)
             }
         },
         confirmButton = {
             Button(
-                onClick = { onSave(materialId, amount.toLongOrNull() ?: 0L, notes) },
-                enabled = materialId != 0L && (amount.toLongOrNull() ?: 0L) >= 0
+                onClick = { onSave(materialId, requireNotNull(parseAmount(amount)), notes) },
+                enabled = materialId != 0L && parseAmount(amount) != null && !saving
             ) {
                 Text(stringResource(if (entry == null) R.string.action_add else R.string.action_save))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text(stringResource(R.string.action_cancel)) } }
     )
     if (showNewMaterial) QuickAddMaterialDialog(
         onDismiss = { showNewMaterial = false },
@@ -1478,8 +1095,8 @@ private fun MaterialDialog(material: Material?, onDismiss: () -> Unit, onSave: (
 }
 
 @Composable
-private fun QuickAddTypeDialog(onDismiss: () -> Unit, onSave: (String) -> Unit) {
-    var name by remember { mutableStateOf("") }
+internal fun QuickAddTypeDialog(onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    var name by rememberSaveable { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.dialog_new_work_type)) },
@@ -1490,8 +1107,8 @@ private fun QuickAddTypeDialog(onDismiss: () -> Unit, onSave: (String) -> Unit) 
 }
 
 @Composable
-private fun QuickAddMaterialDialog(onDismiss: () -> Unit, onSave: (String) -> Unit) {
-    var name by remember { mutableStateOf("") }
+internal fun QuickAddMaterialDialog(onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    var name by rememberSaveable { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.dialog_new_material)) },
@@ -1502,7 +1119,7 @@ private fun QuickAddMaterialDialog(onDismiss: () -> Unit, onSave: (String) -> Un
 }
 
 @Composable
-private fun ConfirmDialog(title: String, message: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+internal fun ConfirmDialog(title: String, message: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
@@ -1515,7 +1132,7 @@ private fun ConfirmDialog(title: String, message: String, onDismiss: () -> Unit,
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateButton(label: String, value: Long, onChange: (Long) -> Unit) {
-    var show by remember { mutableStateOf(false) }
+    var show by rememberSaveable { mutableStateOf(false) }
     OutlinedButton(onClick = { show = true }, modifier = Modifier.fillMaxWidth()) {
         Text("$label: ${value.formatDate()}")
     }

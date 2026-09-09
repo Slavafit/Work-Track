@@ -1,5 +1,17 @@
 # News
 
+## Version 2.14
+
+- Preserved hidden services in existing proposals and required all lines to be valid before saving or sharing.
+- Moved the proposal editor out of the main activity; retained drafts across tabs and Android saved-state recreation.
+- Loaded proposal services and materials together and prevented stale loads and duplicate saves.
+- Added confirmation before deleting proposals or discarding a draft; retained draft input after save errors.
+- Rejected invalid whole-euro input and overflowing totals without silently altering the entered amount.
+- Enforced completed-object read-only access in both the UI and transactional repository operations.
+- Stopped object creation from overwriting a shared customer record.
+- Made manual license checks bypass the cache and removed license response bodies from logs.
+- Added regression tests for money, proposals, repository integrity, saved state, and license cache behavior.
+
 ## Version 2.13
 
 - Added priced materials directly to each worker inside a work day, alongside services.

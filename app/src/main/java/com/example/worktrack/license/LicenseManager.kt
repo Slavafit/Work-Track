@@ -2,7 +2,6 @@ package com.example.worktrack.license
 
 import android.content.Context
 import android.provider.Settings
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -10,6 +9,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -19,10 +19,8 @@ import java.net.URL
 val Context.licenseDataStore: DataStore<Preferences> by preferencesDataStore(name = "license")
 
 object LicenseManager {
-    private const val TAG = "LicenseManager"
     private const val BASE_URL = "https://license-server.slavafit.workers.dev"
     private const val APP_ID = "worktrack"
-    private const val CACHE_TTL = 24 * 60 * 60 * 1000L
 
     private val KEY_TOKEN = stringPreferencesKey("license_token")
     private val KEY_EMAIL = stringPreferencesKey("license_email")
@@ -39,7 +37,6 @@ object LicenseManager {
                 put("app_id", APP_ID)
             }
             val response = post("$BASE_URL/activate", body)
-            Log.d(TAG, "activate response: $response")
             val ok = response.optBoolean("ok", false)
             val status = response.optString("status", "")
             val token = response.optString("token", "")
@@ -61,12 +58,14 @@ object LicenseManager {
                 else if (reason == "expired") ActivateResult.Error("expired")
                 else ActivateResult.Error(response.optString("error", response.optString("message", "Unknown error")))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             ActivateResult.Error(e.message ?: "Network error")
         }
     }
 
-    suspend fun verify(context: Context): VerifyResult {
+    suspend fun verify(context: Context, forceRefresh: Boolean = false): VerifyResult {
         val prefs = context.licenseDataStore.data.first()
         val token = prefs[KEY_TOKEN] ?: ""
         val status = prefs[KEY_STATUS] ?: ""
@@ -75,7 +74,7 @@ object LicenseManager {
         val checkedAt = prefs[KEY_CHECKED_AT] ?: 0L
 
         if (email.isEmpty() || token.isEmpty()) return VerifyResult.NeedActivation
-        if (System.currentTimeMillis() - checkedAt < CACHE_TTL) return localCheck(status, expiresAt)
+        if (shouldUseLicenseCache(forceRefresh, checkedAt, System.currentTimeMillis())) return localCheck(status, expiresAt)
 
         return try {
             val body = JSONObject().apply {
@@ -84,7 +83,6 @@ object LicenseManager {
                 put("app_id", APP_ID)
             }
             val response = post("$BASE_URL/verify", body)
-            Log.d(TAG, "verify response: $response")
             val valid = response.optBoolean("valid", false)
             val newStatus = response.optString("status", status)
             val newExpires = response.optLong("expires_at", expiresAt)
@@ -97,6 +95,8 @@ object LicenseManager {
                 saveState(context, email, token, reason, newExpires)
                 VerifyResult.Invalid(reason, newExpires)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
             localCheck(status, expiresAt)
         }

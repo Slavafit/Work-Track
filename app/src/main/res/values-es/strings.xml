@@ -159,4 +159,15 @@
     <string name="report_period_format">Periodo: %1$s - %2$s</string>
     <string name="proposal_title">Presupuesto</string>
     <string name="proposal_items_format">Servicios: %1$d · %2$s</string>
+
+    <string name="amount_invalid">Introduce un importe entero en euros, de 0 o más, sin decimales ni signo negativo. El número debe estar dentro del rango admitido.</string>
+    <string name="proposal_invalid">Selecciona una obra e introduce importes válidos en todas las líneas. Comprueba que el total no sea demasiado grande.</string>
+    <string name="operation_failed">No se pudo completar la operación. Comprueba el espacio disponible e inténtalo de nuevo.</string>
+    <string name="object_read_only">Esta obra está finalizada. Sus datos son de solo lectura.</string>
+    <string name="draft_unsaved">Cambios sin guardar</string>
+    <string name="discard_draft_title">¿Descartar los cambios?</string>
+    <string name="discard_draft_message">Se perderán los cambios sin guardar del presupuesto actual.</string>
+    <string name="delete_proposal_title">¿Eliminar el presupuesto?</string>
+    <string name="delete_proposal_message">Se eliminarán el presupuesto y todas sus líneas. Esta acción no se puede deshacer.</string>
+    <string name="amount_total_invalid">El importe o el total supera el rango admitido. Introduce un importe menor.</string>
 </resources>

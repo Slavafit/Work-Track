@@ -14,13 +14,15 @@ class LicenseViewModel(app: Application) : AndroidViewModel(app) {
     val email: StateFlow<String?> = _email
 
     init {
-        checkLicense()
+        verify(forceRefresh = false)
     }
 
-    fun checkLicense() {
+    fun checkLicense() = verify(forceRefresh = true)
+
+    private fun verify(forceRefresh: Boolean) {
         viewModelScope.launch {
             _state.value = LicenseState.Loading
-            _state.value = when (val result = LicenseManager.verify(getApplication())) {
+            _state.value = when (val result = LicenseManager.verify(getApplication(), forceRefresh)) {
                 is VerifyResult.Active -> LicenseState.Active
                 is VerifyResult.Trial -> LicenseState.Trial(result.expiresAt)
                 is VerifyResult.NeedActivation -> LicenseState.NeedActivation

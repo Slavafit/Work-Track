@@ -159,4 +159,15 @@
     <string name="report_period_format">Период: %1$s - %2$s</string>
     <string name="proposal_title">Предложение / Presupuesto</string>
     <string name="proposal_items_format">Услуг: %1$d · %2$s</string>
+
+    <string name="amount_invalid">Введите целую сумму в евро: 0 или больше, без запятых, точек и знака минус. Слишком большие числа недопустимы.</string>
+    <string name="proposal_invalid">Выберите объект и заполните все строки корректными суммами. Проверьте, что итог не слишком большой.</string>
+    <string name="operation_failed">Не удалось выполнить операцию. Проверьте свободное место и попробуйте снова.</string>
+    <string name="object_read_only">Объект завершён. Данные доступны только для просмотра.</string>
+    <string name="draft_unsaved">Есть несохранённые изменения</string>
+    <string name="discard_draft_title">Отменить изменения?</string>
+    <string name="discard_draft_message">Несохранённые изменения текущего предложения будут потеряны.</string>
+    <string name="delete_proposal_title">Удалить предложение?</string>
+    <string name="delete_proposal_message">Предложение и все его строки будут удалены. Отменить удаление нельзя.</string>
+    <string name="amount_total_invalid">Сумма или общий итог выходит за допустимый диапазон. Уменьшите сумму.</string>
 </resources>

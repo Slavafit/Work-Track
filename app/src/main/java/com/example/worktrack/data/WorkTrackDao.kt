@@ -121,6 +121,47 @@ interface WorkTrackDao {
     @Query("SELECT * FROM Client WHERE id = :id")
     suspend fun clientById(id: Long): Client?
 
+    @Query("SELECT * FROM WorkDay WHERE id = :id")
+    suspend fun dayById(id: Long): WorkDay?
+
+    @Query("SELECT * FROM WorkEntry WHERE id = :id")
+    suspend fun entryById(id: Long): WorkEntry?
+
+    @Query("SELECT * FROM WorkMaterialEntry WHERE id = :id")
+    suspend fun materialEntryById(id: Long): WorkMaterialEntry?
+
+    @Query("SELECT * FROM WorkDayPhoto WHERE id = :id")
+    suspend fun photoById(id: Long): WorkDayPhoto?
+
+    @Query("SELECT EXISTS(SELECT 1 FROM WorkDayWorker WHERE workDayId = :dayId AND workerId = :workerId)")
+    suspend fun hasDayWorker(dayId: Long, workerId: Long): Boolean
+
+    @Query("""
+        SELECT COALESCE(SUM(amount), 0) FROM (
+            SELECT amount FROM WorkEntry WHERE id != :excludedEntryId
+            UNION ALL
+            SELECT amount FROM WorkMaterialEntry WHERE id != :excludedMaterialId
+        )
+    """)
+    suspend fun workTotalExcluding(excludedEntryId: Long, excludedMaterialId: Long): Long
+
+    @Query("SELECT o.isCompleted FROM WorkObject o JOIN WorkDay d ON d.objectId = o.id WHERE d.id = :dayId")
+    fun dayCompleted(dayId: Long): Flow<Boolean?>
+
+    @Query("SELECT * FROM Proposal WHERE id = :id")
+    suspend fun proposalById(id: Long): Proposal?
+
+    @Query("SELECT * FROM ProposalItem WHERE proposalId = :id ORDER BY id")
+    suspend fun proposalItemsOnce(id: Long): List<ProposalItem>
+
+    @Query("SELECT * FROM ProposalMaterialItem WHERE proposalId = :id ORDER BY id")
+    suspend fun proposalMaterialItemsOnce(id: Long): List<ProposalMaterialItem>
+
+    @Transaction
+    suspend fun proposalSnapshot(id: Long): ProposalSnapshot {
+        return ProposalSnapshot(requireNotNull(proposalById(id)), proposalItemsOnce(id), proposalMaterialItemsOnce(id))
+    }
+
     @Query("SELECT workerId FROM WorkDayWorker WHERE workDayId = :dayId")
     fun dayWorkerIds(dayId: Long): Flow<List<Long>>
 
@@ -245,7 +286,7 @@ interface WorkTrackDao {
         val cleanName = clientName.trim()
         val cleanPhone = phone?.trim()?.ifBlank { null }
         val clientId = selectedClientId?.takeIf { it != 0L }?.also { id ->
-            updateClient(Client(id = id, name = cleanName, phone = cleanPhone))
+            requireNotNull(clientById(id))
         } ?: insertClient(Client(name = cleanName, phone = cleanPhone))
         return insertObject(WorkObject(clientId = clientId, address = address.trim()))
     }
