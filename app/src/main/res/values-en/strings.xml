@@ -221,4 +221,13 @@
     <string name="client_update_shared">Update customer name and phone on all their objects</string>
     <string name="object_edit_discard">Close without saving?</string>
     <string name="object_edit_discard_message">Address and contact changes will be lost.</string>
+    <string name="day_copy">Copy day</string>
+    <string name="day_copy_description">Creates a new day in this object with the same workers, services and materials. Enter amounts again. Notes, photos and payments are not copied.</string>
+    <string name="amount_pending">Amount not entered</string>
+    <string name="pending_amounts_warning">Some amounts are missing. Totals and balance are provisional.</string>
+    <string name="report_opening_balance">Opening balance: %1$s</string>
+    <string name="report_closing_balance">Closing balance: %1$s</string>
+    <string name="report_balance_explanation">Positive balance: amount due. Negative balance: advance / overpayment.</string>
+    <string name="report_all_dates">All dates</string>
+    <string name="report_period_invalid">Start date must not be after the end date.</string>
 </resources>

@@ -221,4 +221,13 @@
     <string name="client_update_shared">Actualizar nombre y teléfono del cliente en todas sus obras</string>
     <string name="object_edit_discard">¿Cerrar sin guardar?</string>
     <string name="object_edit_discard_message">Se perderán los cambios de dirección y contacto.</string>
+    <string name="day_copy">Copiar día</string>
+    <string name="day_copy_description">Crea un nuevo día en esta obra con los mismos trabajadores, servicios y materiales. Introduce de nuevo los importes. No se copian notas, fotos ni pagos.</string>
+    <string name="amount_pending">Importe sin indicar</string>
+    <string name="pending_amounts_warning">Faltan importes. Los totales y el saldo son provisionales.</string>
+    <string name="report_opening_balance">Saldo inicial: %1$s</string>
+    <string name="report_closing_balance">Saldo final: %1$s</string>
+    <string name="report_balance_explanation">Saldo positivo: pendiente de pago. Saldo negativo: anticipo / exceso de pago.</string>
+    <string name="report_all_dates">Todo el período</string>
+    <string name="report_period_invalid">La fecha inicial no puede ser posterior a la final.</string>
 </resources>

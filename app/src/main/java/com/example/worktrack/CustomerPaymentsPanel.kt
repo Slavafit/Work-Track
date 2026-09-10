@@ -15,6 +15,7 @@ import com.example.worktrack.data.CustomerPayment
 
 @Composable
 internal fun CustomerPaymentsPanel(vm: AppViewModel, objectId: Long) {
+    val pending by remember(objectId) { vm.pendingAmounts(objectId) }.collectAsState(initial = 0)
     val finance by remember(objectId) { vm.objectFinance(objectId) }.collectAsState(initial = null)
     val payments by remember(objectId) { vm.customerPayments(objectId) }.collectAsState(initial = emptyList())
     val saving by vm.isSaving.collectAsState()
@@ -24,6 +25,7 @@ internal fun CustomerPaymentsPanel(vm: AppViewModel, objectId: Long) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.finance_title), style = MaterialTheme.typography.titleMedium)
+            if (pending > 0) Text(stringResource(R.string.pending_amounts_warning), color = MaterialTheme.colorScheme.error)
             Text(stringResource(R.string.finance_basis), style = MaterialTheme.typography.bodySmall)
             finance?.let {
                 Text(stringResource(R.string.finance_work, it.workAmount.money()))

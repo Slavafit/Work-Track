@@ -1,6 +1,7 @@
 package com.example.worktrack.data
 
 import androidx.room.withTransaction
+import kotlinx.coroutines.flow.first
 import com.example.worktrack.checkedAmountTotal
 import com.example.worktrack.InvalidAmountException
 
@@ -8,6 +9,7 @@ class ClosedObjectException : IllegalStateException("Object is completed")
 
 class WorkTrackRepository(private val db: WorkTrackDatabase) : ProposalStore {
     private val dao = db.dao()
+    fun pendingAmounts(objectId: Long) = dao.pendingAmounts(objectId)
     fun clientObjectCount(objectId: Long) = dao.clientObjectCount(objectId)
 
     suspend fun editObjectDetails(objectId: Long, address: String, clientName: String, phone: String?, updateSharedClient: Boolean) = db.withTransaction {
@@ -57,6 +59,20 @@ class WorkTrackRepository(private val db: WorkTrackDatabase) : ProposalStore {
         require(dao.hasDayWorker(dayId, workerId))
         val total = dao.workTotalExcluding(excludedEntryId, excludedMaterialId)
         if (checkedAmountTotal(listOf(total, amount)) == null) throw InvalidAmountException()
+    }
+
+    suspend fun copyDay(sourceId: Long, date: Long): Long = db.withTransaction {
+        require(date > 0)
+        val source = requireNotNull(dao.dayById(sourceId))
+        requireEditableObject(source.objectId)
+        val workers = dao.dayWorkerIds(sourceId).first().toSet()
+        val entries = dao.entries(sourceId).first()
+        val materials = dao.materialEntries(sourceId).first()
+        require(entries.all { it.workerId in workers } && materials.all { it.workerId in workers })
+        val id = dao.createDay(source.objectId, date, workers, null)
+        entries.forEach { dao.insertEntry(WorkEntry(workDayId=id, workerId=it.workerId, workTypeId=it.workTypeId, amount=0, isAmountPending=true)) }
+        materials.forEach { dao.insertMaterialEntry(WorkMaterialEntry(workDayId=id, workerId=it.workerId, materialId=it.materialId, amount=0, isAmountPending=true)) }
+        id
     }
 
     fun dayCompleted(dayId: Long) = dao.dayCompleted(dayId)

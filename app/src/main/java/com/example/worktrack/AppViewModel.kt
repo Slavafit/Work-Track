@@ -49,6 +49,7 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
     val backup = BackupController(app, BackupService(app, WorkTrackDatabase.get(app)), viewModelScope,
         canStart = { !mutableSaving.value && !proposalEditor.state.value.busy },
         onRestored = { proposalEditor.newDraft() })
+    fun copyDay(sourceId: Long, date: Long, onCopied: (Long) -> Unit) = write { onCopied(repo.copyDay(sourceId, date)) }
     fun clearError() { mutableError.value = null }
     fun clientObjectCount(objectId: Long) = repo.clientObjectCount(objectId)
     fun editObjectDetails(objectId: Long, address: String, name: String, phone: String, updateShared: Boolean, onSaved: () -> Unit) = write {
@@ -56,6 +57,7 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
         onSaved()
     }
     fun objectFinance(objectId: Long) = repo.objectFinance(objectId)
+    fun pendingAmounts(objectId: Long) = repo.pendingAmounts(objectId)
     fun customerPayments(objectId: Long) = repo.customerPayments(objectId)
     fun savePayment(id: Long?, objectId: Long, date: Long, amount: Long, notes: String?, onSaved: () -> Unit) = write {
         repo.savePayment(id, objectId, date, amount, notes)
@@ -189,19 +191,26 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
 
     private fun Long.reportMoney(): String = money(reportLocale())
 
-    fun shareObjectReport(objectId: Long, share: (String, List<String>) -> Unit) = viewModelScope.launch {
+    fun shareObjectReport(objectId: Long, from: Long? = null, to: Long? = null, share: (String, List<String>) -> Unit) = viewModelScope.launch {
         runCatching {
-            buildObjectReportShare(objectId)
+            buildObjectReportShare(objectId, from, to)
         }.onSuccess { share(it.text, it.photoUris) }.onFailure { share(reportError(it), emptyList()) }
     }
 
-    private suspend fun buildObjectReportShare(objectId: Long): ObjectReportShare {
+    private suspend fun buildObjectReportShare(objectId: Long, from: Long?, to: Long?): ObjectReportShare {
+            require((from == null) == (to == null))
+            val start = from?.startOfDay() ?: Long.MIN_VALUE
+            val end = to?.endOfDay() ?: Long.MAX_VALUE
+            require(start <= end)
             val objectInfo = repo.objectById(objectId)
             val client = objectInfo?.let { repo.clientById(it.clientId) }
-            val objectDays = repo.workDays(objectId).first()
-            val finance = repo.objectFinance(objectId).first()
-            val rows = repo.reportByObject(objectId)
-            val photos = repo.photosByObject(objectId)
+            val objectDays = repo.workDays(objectId).first().filter { it.date in start..end }
+            val allRows = repo.reportByObject(objectId)
+            val rows = allRows.filter { it.date in start..end }
+            val allPayments = repo.customerPayments(objectId).first()
+            val periodPayments = allPayments.filter { it.date in start..end }
+            val period = summarizePeriod(allRows, allPayments, start, end)
+            val photos = repo.photosByObject(objectId).filter { it.date in start..end }
             val availablePhotoUris = photos.map { it.uri }.filter(::photoUriAvailable).distinct()
             val total = rows.sumOf { it.amount }
             val rowsByDay = rows.groupBy { it.workDayId }
@@ -215,11 +224,20 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
             appendLine(text(R.string.report_address_format, objectInfo?.address.orEmpty()))
             appendLine(text(R.string.report_customer_format, client?.name.orEmpty()))
             appendLine(text(R.string.object_total_days_format, total.reportMoney(), objectDays.size))
-            appendLine(text(R.string.finance_work, finance.workAmount.reportMoney()))
-            appendLine(text(R.string.finance_materials, finance.materialAmount.reportMoney()))
-            appendLine(text(R.string.finance_paid, finance.paidAmount.reportMoney()))
-            appendLine(text(if (finance.balance < 0) R.string.finance_credit else R.string.finance_due,
-                (if (finance.balance < 0) -finance.balance else finance.balance).reportMoney()))
+            if (from != null && to != null) {
+                appendLine(text(R.string.report_period_format, from.reportDate(), to.reportDate()))
+                appendLine(text(R.string.report_opening_balance, period.opening.reportMoney()))
+            }
+            appendLine(text(R.string.finance_work, rows.filterNot { it.isMaterial }.sumOf { it.amount }.reportMoney()))
+            appendLine(text(R.string.finance_materials, rows.filter { it.isMaterial }.sumOf { it.amount }.reportMoney()))
+            appendLine(text(R.string.finance_paid, periodPayments.sumOf { it.amount }.reportMoney()))
+            appendLine(text(R.string.report_closing_balance, period.closing.reportMoney()))
+            appendLine(text(R.string.report_balance_explanation))
+            if (period.pending) appendLine(text(R.string.pending_amounts_warning))
+            if (periodPayments.isNotEmpty()) {
+                appendLine(text(R.string.payment_title))
+                periodPayments.forEach { appendLine(" - ${it.date.reportDate()}: ${it.amount.reportMoney()}${it.notes?.let { note -> " ($note)" }.orEmpty()}") }
+            }
             appendLine(text(R.string.finance_basis))
             appendLine()
             if (objectDays.isEmpty()) {
@@ -236,7 +254,7 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
                         appendLine("  ${text(R.string.report_tab_worker)}: $workerName")
                         workerRows.forEach { row ->
                             val notes = row.notes?.takeIf { it.isNotBlank() }?.let { " ($it)" }.orEmpty()
-                            appendLine("    - ${row.workTypeName}: ${row.amount.reportMoney()}$notes")
+                            appendLine("    - ${row.workTypeName}: ${if (row.isAmountPending) text(R.string.amount_pending) else row.amount.reportMoney()}$notes")
                         }
                     }
                 }
@@ -259,10 +277,13 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
             buildString {
             appendLine(text(R.string.report_date_title_format, date.reportDate()))
             appendLine(text(R.string.report_total_format, rows.sumOf { it.amount }.reportMoney()))
+            appendLine(text(R.string.finance_work, rows.filterNot { it.isMaterial }.sumOf { it.amount }.reportMoney()))
+            appendLine(text(R.string.finance_materials, rows.filter { it.isMaterial }.sumOf { it.amount }.reportMoney()))
+            if (rows.any { it.isAmountPending }) appendLine(text(R.string.pending_amounts_warning))
             appendLine()
             rows.groupBy { it.objectAddress }.forEach { (objectAddress, items) ->
                 appendLine(objectAddress)
-                items.forEach { appendLine(" - ${it.workerName}: ${it.workTypeName}, ${it.amount.reportMoney()}") }
+                items.forEach { appendLine(" - ${it.workerName}: ${it.workTypeName}, ${if (it.isAmountPending) text(R.string.amount_pending) else it.amount.reportMoney()}") }
             }
             }
         }.onSuccess(share).onFailure { share(reportError(it)) }
@@ -270,16 +291,20 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
 
     fun shareWorkerReport(workerId: Long, from: Long, to: Long, share: (String) -> Unit) = viewModelScope.launch {
         runCatching {
+            require(from.startOfDay() <= to.endOfDay())
             val worker = workers.value.firstOrNull { it.id == workerId }
             val rows = repo.reportByWorker(workerId, from.startOfDay(), to.endOfDay())
             buildString {
             appendLine(text(R.string.report_worker_title_format, worker?.name.orEmpty()))
             appendLine(text(R.string.report_period_format, from.reportDate(), to.reportDate()))
             appendLine(text(R.string.report_total_format, rows.sumOf { it.amount }.reportMoney()))
+            appendLine(text(R.string.finance_work, rows.filterNot { it.isMaterial }.sumOf { it.amount }.reportMoney()))
+            appendLine(text(R.string.finance_materials, rows.filter { it.isMaterial }.sumOf { it.amount }.reportMoney()))
+            if (rows.any { it.isAmountPending }) appendLine(text(R.string.pending_amounts_warning))
             appendLine()
             rows.groupBy { it.date }.forEach { (date, items) ->
                 appendLine(date.reportDate())
-                items.forEach { appendLine(" - ${it.objectAddress}: ${it.workTypeName}, ${it.amount.reportMoney()}") }
+                items.forEach { appendLine(" - ${it.objectAddress}: ${it.workTypeName}, ${if (it.isAmountPending) text(R.string.amount_pending) else it.amount.reportMoney()}") }
             }
             }
         }.onSuccess(share).onFailure { share(reportError(it)) }

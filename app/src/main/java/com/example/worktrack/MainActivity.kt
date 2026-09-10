@@ -36,6 +36,9 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -212,7 +215,7 @@ private fun WorkTrackApp(vm: AppViewModel) {
         }
     ) { padding ->
         when {
-            dayId != 0L -> WorkDayScreen(vm, dayId, padding, onBack = { dayId = 0L })
+            dayId != 0L -> WorkDayScreen(vm, dayId, padding, onBack = { dayId = 0L }, onCopied = { dayId = it })
             objectId != 0L -> ObjectDetailsScreen(vm, objectId, padding, onBack = { objectId = 0L }, onOpenDay = { dayId = it })
             settingsSection == SettingsSection.Workers -> WorkersScreen(vm, padding, onBack = { settingsSection = null })
             settingsSection == SettingsSection.Types -> WorkTypesScreen(vm, padding, onBack = { settingsSection = null })
@@ -411,7 +414,8 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
 }
 
 @Composable
-private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues, onBack: () -> Unit) {
+private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues, onBack: () -> Unit, onCopied: (Long) -> Unit) {
+    var showCopy by rememberSaveable(dayId) { mutableStateOf(false) }
     val completedFlow = remember(dayId) { vm.dayCompleted(dayId) }
     val completed by completedFlow.collectAsState(initial = null)
     val saving by vm.isSaving.collectAsState()
@@ -456,6 +460,8 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             item {
                 OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = { showCopy = true }, enabled = editable) { Text(stringResource(R.string.day_copy)) }
+                if (entries.any { it.isAmountPending } || materialEntries.any { it.isAmountPending }) Text(stringResource(R.string.pending_amounts_warning), color = MaterialTheme.colorScheme.error)
                 if (completed == true) Text(stringResource(R.string.object_read_only))
                 Text(
                     stringResource(R.string.day_total_format, (entries.sumOf { it.amount } + materialEntries.sumOf { it.amount }).money()),
@@ -487,6 +493,7 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             }
         }
     }
+    if (showCopy) CopyDayDialog(saving, { showCopy = false }) { date -> vm.copyDay(dayId, date) { showCopy = false; onCopied(it) } }
     entryWorker?.let { worker ->
         AddEntryDialog(
         worker = worker,
@@ -596,7 +603,7 @@ private fun WorkerServicesCard(
                                 Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Text(entry.amount.money(), fontWeight = FontWeight.SemiBold)
+                        Text(if (entry.isAmountPending) stringResource(R.string.amount_pending) else entry.amount.money(), fontWeight = FontWeight.SemiBold)
                         IconButton(onClick = { onEdit(entry) }, enabled = editable) {
                             Icon(Icons.Outlined.Edit, stringResource(R.string.action_edit))
                         }
@@ -616,7 +623,7 @@ private fun WorkerServicesCard(
                                 Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Text(entry.amount.money(), fontWeight = FontWeight.SemiBold)
+                        Text(if (entry.isAmountPending) stringResource(R.string.amount_pending) else entry.amount.money(), fontWeight = FontWeight.SemiBold)
                         IconButton(onClick = { onEditMaterial(entry) }, enabled = editable) {
                             Icon(Icons.Outlined.Edit, stringResource(R.string.action_edit))
                         }
@@ -783,6 +790,7 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
     val workers by vm.workers.collectAsState()
     val objects by vm.objects.collectAsState()
     val context = LocalContext.current
+    var allDates by rememberSaveable { mutableStateOf(true) }
     var tab by remember { mutableIntStateOf(0) }
     var date by rememberSaveable { mutableLongStateOf(todayMillis()) }
     var from by rememberSaveable { mutableLongStateOf(todayMillis()) }
@@ -796,7 +804,7 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
                 Tab(selected = tab == index, onClick = { tab = index }, text = { Text(title) })
             }
         }
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             when (tab) {
                 0 -> {
                     DateButton(stringResource(R.string.label_date), date) { date = it }
@@ -810,15 +818,24 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
                     EntityChips(workers, workerId, { it.id }, { it.name }) { workerId = it }
                     DateButton(stringResource(R.string.label_from), from) { from = it }
                     DateButton(stringResource(R.string.label_to), to) { to = it }
-                    Button(onClick = { vm.shareWorkerReport(workerId, from, to) { context.shareText(it) } }, enabled = workerId != 0L, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { vm.shareWorkerReport(workerId, from, to) { context.shareText(it) } }, enabled = workerId != 0L && from.startOfDay() <= to.endOfDay(), modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Share, null)
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.action_share_report))
                     }
                 }
                 2 -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = allDates, onCheckedChange = { allDates = it })
+                        Text(stringResource(R.string.report_all_dates))
+                    }
+                    if (!allDates) {
+                        DateButton(stringResource(R.string.label_from), from) { from = it }
+                        DateButton(stringResource(R.string.label_to), to) { to = it }
+                        if (from.startOfDay() > to.endOfDay()) Text(stringResource(R.string.report_period_invalid), color = MaterialTheme.colorScheme.error)
+                    }
                     EntityChips(objects, objectId, { it.id }, { it.address }) { objectId = it }
-                    Button(onClick = { vm.shareObjectReport(objectId) { text, photos -> context.shareReport(text, photos) } }, enabled = objectId != 0L, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { vm.shareObjectReport(objectId, if (allDates) null else from, if (allDates) null else to) { text, photos -> context.shareReport(text, photos) } }, enabled = objectId != 0L && (allDates || from.startOfDay() <= to.endOfDay()), modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Share, null)
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.action_share_report))
@@ -930,7 +947,7 @@ private fun AddEntryDialog(
 ) {
     var showNewType by rememberSaveable { mutableStateOf(false) }
     var typeId by rememberSaveable(entry?.id) { mutableLongStateOf(entry?.workTypeId ?: types.firstOrNull()?.id ?: 0L) }
-    var amount by rememberSaveable(entry?.id) { mutableStateOf(entry?.amount?.amountInput().orEmpty()) }
+    var amount by rememberSaveable(entry?.id) { mutableStateOf(entry?.takeUnless { it.isAmountPending }?.amount?.amountInput().orEmpty()) }
     var notes by rememberSaveable(entry?.id) { mutableStateOf(entry?.notes.orEmpty()) }
     LaunchedEffect(types) { if (typeId == 0L) typeId = types.firstOrNull()?.id ?: 0L }
     AlertDialog(
@@ -984,7 +1001,7 @@ private fun AddMaterialEntryDialog(
     var materialId by rememberSaveable(entry?.id) {
         mutableLongStateOf(entry?.materialId ?: materials.firstOrNull()?.id ?: 0L)
     }
-    var amount by rememberSaveable(entry?.id) { mutableStateOf(entry?.amount?.amountInput().orEmpty()) }
+    var amount by rememberSaveable(entry?.id) { mutableStateOf(entry?.takeUnless { it.isAmountPending }?.amount?.amountInput().orEmpty()) }
     var notes by rememberSaveable(entry?.id) { mutableStateOf(entry?.notes.orEmpty()) }
     var showNewMaterial by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(materials) { if (materialId == 0L) materialId = materials.firstOrNull()?.id ?: 0L }

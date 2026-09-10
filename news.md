@@ -1,5 +1,19 @@
 # News
 
+## Version 2.22
+
+- Added copying a work day to a selected date in the same active object, preserving workers and service/material rows without their amounts.
+- Marked copied amounts as missing, opened their editors with blank input and flagged provisional totals in day, finance and reports.
+- Kept photos, payments and notes out of day copies.
+- Added a date range for object reports, separate work/material totals, period payments and opening/closing balance including earlier advances.
+- Added separate work/material totals and missing-amount warnings to worker and date reports.
+- Added schema migration 8 to 9 and archive format 4, retaining older archive imports.
+
+## Version 2.21
+
+- Replaced the launcher icon with a universal task-list and checkmark/send-arrow design.
+- Added navy, white and turquoise adaptive artwork and a monochrome variant for Android themed icons.
+
 ## Version 2.20
 
 - Added address and customer contact editing from the object card, including completed objects.

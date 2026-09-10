@@ -37,6 +37,42 @@ class WorkTrackRepositoryTest {
 
     @After fun teardown() { db.close() }
 
+    @Test fun `copy day preserves references but requires fresh amounts and excludes old notes photos and payments`() = runBlocking {
+        repo.addEntry(dayId, workerId, typeId, 1250, "old service note")
+        repo.addMaterialEntry(dayId, workerId, materialId, 500, "old material note")
+        repo.addDayPhoto(dayId, "content://test/photo")
+        repo.savePayment(null, objectId, 1000, 250, null)
+        val copied = repo.copyDay(dayId, 2000)
+        assertNotEquals(dayId, copied)
+        assertEquals(2000L, dao.dayById(copied)!!.date)
+        assertNull(dao.dayById(copied)!!.notes)
+        assertEquals(listOf(workerId), dao.dayWorkerIds(copied).first())
+        val entry = dao.entries(copied).first().single()
+        val material = dao.materialEntries(copied).first().single()
+        assertEquals(typeId, entry.workTypeId)
+        assertEquals(materialId, material.materialId)
+        assertTrue(entry.isAmountPending && material.isAmountPending)
+        assertEquals(0L, entry.amount)
+        assertEquals(0L, material.amount)
+        assertNull(entry.notes)
+        assertNull(material.notes)
+        assertTrue(dao.dayPhotos(copied).first().isEmpty())
+        assertEquals(1, repo.customerPayments(objectId).first().size)
+        assertEquals(1750L, repo.objectFinance(objectId).first().totalAmount)
+        repo.updateEntry(entry.id, copied, workerId, typeId, 2300, null)
+        assertFalse(dao.entries(copied).first().single().isAmountPending)
+        assertEquals(1250L, dao.entries(dayId).first().single().amount)
+        val report = repo.reportByObject(objectId).filter { it.workDayId == copied }
+        assertEquals(1, report.count { it.isMaterial && it.isAmountPending })
+        assertEquals(1, report.count { !it.isMaterial && !it.isAmountPending })
+    }
+
+    @Test fun `copy into completed object is rejected without creating a day`() = runBlocking {
+        repo.completeObject(objectId)
+        try { repo.copyDay(dayId, 2000); fail() } catch (_: ClosedObjectException) { }
+        assertEquals(1, repo.workDays(objectId).first().size)
+    }
+
     @Test fun `object contact edit is isolated unless shared update is explicit`() = runBlocking {
         val clientId = repo.objectById(objectId)!!.clientId
         val other = repo.createObject("Other", clientId, "ignored", null)

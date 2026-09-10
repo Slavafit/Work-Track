@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface WorkTrackDao {
+    @Query("SELECT COUNT(*) FROM (SELECT e.id FROM WorkEntry e JOIN WorkDay d ON d.id=e.workDayId WHERE d.objectId=:objectId AND e.isAmountPending=1 UNION ALL SELECT e.id FROM WorkMaterialEntry e JOIN WorkDay d ON d.id=e.workDayId WHERE d.objectId=:objectId AND e.isAmountPending=1)")
+    fun pendingAmounts(objectId: Long): Flow<Int>
     @Query("SELECT COUNT(*) FROM WorkObject WHERE clientId=(SELECT clientId FROM WorkObject WHERE id=:objectId)")
     fun clientObjectCount(objectId: Long): Flow<Int>
 
@@ -201,7 +203,7 @@ interface WorkTrackDao {
     fun dayWorkerIds(dayId: Long): Flow<List<Long>>
 
     @Query("""
-        SELECT e.id, e.workDayId, e.workerId, w.name AS workerName, e.workTypeId, t.name AS workTypeName, e.amount, e.notes
+        SELECT e.id, e.workDayId, e.workerId, w.name AS workerName, e.workTypeId, t.name AS workTypeName, e.amount, e.notes, e.isAmountPending
         FROM WorkEntry e
         JOIN Worker w ON w.id = e.workerId
         JOIN WorkType t ON t.id = e.workTypeId
@@ -211,7 +213,7 @@ interface WorkTrackDao {
     fun entries(dayId: Long): Flow<List<EntryDetail>>
 
     @Query("""
-        SELECT e.id, e.workDayId, e.workerId, w.name AS workerName, e.materialId, m.name AS materialName, e.amount, e.notes
+        SELECT e.id, e.workDayId, e.workerId, w.name AS workerName, e.materialId, m.name AS materialName, e.amount, e.notes, e.isAmountPending
         FROM WorkMaterialEntry e
         JOIN Worker w ON w.id = e.workerId
         JOIN Material m ON m.id = e.materialId
@@ -365,7 +367,7 @@ interface WorkTrackDao {
     suspend fun completeObject(objectId: Long, completedAt: Long)
 
     @Query("""
-        SELECT o.address AS objectAddress, w.name AS workerName, t.name AS workTypeName, e.amount
+        SELECT o.address AS objectAddress, w.name AS workerName, t.name AS workTypeName, e.amount, e.isAmountPending, 0 AS isMaterial
         FROM WorkEntry e
         JOIN WorkDay d ON d.id = e.workDayId
         JOIN WorkObject o ON o.id = d.objectId
@@ -373,7 +375,7 @@ interface WorkTrackDao {
         JOIN WorkType t ON t.id = e.workTypeId
         WHERE d.date BETWEEN :start AND :end
         UNION ALL
-        SELECT o.address AS objectAddress, w.name AS workerName, m.name AS workTypeName, e.amount
+        SELECT o.address AS objectAddress, w.name AS workerName, m.name AS workTypeName, e.amount, e.isAmountPending, 1 AS isMaterial
         FROM WorkMaterialEntry e
         JOIN WorkDay d ON d.id = e.workDayId
         JOIN WorkObject o ON o.id = d.objectId
@@ -385,14 +387,14 @@ interface WorkTrackDao {
     suspend fun reportByDate(start: Long, end: Long): List<DateReportRow>
 
     @Query("""
-        SELECT d.date, o.address AS objectAddress, t.name AS workTypeName, e.amount
+        SELECT d.date, o.address AS objectAddress, t.name AS workTypeName, e.amount, e.isAmountPending, 0 AS isMaterial
         FROM WorkEntry e
         JOIN WorkDay d ON d.id = e.workDayId
         JOIN WorkObject o ON o.id = d.objectId
         JOIN WorkType t ON t.id = e.workTypeId
         WHERE e.workerId = :workerId AND d.date BETWEEN :start AND :end
         UNION ALL
-        SELECT d.date, o.address AS objectAddress, m.name AS workTypeName, e.amount
+        SELECT d.date, o.address AS objectAddress, m.name AS workTypeName, e.amount, e.isAmountPending, 1 AS isMaterial
         FROM WorkMaterialEntry e
         JOIN WorkDay d ON d.id = e.workDayId
         JOIN WorkObject o ON o.id = d.objectId
@@ -404,7 +406,7 @@ interface WorkTrackDao {
 
     @Query("""
         SELECT d.id AS workDayId, d.date, w.id AS workerId, w.name AS workerName,
-               t.name AS workTypeName, e.amount, e.notes
+               t.name AS workTypeName, e.amount, e.notes, e.isAmountPending, 0 AS isMaterial
         FROM WorkEntry e
         JOIN WorkDay d ON d.id = e.workDayId
         JOIN Worker w ON w.id = e.workerId
@@ -412,7 +414,7 @@ interface WorkTrackDao {
         WHERE d.objectId = :objectId
         UNION ALL
         SELECT d.id AS workDayId, d.date, w.id AS workerId, w.name AS workerName,
-               m.name AS workTypeName, e.amount, e.notes
+               m.name AS workTypeName, e.amount, e.notes, e.isAmountPending, 1 AS isMaterial
         FROM WorkMaterialEntry e
         JOIN WorkDay d ON d.id = e.workDayId
         JOIN Worker w ON w.id = e.workerId

@@ -43,7 +43,7 @@ class BackupService(private val context: Context, private val db: WorkTrackDatab
     suspend fun export(output: OutputStream): BackupSummary = withContext(Dispatchers.IO) { archiveMutex.withLock {
         val manifest = db.withTransaction {
             val sql = db.openHelper.writableDatabase
-            JSONObject().put("format", FORMAT).put("version", 3).put("databaseVersion", 8).put("moneyUnit", "EUR_CENT")
+            JSONObject().put("format", FORMAT).put("version", 4).put("databaseVersion", 9).put("moneyUnit", "EUR_CENT")
                 .put("createdAt", System.currentTimeMillis()).put("tables", JSONObject().apply {
                     TABLES.forEach { name ->
                         val rows = JSONArray()
@@ -159,7 +159,18 @@ class BackupService(private val context: Context, private val db: WorkTrackDatab
                 if (tables.has("CustomerPayment")) throw InvalidBackupException()
                 tables.put("CustomerPayment", JSONObject().put("columns", JSONArray(listOf("id", "objectId", "date", "amount", "notes"))).put("rows", JSONArray()))
                 data.put("version", 3).put("databaseVersion", 8)
-            } else if (data.get("version") != 3 || data.get("databaseVersion") != 8 || data.optString("moneyUnit") != "EUR_CENT") {
+            }
+            if (data.get("version") == 3 && data.get("databaseVersion") == 8 && data.optString("moneyUnit") == "EUR_CENT") {
+                listOf("WorkEntry", "WorkMaterialEntry").forEach { name ->
+                    val table = data.getJSONObject("tables").getJSONObject(name)
+                    val columns = table.getJSONArray("columns")
+                    if ((0 until columns.length()).any { columns.getString(it) == "isAmountPending" }) throw InvalidBackupException()
+                    columns.put("isAmountPending")
+                    val rows = table.getJSONArray("rows")
+                    for (i in 0 until rows.length()) rows.getJSONArray(i).put(0)
+                }
+                data.put("version", 4).put("databaseVersion", 9)
+            } else if (data.get("version") != 4 || data.get("databaseVersion") != 9 || data.optString("moneyUnit") != "EUR_CENT") {
                 throw InvalidBackupException()
             }
             val createdAt = data.get("createdAt")
@@ -286,6 +297,7 @@ class BackupService(private val context: Context, private val db: WorkTrackDatab
         """.trimIndent()).use { if (it.moveToFirst()) throw InvalidBackupException() }
         sql.query("SELECT 1 FROM CustomerPayment WHERE amount <= 0 OR date <= 0 LIMIT 1").use { if (it.moveToFirst()) throw InvalidBackupException() }
         sql.query("SELECT SUM(amount) FROM CustomerPayment GROUP BY objectId").use { while (it.moveToNext()) it.getLong(0) }
+        sql.query("SELECT 1 FROM WorkEntry WHERE isAmountPending=1 AND amount!=0 UNION ALL SELECT 1 FROM WorkMaterialEntry WHERE isAmountPending=1 AND amount!=0").use { if (it.moveToFirst()) throw InvalidBackupException() }
         val amounts = mutableListOf<Long>()
         sql.query("SELECT amount FROM WorkEntry UNION ALL SELECT amount FROM WorkMaterialEntry").use { while (it.moveToNext()) amounts.add(it.getLong(0)) }
         if (checkedAmountTotal(amounts) == null) throw InvalidBackupException()

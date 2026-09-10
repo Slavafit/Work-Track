@@ -221,4 +221,13 @@
     <string name="client_update_shared">Изменить имя и телефон заказчика во всех его объектах</string>
     <string name="object_edit_discard">Закрыть без сохранения?</string>
     <string name="object_edit_discard_message">Изменения адреса и контактов будут потеряны.</string>
+    <string name="day_copy">Копировать день</string>
+    <string name="day_copy_description">Будет создан новый день в этом объекте с теми же исполнителями, услугами и материалами. Суммы нужно заполнить заново. Заметки, фотографии и оплаты не переносятся.</string>
+    <string name="amount_pending">Сумма не указана</string>
+    <string name="pending_amounts_warning">Есть строки без суммы. Итоги и остаток предварительные.</string>
+    <string name="report_opening_balance">Остаток на начало периода: %1$s</string>
+    <string name="report_closing_balance">Остаток на конец периода: %1$s</string>
+    <string name="report_balance_explanation">Положительный остаток — к оплате, отрицательный — аванс / переплата.</string>
+    <string name="report_all_dates">За всё время</string>
+    <string name="report_period_invalid">Дата начала должна быть не позже даты окончания.</string>
 </resources>

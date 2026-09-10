@@ -1,5 +1,6 @@
 package com.example.worktrack.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -101,7 +102,8 @@ data class WorkEntry(
     val workerId: Long,
     val workTypeId: Long,
     val amount: Long,
-    val notes: String? = null
+    val notes: String? = null,
+    @ColumnInfo(defaultValue = "0") val isAmountPending: Boolean = false
 )
 
 @Entity(
@@ -155,7 +157,8 @@ data class WorkMaterialEntry(
     val workerId: Long,
     val materialId: Long,
     val amount: Long,
-    val notes: String? = null
+    val notes: String? = null,
+    @ColumnInfo(defaultValue = "0") val isAmountPending: Boolean = false
 )
 
 @Entity(
@@ -202,7 +205,8 @@ data class EntryDetail(
     val workTypeId: Long,
     val workTypeName: String,
     val amount: Long,
-    val notes: String?
+    val notes: String?,
+    val isAmountPending: Boolean = false
 )
 
 data class WorkDayPhotoDetail(
@@ -217,14 +221,18 @@ data class DateReportRow(
     val objectAddress: String,
     val workerName: String,
     val workTypeName: String,
-    val amount: Long
+    val amount: Long,
+    val isAmountPending: Boolean = false,
+    val isMaterial: Boolean = false
 )
 
 data class WorkerReportRow(
     val date: Long,
     val objectAddress: String,
     val workTypeName: String,
-    val amount: Long
+    val amount: Long,
+    val isAmountPending: Boolean = false,
+    val isMaterial: Boolean = false
 )
 
 data class ObjectReportRow(
@@ -234,7 +242,9 @@ data class ObjectReportRow(
     val workerName: String,
     val workTypeName: String,
     val amount: Long,
-    val notes: String?
+    val notes: String?,
+    val isAmountPending: Boolean = false,
+    val isMaterial: Boolean = false
 )
 
 data class ProposalSummary(
@@ -263,7 +273,8 @@ data class MaterialEntryDetail(
     val materialId: Long,
     val materialName: String,
     val amount: Long,
-    val notes: String?
+    val notes: String?,
+    val isAmountPending: Boolean = false
 )
 
 data class ProposalMaterialItemDetail(

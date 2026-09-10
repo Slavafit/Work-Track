@@ -33,7 +33,20 @@ class MoneyMigrationTest {
         } finally { db.close() }
         SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READWRITE).use {
             it.execSQL("DROP TABLE room_master_table")
-            it.execSQL("DROP TABLE CustomerPayment")
+            if (version < 8) it.execSQL("DROP TABLE CustomerPayment")
+            for (table in listOf("WorkEntry", "WorkMaterialEntry")) {
+                val ddl = it.rawQuery("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", arrayOf(table)).use { c -> c.moveToFirst(); c.getString(0) }
+                val indexes = mutableListOf<String>()
+                it.rawQuery("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL", arrayOf(table)).use { c -> while(c.moveToNext()) indexes.add(c.getString(0)) }
+                val clean = ddl.replace(Regex(",\\s*`isAmountPending` INTEGER NOT NULL DEFAULT 0"), "")
+                check(clean != ddl)
+                it.execSQL(clean.replace("`$table`", "`${table}_legacy`"))
+                val columns = if(table == "WorkEntry") "id,workDayId,workerId,workTypeId,amount,notes" else "id,workDayId,workerId,materialId,amount,notes"
+                it.execSQL("INSERT INTO `${table}_legacy` ($columns) SELECT $columns FROM `$table`")
+                it.execSQL("DROP TABLE `$table`")
+                it.execSQL("ALTER TABLE `${table}_legacy` RENAME TO `$table`")
+                indexes.forEach(it::execSQL)
+            }
             it.version = version
         }
     }
@@ -42,7 +55,7 @@ class MoneyMigrationTest {
         val name = "payments-migration.db"
         seedLegacy(name, version = 7)
         val db = Room.databaseBuilder(RuntimeEnvironment.getApplication(), WorkTrackDatabase::class.java, name)
-            .addMigrations(WorkTrackDatabase.MIGRATION_7_8).build()
+            .addMigrations(WorkTrackDatabase.MIGRATION_7_8, WorkTrackDatabase.MIGRATION_8_9).build()
         try {
             val repo = WorkTrackRepository(db)
             val obj = db.dao().objectSummaries().first().single()
@@ -50,7 +63,21 @@ class MoneyMigrationTest {
             assertTrue(repo.customerPayments(obj.id).first().isEmpty())
             repo.savePayment(null, obj.id, 1000, 25, null)
             assertEquals(125L, repo.objectFinance(obj.id).first().balance)
-            assertEquals(8, db.openHelper.writableDatabase.version)
+            assertEquals(9, db.openHelper.writableDatabase.version)
+        } finally { db.close() }
+    }
+
+    @Test fun `schema eight preserves explicit zero and marks old amounts as entered`() = runBlocking {
+        val name = "pending-migration.db"
+        seedLegacy(name, work = 0, version = 8)
+        val db = Room.databaseBuilder(RuntimeEnvironment.getApplication(), WorkTrackDatabase::class.java, name)
+            .addMigrations(WorkTrackDatabase.MIGRATION_8_9).build()
+        try {
+            val rows = db.dao().reportByObject(db.dao().objectSummaries().first().single().id)
+            assertEquals(2, rows.size)
+            assertTrue(rows.none { it.isAmountPending })
+            assertEquals(0L, rows.single { !it.isMaterial }.amount)
+            assertEquals(50L, rows.single { it.isMaterial }.amount)
         } finally { db.close() }
     }
 
@@ -60,12 +87,12 @@ class MoneyMigrationTest {
         val context = RuntimeEnvironment.getApplication()
         repeat(2) {
             val db = Room.databaseBuilder(context, WorkTrackDatabase::class.java, name)
-                .addMigrations(WorkTrackDatabase.MIGRATION_6_7, WorkTrackDatabase.MIGRATION_7_8).build()
+                .addMigrations(WorkTrackDatabase.MIGRATION_6_7, WorkTrackDatabase.MIGRATION_7_8, WorkTrackDatabase.MIGRATION_8_9).build()
             try {
                 assertEquals(15000L, db.dao().objectSummaries().first().single().totalAmount)
                 assertEquals(27500L, db.dao().proposals().first().single().totalAmount)
                 db.openHelper.writableDatabase.query("PRAGMA foreign_key_check").use { assertFalse(it.moveToFirst()) }
-                assertEquals(8, db.openHelper.writableDatabase.version)
+                assertEquals(9, db.openHelper.writableDatabase.version)
             } finally { db.close() }
         }
     }
@@ -75,7 +102,7 @@ class MoneyMigrationTest {
         seedLegacy(name, Long.MAX_VALUE / 100)
         val context = RuntimeEnvironment.getApplication()
         val db = Room.databaseBuilder(context, WorkTrackDatabase::class.java, name)
-            .addMigrations(WorkTrackDatabase.MIGRATION_6_7, WorkTrackDatabase.MIGRATION_7_8).build()
+            .addMigrations(WorkTrackDatabase.MIGRATION_6_7, WorkTrackDatabase.MIGRATION_7_8, WorkTrackDatabase.MIGRATION_8_9).build()
         try {
             try { db.openHelper.writableDatabase; fail("Overflow accepted") } catch (_: IllegalStateException) { }
         } finally { db.close() }

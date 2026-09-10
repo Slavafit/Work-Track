@@ -72,6 +72,15 @@ class BackupServiceTest {
 
     private suspend fun archive(): ByteArray = ByteArrayOutputStream().also { service.export(it) }.toByteArray()
 
+    @Test fun `copied missing amounts survive archive restore`() = runBlocking {
+        val copy = repo.copyDay(dayId, 2000)
+        service.restore(service.prepare(archive().inputStream()))
+        assertTrue(db.dao().entries(copy).first().single().isAmountPending)
+        assertTrue(db.dao().materialEntries(copy).first().single().isAmountPending)
+        assertEquals(0L, db.dao().entries(copy).first().single().amount)
+        assertEquals(150L, repo.objectFinance(objectId).first().totalAmount)
+    }
+
     @Test fun `payments survive archive restore and legacy cents archives start with no payments`() = runBlocking {
         repo.savePayment(null, objectId, 1000, 12345, "transfer")
         val current = archive()
@@ -124,6 +133,18 @@ class BackupServiceTest {
         val contents = entries(bytes)
         val json = JSONObject(String(contents.getValue("manifest.json"), Charsets.UTF_8))
         change(json)
+        if (json.getInt("version") in 1..3) {
+            for (name in listOf("WorkEntry", "WorkMaterialEntry")) {
+                val table = json.getJSONObject("tables").getJSONObject(name)
+                val cols = table.getJSONArray("columns")
+                val index = (0 until cols.length()).firstOrNull { cols.getString(it) == "isAmountPending" }
+                if (index != null) {
+                    cols.remove(index)
+                    val rows = table.getJSONArray("rows")
+                    for (i in 0 until rows.length()) rows.getJSONArray(i).remove(index)
+                }
+            }
+        }
         contents["manifest.json"] = json.toString().toByteArray()
         return zip(contents)
     }
