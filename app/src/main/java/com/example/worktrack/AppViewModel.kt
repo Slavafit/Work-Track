@@ -30,7 +30,14 @@ import java.util.Locale
 import com.example.worktrack.backup.BackupController
 import com.example.worktrack.backup.BackupService
 
-class AppViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
+class AppViewModel(app: Application, private val savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
+    val objectSearch = savedStateHandle.getStateFlow("object_search", "")
+    val objectStatus = savedStateHandle.getStateFlow("object_status", "all")
+    val objectsWithBalance = savedStateHandle.getStateFlow("objects_with_balance", false)
+    fun setObjectSearch(value: String) { savedStateHandle["object_search"] = value }
+    fun setObjectStatus(value: String) { savedStateHandle["object_status"] = value }
+    fun setObjectsWithBalance(value: Boolean) { savedStateHandle["objects_with_balance"] = value }
+    fun resetObjectSearch() { setObjectSearch(""); setObjectStatus("all"); setObjectsWithBalance(false) }
     private val repo = WorkTrackRepository(WorkTrackDatabase.get(app))
     private val settingsStore = SettingsStore(app)
 
@@ -43,6 +50,11 @@ class AppViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andro
         canStart = { !mutableSaving.value && !proposalEditor.state.value.busy },
         onRestored = { proposalEditor.newDraft() })
     fun clearError() { mutableError.value = null }
+    fun clientObjectCount(objectId: Long) = repo.clientObjectCount(objectId)
+    fun editObjectDetails(objectId: Long, address: String, name: String, phone: String, updateShared: Boolean, onSaved: () -> Unit) = write {
+        repo.editObjectDetails(objectId, address, name, phone, updateShared)
+        onSaved()
+    }
     fun objectFinance(objectId: Long) = repo.objectFinance(objectId)
     fun customerPayments(objectId: Long) = repo.customerPayments(objectId)
     fun savePayment(id: Long?, objectId: Long, date: Long, amount: Long, notes: String?, onSaved: () -> Unit) = write {

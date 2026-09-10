@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface WorkTrackDao {
+    @Query("SELECT COUNT(*) FROM WorkObject WHERE clientId=(SELECT clientId FROM WorkObject WHERE id=:objectId)")
+    fun clientObjectCount(objectId: Long): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM WorkObject WHERE clientId=:clientId")
+    suspend fun clientObjectCountOnce(clientId: Long): Int
     @Query("""
         SELECT
           COALESCE((SELECT SUM(e.amount) FROM WorkEntry e JOIN WorkDay d ON d.id=e.workDayId WHERE d.objectId=:objectId),0) AS workAmount,
@@ -37,11 +42,15 @@ interface WorkTrackDao {
     suspend fun deletePayment(id: Long)
 
     @Query("""
-        SELECT o.id, o.address, c.name AS clientName, o.isCompleted, o.completedAt,
+        SELECT o.id, o.address, c.name AS clientName, c.phone AS clientPhone, o.isCompleted, o.completedAt,
+               COALESCE(payments.paidAmount, 0) AS paidAmount,
                COALESCE(totals.totalAmount, 0) AS totalAmount,
                COALESCE(days.dayCount, 0) AS dayCount
         FROM WorkObject o
         JOIN Client c ON c.id = o.clientId
+        LEFT JOIN (
+            SELECT objectId, SUM(amount) AS paidAmount FROM CustomerPayment GROUP BY objectId
+        ) payments ON payments.objectId = o.id
         LEFT JOIN (
             SELECT d.objectId, SUM(x.amount) AS totalAmount
             FROM WorkDay d

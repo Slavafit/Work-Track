@@ -235,12 +235,17 @@ private fun WorkTrackApp(vm: AppViewModel) {
 private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Long) -> Unit) {
     val objects by vm.objects.collectAsState()
     val clients by vm.clients.collectAsState()
+    val query by vm.objectSearch.collectAsState()
+    val status by vm.objectStatus.collectAsState()
+    val withBalance by vm.objectsWithBalance.collectAsState()
+    val visible = remember(objects, query, status, withBalance) { filterObjects(objects, query, status, withBalance) }
     var showCreate by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
-        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            val active = objects.filterNot { it.isCompleted }
-            val completed = objects.filter { it.isCompleted }
-            if (active.isEmpty() && completed.isEmpty()) item { EmptyText(stringResource(R.string.empty_objects)) }
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            item { ObjectSearchControls(query, status, withBalance, visible.size, vm) }
+            val active = visible.filterNot { it.isCompleted }
+            val completed = visible.filter { it.isCompleted }
+            if (active.isEmpty() && completed.isEmpty()) item { EmptyText(stringResource(if (objects.isEmpty()) R.string.empty_objects else R.string.object_search_empty)) }
             items(active, key = { it.id }) { ObjectCard(it, onOpen) }
             if (completed.isNotEmpty()) {
                 item { SectionTitle(stringResource(R.string.section_completed)) }
@@ -342,6 +347,7 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
     val days by daysFlow.collectAsState(initial = emptyList())
     val context = LocalContext.current
     val obj = objects.firstOrNull { it.id == objectId }
+    var showEdit by rememberSaveable(objectId) { mutableStateOf(false) }
     var showCreateDay by rememberSaveable { mutableStateOf(false) }
     var confirmComplete by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
@@ -353,6 +359,9 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(obj?.address.orEmpty(), style = MaterialTheme.typography.titleLarge)
                         Text(stringResource(R.string.customer_format, obj?.clientName.orEmpty()))
+                        OutlinedButton(onClick = { vm.clearError(); showEdit = true }, enabled = obj != null) {
+                            Text(stringResource(R.string.action_edit))
+                        }
                         Text(stringResource(R.string.total_format, obj?.totalAmount?.money().orEmpty()), fontWeight = FontWeight.SemiBold)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
@@ -390,6 +399,7 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
             }
         }
     }
+    if (showEdit) obj?.let { ObjectDetailsEditor(vm, it) { showEdit = false } }
     if (showCreateDay) CreateDayDialog(vm, objectId, onDismiss = { showCreateDay = false }, onCreated = { id ->
         showCreateDay = false
         onOpenDay(id)

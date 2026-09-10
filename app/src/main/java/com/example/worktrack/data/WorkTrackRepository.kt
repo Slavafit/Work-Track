@@ -8,6 +8,22 @@ class ClosedObjectException : IllegalStateException("Object is completed")
 
 class WorkTrackRepository(private val db: WorkTrackDatabase) : ProposalStore {
     private val dao = db.dao()
+    fun clientObjectCount(objectId: Long) = dao.clientObjectCount(objectId)
+
+    suspend fun editObjectDetails(objectId: Long, address: String, clientName: String, phone: String?, updateSharedClient: Boolean) = db.withTransaction {
+        require(address.isNotBlank() && clientName.isNotBlank())
+        require(com.example.worktrack.validContactPhone(phone.orEmpty()))
+        val obj = requireNotNull(dao.objectById(objectId))
+        val client = requireNotNull(dao.clientById(obj.clientId))
+        val changed = client.copy(name = clientName.trim(), phone = phone?.trim()?.ifBlank { null })
+        val clientId = if (changed != client && !updateSharedClient && dao.clientObjectCountOnce(client.id) > 1) {
+            dao.insertClient(changed.copy(id = 0))
+        } else {
+            if (changed != client) dao.updateClient(changed)
+            client.id
+        }
+        dao.updateObject(obj.copy(address = address.trim(), clientId = clientId))
+    }
 
     fun objectFinance(objectId: Long) = dao.objectFinance(objectId)
     fun customerPayments(objectId: Long) = dao.customerPayments(objectId)

@@ -206,4 +206,19 @@
     <string name="payment_delete_title">¿Eliminar el registro de pago?</string>
     <string name="payment_delete_message">Se eliminará el registro y se recalculará el saldo. Esto no devuelve dinero al cliente.</string>
     <string name="payment_count">Registros de pago: %1$d</string>
+    <string name="object_search_label">Buscar obras</string>
+    <string name="object_search_hint">Dirección, cliente o teléfono</string>
+    <string name="object_search_clear">Borrar</string>
+    <string name="objects_all">Todas</string>
+    <string name="objects_active">Activas</string>
+    <string name="objects_with_balance">Con saldo pendiente</string>
+    <string name="objects_found">Obras encontradas: %1$d</string>
+    <string name="object_search_reset">Restablecer búsqueda y filtros</string>
+    <string name="object_search_empty">Sin resultados. Cambia la búsqueda o los filtros.</string>
+    <string name="object_edit_title">Editar obra</string>
+    <string name="contact_phone_invalid">Introduce 9–15 dígitos; se admiten + inicial, espacios, paréntesis, puntos y guiones.</string>
+    <string name="client_shared_info">Este cliente está vinculado a %1$d obras. Por defecto, los cambios de contacto se aplican solo a esta obra.</string>
+    <string name="client_update_shared">Actualizar nombre y teléfono del cliente en todas sus obras</string>
+    <string name="object_edit_discard">¿Cerrar sin guardar?</string>
+    <string name="object_edit_discard_message">Se perderán los cambios de dirección y contacto.</string>
 </resources>

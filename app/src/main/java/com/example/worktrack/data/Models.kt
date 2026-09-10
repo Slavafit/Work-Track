@@ -179,7 +179,9 @@ data class ObjectSummary(
     val isCompleted: Boolean,
     val completedAt: Long?,
     val totalAmount: Long,
-    val dayCount: Int
+    val dayCount: Int,
+    val clientPhone: String? = null,
+    val paidAmount: Long = 0
 )
 
 data class WorkDaySummary(

@@ -206,4 +206,19 @@
     <string name="payment_delete_title">Delete payment record?</string>
     <string name="payment_delete_message">The record will be removed and the balance recalculated. This does not refund the customer.</string>
     <string name="payment_count">Payment records: %1$d</string>
+    <string name="object_search_label">Search objects</string>
+    <string name="object_search_hint">Address, customer or phone</string>
+    <string name="object_search_clear">Clear</string>
+    <string name="objects_all">All</string>
+    <string name="objects_active">Active</string>
+    <string name="objects_with_balance">With amount due</string>
+    <string name="objects_found">Objects found: %1$d</string>
+    <string name="object_search_reset">Reset search and filters</string>
+    <string name="object_search_empty">No matches. Change the search or filters.</string>
+    <string name="object_edit_title">Edit object</string>
+    <string name="contact_phone_invalid">Enter 9–15 digits; a leading +, spaces, brackets, periods and hyphens are allowed.</string>
+    <string name="client_shared_info">This customer is linked to %1$d objects. Contact changes apply only to this object by default.</string>
+    <string name="client_update_shared">Update customer name and phone on all their objects</string>
+    <string name="object_edit_discard">Close without saving?</string>
+    <string name="object_edit_discard_message">Address and contact changes will be lost.</string>
 </resources>

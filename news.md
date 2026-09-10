@@ -1,5 +1,20 @@
 # News
 
+## Version 2.20
+
+- Added address and customer contact editing from the object card, including completed objects.
+- Kept shared customer changes local to the selected object by default, with an explicit option to update all linked objects.
+- Added validation, unsaved-change confirmation and retained input after save errors.
+- Preserved work records, payments, proposals and completion state during card corrections.
+
+## Version 2.19
+
+- Added object search by address, customer name and phone, ignoring case, accents and phone formatting.
+- Added combined active/completed and amount-due filters, result count, empty results and reset controls.
+- Preserved search and filters across navigation and Activity state recreation.
+- Included payment totals in object summaries without multiplying work totals.
+- Kept Settings ordered as theme, language, directories, company, backup, license and app information.
+
 ## Version 2.18
 
 - Added customer payment history per object with date, amount, notes, editing and confirmed deletion.

@@ -206,4 +206,19 @@
     <string name="payment_delete_title">Удалить запись об оплате?</string>
     <string name="payment_delete_message">Запись будет удалена, остаток к оплате пересчитан. Это не возврат денег заказчику.</string>
     <string name="payment_count">Записей об оплате: %1$d</string>
+    <string name="object_search_label">Поиск объектов</string>
+    <string name="object_search_hint">Адрес, заказчик или телефон</string>
+    <string name="object_search_clear">Очистить</string>
+    <string name="objects_all">Все</string>
+    <string name="objects_active">Активные</string>
+    <string name="objects_with_balance">Есть остаток к оплате</string>
+    <string name="objects_found">Найдено объектов: %1$d</string>
+    <string name="object_search_reset">Сбросить поиск и фильтры</string>
+    <string name="object_search_empty">Ничего не найдено. Измените запрос или фильтры.</string>
+    <string name="object_edit_title">Редактирование объекта</string>
+    <string name="contact_phone_invalid">Введите 9–15 цифр; допустимы + в начале, пробелы, скобки, точка и дефис.</string>
+    <string name="client_shared_info">Этот заказчик связан с %1$d объектами. По умолчанию изменения контактов применятся только к текущему объекту.</string>
+    <string name="client_update_shared">Изменить имя и телефон заказчика во всех его объектах</string>
+    <string name="object_edit_discard">Закрыть без сохранения?</string>
+    <string name="object_edit_discard_message">Изменения адреса и контактов будут потеряны.</string>
 </resources>

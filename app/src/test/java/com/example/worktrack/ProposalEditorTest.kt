@@ -101,6 +101,9 @@ class ProposalEditorTest {
     @Test fun `default activity factory restores the editor after activity state recreation`() {
         val first = Robolectric.buildActivity(ComponentActivity::class.java).setup()
         val vm = ViewModelProvider(first.get())[AppViewModel::class.java]
+        vm.setObjectSearch("Address")
+        vm.setObjectStatus("completed")
+        vm.setObjectsWithBalance(true)
         vm.proposalEditor.selectObject(42)
         vm.proposalEditor.addService(7)
         vm.proposalEditor.updateService(vm.proposalEditor.state.value.lines.single().copy(amount = "12,50"))
@@ -108,6 +111,13 @@ class ProposalEditorTest {
         first.saveInstanceState(saved).pause().stop().destroy()
         val second = Robolectric.buildActivity(ComponentActivity::class.java).create(saved).start().resume()
         val restored = ViewModelProvider(second.get())[AppViewModel::class.java]
+        assertEquals("Address", restored.objectSearch.value)
+        assertEquals("completed", restored.objectStatus.value)
+        assertTrue(restored.objectsWithBalance.value)
+        restored.resetObjectSearch()
+        assertEquals("", restored.objectSearch.value)
+        assertEquals("all", restored.objectStatus.value)
+        assertFalse(restored.objectsWithBalance.value)
         assertEquals(42L, restored.proposalEditor.state.value.objectId)
         assertEquals("12,50", restored.proposalEditor.state.value.lines.single().amount)
         second.pause().stop().destroy()
