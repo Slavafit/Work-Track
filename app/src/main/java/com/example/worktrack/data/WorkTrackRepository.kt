@@ -9,6 +9,24 @@ class ClosedObjectException : IllegalStateException("Object is completed")
 class WorkTrackRepository(private val db: WorkTrackDatabase) : ProposalStore {
     private val dao = db.dao()
 
+    fun objectFinance(objectId: Long) = dao.objectFinance(objectId)
+    fun customerPayments(objectId: Long) = dao.customerPayments(objectId)
+
+    // Settlement remains available after work completion; it does not modify the work records.
+    suspend fun savePayment(id: Long?, objectId: Long, date: Long, amount: Long, notes: String?) = db.withTransaction {
+        requireNotNull(dao.objectById(objectId))
+        require(date > 0 && amount > 0)
+        if (id != null) require(requireNotNull(dao.paymentById(id)).objectId == objectId)
+        if (checkedAmountTotal(listOf(dao.paymentTotal(objectId, id ?: 0), amount)) == null) throw InvalidAmountException()
+        val payment = CustomerPayment(id ?: 0, objectId, date, amount, notes?.trim()?.ifBlank { null })
+        if (id == null) dao.insertPayment(payment) else { dao.updatePayment(payment); id }
+    }
+
+    suspend fun deletePayment(id: Long, objectId: Long) = db.withTransaction {
+        require(requireNotNull(dao.paymentById(id)).objectId == objectId)
+        dao.deletePayment(id)
+    }
+
     private suspend fun requireEditableObject(id: Long) {
         if (requireNotNull(dao.objectById(id)).isCompleted) throw ClosedObjectException()
     }

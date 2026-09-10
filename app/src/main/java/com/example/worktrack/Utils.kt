@@ -11,7 +11,11 @@ fun Long.formatDate(locale: Locale = Locale.getDefault()): String =
 fun Long.formatNumber(locale: Locale = Locale.getDefault()): String = 
     "%,d".format(locale, this).replace(',', ' ').replace('.', ' ')
 
-fun Long.money(locale: Locale = Locale.getDefault()): String = "${formatNumber(locale)} \u20AC"
+fun Long.money(locale: Locale = Locale.getDefault()): String =
+    java.text.NumberFormat.getNumberInstance(locale).apply {
+        minimumFractionDigits = 2
+        maximumFractionDigits = 2
+    }.format(java.math.BigDecimal.valueOf(this, 2)) + " \u20AC"
 
 fun todayMillis(): Long = System.currentTimeMillis().startOfDay()
 

@@ -1,5 +1,31 @@
 # News
 
+## Version 2.18
+
+- Added customer payment history per object with date, amount, notes, editing and confirmed deletion.
+- Separated recorded work and materials, received payments, amount due and advance/overpayment in the object screen and shared object report.
+- Kept proposals out of the balance and allowed settlement after work completion.
+- Added database migration 7 to 8 without changing existing amounts.
+- Included payments in archive format 3 and kept imports from formats 1 and 2 compatible.
+- Added tests for partial payment, overpayment, editing, cross-object protection, overflow, migration and archive restore.
+
+## Version 2.17
+
+- Added euro-cent input with either comma or period and up to two decimal places.
+- Stored money as integer cents and formatted screens, proposals and reports with two decimals.
+- Added database migration 6 to 7 that converts whole euros exactly once, with overflow checks before changing data.
+- Preserved existing draft text in euros and converted stored cents back to euros when editing.
+- Updated archives to version 2 with explicit EUR_CENT units; version 1 archives remain importable with checked conversion.
+- Added tests for decimal precision, formatting, Room migration, rollback and legacy archive conversion.
+
+## Version 2.16
+
+- Added automatic local recovery of the proposal editor, including incomplete service and material lines, without requiring Activity saved state.
+- Added a confirmed discard-draft action; a discarded draft cannot return from stale Activity state.
+- Preserved the saved proposal ID after saving and retained edits after a failed save.
+- Excluded local editor recovery from Android backup/transfer and added a recovery error message for corrupt draft data.
+- Added regression tests for on-disk input, fresh editor recovery, discard, save failure, deletion, and corrupt recovery data.
+
 ## Version 2.15
 
 - Added manual ZIP backup and restore in Settings using the Android document picker.

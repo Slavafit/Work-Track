@@ -72,6 +72,42 @@ class BackupServiceTest {
 
     private suspend fun archive(): ByteArray = ByteArrayOutputStream().also { service.export(it) }.toByteArray()
 
+    @Test fun `payments survive archive restore and legacy cents archives start with no payments`() = runBlocking {
+        repo.savePayment(null, objectId, 1000, 12345, "transfer")
+        val current = archive()
+        val prepared = service.prepare(current.inputStream())
+        assertEquals(1, prepared.summary.payments)
+        service.restore(prepared)
+        assertEquals(12345L, repo.customerPayments(objectId).first().single().amount)
+        val legacy = tamper(current) {
+            it.put("version", 2).put("databaseVersion", 7)
+            it.getJSONObject("tables").remove("CustomerPayment")
+        }
+        service.restore(service.prepare(legacy.inputStream()))
+        assertTrue(repo.customerPayments(objectId).first().isEmpty())
+        assertEquals(150L, repo.objectFinance(objectId).first().totalAmount)
+    }
+
+    @Test fun `legacy whole euro archive converts once and reexports cents`() = runBlocking {
+        val legacy = tamper(archive()) {
+            it.put("version", 1).put("databaseVersion", 6).remove("moneyUnit")
+            it.getJSONObject("tables").remove("CustomerPayment")
+        }
+        service.restore(service.prepare(legacy.inputStream()))
+        assertEquals(15000L, db.dao().objectSummaries().first().single().totalAmount)
+        assertEquals(27500L, db.dao().proposals().first().single().totalAmount)
+        val current = archive()
+        service.restore(service.prepare(current.inputStream()))
+        assertEquals(15000L, db.dao().objectSummaries().first().single().totalAmount)
+        assertEquals(27500L, db.dao().proposals().first().single().totalAmount)
+    }
+
+    @Test fun `ambiguous money unit is rejected`() = runBlocking {
+        val corrupt = tamper(archive()) { it.put("moneyUnit", "EUR") }
+        try { service.prepare(corrupt.inputStream()); fail("Wrong units accepted") } catch (_: InvalidBackupException) { }
+        assertEquals(150L, db.dao().objectSummaries().first().single().totalAmount)
+    }
+
     private fun entries(bytes: ByteArray): MutableMap<String, ByteArray> {
         val result = linkedMapOf<String, ByteArray>()
         ZipInputStream(bytes.inputStream()).use { zip ->

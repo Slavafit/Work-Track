@@ -13,6 +13,23 @@ data class Client(
 )
 
 @Entity(
+    foreignKeys = [ForeignKey(WorkObject::class, ["id"], ["objectId"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index("objectId")]
+)
+data class CustomerPayment(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val objectId: Long,
+    val date: Long,
+    val amount: Long,
+    val notes: String? = null
+)
+
+data class ObjectFinance(val workAmount: Long, val materialAmount: Long, val paidAmount: Long) {
+    val totalAmount get() = Math.addExact(workAmount, materialAmount)
+    val balance get() = totalAmount - paidAmount
+}
+
+@Entity(
     foreignKeys = [ForeignKey(Client::class, ["id"], ["clientId"], onDelete = ForeignKey.RESTRICT)],
     indices = [Index("clientId")]
 )

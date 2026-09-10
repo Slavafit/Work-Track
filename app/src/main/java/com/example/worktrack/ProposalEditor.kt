@@ -39,9 +39,10 @@ data class ProposalDraft(
 class ProposalEditor(
     private val savedState: SavedStateHandle,
     private val store: ProposalStore,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val draftStore: ProposalDraftStore? = null
 ) {
-    private val mutableState = MutableStateFlow(restore(savedState[KEY]))
+    private val mutableState = MutableStateFlow(draftStore?.read() ?: restore(savedState[KEY]))
     val state = mutableState.asStateFlow()
     private var loadJob: Job? = null
     private var generation = 0L
@@ -55,6 +56,7 @@ class ProposalEditor(
             putStringArrayList("services", ArrayList(draft.lines.flatMap { listOf(it.id.toString(), it.workTypeId.toString(), it.amount) }))
             putStringArrayList("materials", ArrayList(draft.materialLines.flatMap { listOf(it.id.toString(), it.materialId.toString(), it.amount) }))
         }
+        draftStore?.write(draft)
     }
 
     private fun edit(change: (ProposalDraft) -> ProposalDraft) {
@@ -87,8 +89,8 @@ class ProposalEditor(
                 if (request == generation) publish(ProposalDraft(
                     proposalId = result.proposal.id,
                     objectId = result.proposal.objectId,
-                    lines = result.items.map { ProposalLine(it.id, it.workTypeId, it.amount.toString()) },
-                    materialLines = result.materialItems.map { ProposalMaterialLine(it.id, it.materialId, it.amount.toString()) }
+                    lines = result.items.map { ProposalLine(it.id, it.workTypeId, it.amount.amountInput()) },
+                    materialLines = result.materialItems.map { ProposalMaterialLine(it.id, it.materialId, it.amount.amountInput()) }
                 ))
             } catch (e: CancellationException) {
                 throw e

@@ -25,7 +25,7 @@ import java.util.zip.ZipOutputStream
 class InvalidBackupException : IOException("Invalid or unsupported WorkTrack backup")
 class BackupLimitException : IOException("Backup size limit exceeded")
 
-data class BackupSummary(val createdAt: Long, val objects: Int, val days: Int, val proposals: Int, val photos: Int, val missingPhotos: Int)
+data class BackupSummary(val createdAt: Long, val objects: Int, val days: Int, val proposals: Int, val photos: Int, val missingPhotos: Int, val payments: Int = 0)
 
 class PreparedBackup internal constructor(
     internal val directory: File,
@@ -43,7 +43,7 @@ class BackupService(private val context: Context, private val db: WorkTrackDatab
     suspend fun export(output: OutputStream): BackupSummary = withContext(Dispatchers.IO) { archiveMutex.withLock {
         val manifest = db.withTransaction {
             val sql = db.openHelper.writableDatabase
-            JSONObject().put("format", FORMAT).put("version", 1).put("databaseVersion", 6)
+            JSONObject().put("format", FORMAT).put("version", 3).put("databaseVersion", 8).put("moneyUnit", "EUR_CENT")
                 .put("createdAt", System.currentTimeMillis()).put("tables", JSONObject().apply {
                     TABLES.forEach { name ->
                         val rows = JSONArray()
@@ -137,7 +137,31 @@ class BackupService(private val context: Context, private val db: WorkTrackDatab
                 }
             }
             val data = manifest ?: throw InvalidBackupException()
-            if (data.getString("format") != FORMAT || data.get("version") != 1 || data.get("databaseVersion") != 6) throw InvalidBackupException()
+            if (data.getString("format") != FORMAT) throw InvalidBackupException()
+            if (data.get("version") == 1 && data.get("databaseVersion") == 6) {
+                listOf("WorkEntry", "WorkMaterialEntry", "ProposalItem", "ProposalMaterialItem").forEach { name ->
+                    val table = data.getJSONObject("tables").getJSONObject(name)
+                    val amountIndex = columnIndex(table, "amount")
+                    val rows = table.getJSONArray("rows")
+                    for (i in 0 until rows.length()) {
+                        val row = rows.getJSONArray(i)
+                        val value = row.get(amountIndex)
+                        if (value !is Int && value !is Long) throw InvalidBackupException()
+                        val euros = (value as Number).toLong()
+                        if (euros < 0 || euros > Long.MAX_VALUE / 100) throw InvalidBackupException()
+                        row.put(amountIndex, euros * 100)
+                    }
+                }
+                data.put("version", 2).put("databaseVersion", 7).put("moneyUnit", "EUR_CENT")
+            }
+            if (data.get("version") == 2 && data.get("databaseVersion") == 7 && data.optString("moneyUnit") == "EUR_CENT") {
+                val tables = data.getJSONObject("tables")
+                if (tables.has("CustomerPayment")) throw InvalidBackupException()
+                tables.put("CustomerPayment", JSONObject().put("columns", JSONArray(listOf("id", "objectId", "date", "amount", "notes"))).put("rows", JSONArray()))
+                data.put("version", 3).put("databaseVersion", 8)
+            } else if (data.get("version") != 3 || data.get("databaseVersion") != 8 || data.optString("moneyUnit") != "EUR_CENT") {
+                throw InvalidBackupException()
+            }
             val createdAt = data.get("createdAt")
             if ((createdAt !is Int && createdAt !is Long) || (createdAt as Number).toLong() <= 0) throw InvalidBackupException()
             val indexedPhotos = mutableMapOf<Long, File>()
@@ -260,6 +284,8 @@ class BackupService(private val context: Context, private val db: WorkTrackDatab
             UNION ALL
             SELECT 1 FROM WorkDayWorker GROUP BY workDayId, workerId HAVING COUNT(*) > 1
         """.trimIndent()).use { if (it.moveToFirst()) throw InvalidBackupException() }
+        sql.query("SELECT 1 FROM CustomerPayment WHERE amount <= 0 OR date <= 0 LIMIT 1").use { if (it.moveToFirst()) throw InvalidBackupException() }
+        sql.query("SELECT SUM(amount) FROM CustomerPayment GROUP BY objectId").use { while (it.moveToNext()) it.getLong(0) }
         val amounts = mutableListOf<Long>()
         sql.query("SELECT amount FROM WorkEntry UNION ALL SELECT amount FROM WorkMaterialEntry").use { while (it.moveToNext()) amounts.add(it.getLong(0)) }
         if (checkedAmountTotal(amounts) == null) throw InvalidBackupException()
@@ -271,7 +297,7 @@ class BackupService(private val context: Context, private val db: WorkTrackDatab
         val tables = data.getJSONObject("tables")
         fun count(name: String) = tables.getJSONObject(name).getJSONArray("rows").length()
         val included = data.getJSONArray("photos").length()
-        return BackupSummary(data.getLong("createdAt"), count("WorkObject"), count("WorkDay"), count("Proposal"), included, count("WorkDayPhoto") - included)
+        return BackupSummary(data.getLong("createdAt"), count("WorkObject"), count("WorkDay"), count("Proposal"), included, count("WorkDayPhoto") - included, count("CustomerPayment"))
     }
 
     private fun columnIndex(table: JSONObject, name: String): Int {
@@ -314,6 +340,6 @@ class BackupService(private val context: Context, private val db: WorkTrackDatab
         private const val MAX_FILES = 10_001
         private const val MAX_ROWS = 100_000
         private val PHOTO_NAME = Regex("photos/[1-9][0-9]{0,18}\\.(jpg|png|webp|gif|heic|heif)")
-        private val TABLES = listOf("Client", "Worker", "WorkType", "Material", "WorkObject", "WorkDay", "WorkDayWorker", "WorkEntry", "WorkMaterialEntry", "WorkDayPhoto", "Proposal", "ProposalItem", "ProposalMaterialItem")
+        private val TABLES = listOf("Client", "Worker", "WorkType", "Material", "WorkObject", "CustomerPayment", "WorkDay", "WorkDayWorker", "WorkEntry", "WorkMaterialEntry", "WorkDayPhoto", "Proposal", "ProposalItem", "ProposalMaterialItem")
     }
 }

@@ -160,7 +160,7 @@
     <string name="proposal_title">Предложение / Presupuesto</string>
     <string name="proposal_items_format">Услуг: %1$d · %2$s</string>
 
-    <string name="amount_invalid">Введите целую сумму в евро: 0 или больше, без запятых, точек и знака минус. Слишком большие числа недопустимы.</string>
+    <string name="amount_invalid">Введите сумму в евро: например, 12 или 12,50. Не более двух знаков после запятой.</string>
     <string name="proposal_invalid">Выберите объект и заполните все строки корректными суммами. Проверьте, что итог не слишком большой.</string>
     <string name="operation_failed">Не удалось выполнить операцию. Проверьте свободное место и попробуйте снова.</string>
     <string name="object_read_only">Объект завершён. Данные доступны только для просмотра.</string>
@@ -186,4 +186,24 @@
     <string name="backup_too_large">Копия превышает поддерживаемый размер: до 512 МБ распакованных данных, до 32 МБ на фото, до 16 МБ записей, до 10 000 фото и до 100 000 строк в таблице.</string>
     <string name="backup_summary">Дата копии: %1$s\nОбъектов: %2$d\nРабочих дней: %3$d\nПредложений: %4$d\nФотографий в копии: %5$d\nНедоступных фотографий: %6$d</string>
     <string name="backup_busy">Дождитесь завершения текущего сохранения и повторите операцию.</string>
+    <string name="draft_autosave">Черновик автоматически сохраняется на этом устройстве. Чтобы записать предложение, нажмите «Сохранить».</string>
+    <string name="draft_discard">Удалить черновик</string>
+    <string name="draft_restore_failed">Не удалось восстановить черновик. Сохранённые предложения доступны в списке.</string>
+    <string name="finance_title">Расчёты с заказчиком</string>
+    <string name="finance_basis">По записанным работам и материалам. Предложения не включены.</string>
+    <string name="finance_work">Работы: %1$s</string>
+    <string name="finance_materials">Материалы: %1$s</string>
+    <string name="finance_paid">Получено: %1$s</string>
+    <string name="finance_due">К оплате: %1$s</string>
+    <string name="finance_credit">Аванс / переплата: %1$s</string>
+    <string name="payment_add">Добавить оплату</string>
+    <string name="payment_empty">Оплат пока нет</string>
+    <string name="payment_show_all">Показать все оплаты</string>
+    <string name="payment_show_less">Свернуть историю</string>
+    <string name="payment_title">Оплата заказчика</string>
+    <string name="payment_amount">Сумма оплаты, €</string>
+    <string name="payment_positive">Сумма должна быть больше нуля.</string>
+    <string name="payment_delete_title">Удалить запись об оплате?</string>
+    <string name="payment_delete_message">Запись будет удалена, остаток к оплате пересчитан. Это не возврат денег заказчику.</string>
+    <string name="payment_count">Записей об оплате: %1$d</string>
 </resources>

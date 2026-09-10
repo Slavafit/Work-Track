@@ -72,5 +72,6 @@ fun BackupDialogs(controller: BackupController) {
 
 @Composable
 private fun Summary(summary: BackupSummary) {
+    Text(stringResource(R.string.payment_count, summary.payments))
     Text(stringResource(R.string.backup_summary, summary.createdAt.formatDate(), summary.objects, summary.days, summary.proposals, summary.photos, summary.missingPhotos))
 }

@@ -160,7 +160,7 @@
     <string name="proposal_title">Presupuesto</string>
     <string name="proposal_items_format">Servicios: %1$d · %2$s</string>
 
-    <string name="amount_invalid">Introduce un importe entero en euros, de 0 o más, sin decimales ni signo negativo. El número debe estar dentro del rango admitido.</string>
+    <string name="amount_invalid">Introduce euros, por ejemplo 12 o 12,50, con un máximo de dos decimales.</string>
     <string name="proposal_invalid">Selecciona una obra e introduce importes válidos en todas las líneas. Comprueba que el total no sea demasiado grande.</string>
     <string name="operation_failed">No se pudo completar la operación. Comprueba el espacio disponible e inténtalo de nuevo.</string>
     <string name="object_read_only">Esta obra está finalizada. Sus datos son de solo lectura.</string>
@@ -186,4 +186,24 @@
     <string name="backup_too_large">La copia supera los límites: 512 MB descomprimidos, 32 MB por foto, 16 MB de registros, 10 000 fotos y 100 000 filas por tabla.</string>
     <string name="backup_summary">Fecha de la copia: %1$s\nObras: %2$d\nJornadas: %3$d\nPresupuestos: %4$d\nFotos incluidas: %5$d\nFotos no disponibles: %6$d</string>
     <string name="backup_busy">Espera a que termine el guardado actual e inténtalo de nuevo.</string>
+    <string name="draft_autosave">El borrador se guarda automáticamente en este dispositivo. Pulsa Guardar para guardar la propuesta.</string>
+    <string name="draft_discard">Descartar borrador</string>
+    <string name="draft_restore_failed">No se pudo restaurar el borrador. Las propuestas guardadas están disponibles en la lista.</string>
+    <string name="finance_title">Saldo del cliente</string>
+    <string name="finance_basis">Según los trabajos y materiales registrados. No incluye propuestas.</string>
+    <string name="finance_work">Trabajos: %1$s</string>
+    <string name="finance_materials">Materiales: %1$s</string>
+    <string name="finance_paid">Recibido: %1$s</string>
+    <string name="finance_due">Pendiente: %1$s</string>
+    <string name="finance_credit">Anticipo / exceso de pago: %1$s</string>
+    <string name="payment_add">Añadir pago</string>
+    <string name="payment_empty">Todavía no hay pagos</string>
+    <string name="payment_show_all">Mostrar todos los pagos</string>
+    <string name="payment_show_less">Contraer historial</string>
+    <string name="payment_title">Pago del cliente</string>
+    <string name="payment_amount">Importe del pago, €</string>
+    <string name="payment_positive">El importe debe ser mayor que cero.</string>
+    <string name="payment_delete_title">¿Eliminar el registro de pago?</string>
+    <string name="payment_delete_message">Se eliminará el registro y se recalculará el saldo. Esto no devuelve dinero al cliente.</string>
+    <string name="payment_count">Registros de pago: %1$d</string>
 </resources>

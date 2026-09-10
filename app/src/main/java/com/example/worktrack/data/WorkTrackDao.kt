@@ -11,6 +11,32 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface WorkTrackDao {
     @Query("""
+        SELECT
+          COALESCE((SELECT SUM(e.amount) FROM WorkEntry e JOIN WorkDay d ON d.id=e.workDayId WHERE d.objectId=:objectId),0) AS workAmount,
+          COALESCE((SELECT SUM(e.amount) FROM WorkMaterialEntry e JOIN WorkDay d ON d.id=e.workDayId WHERE d.objectId=:objectId),0) AS materialAmount,
+          COALESCE((SELECT SUM(amount) FROM CustomerPayment WHERE objectId=:objectId),0) AS paidAmount
+    """)
+    fun objectFinance(objectId: Long): Flow<ObjectFinance>
+
+    @Query("SELECT * FROM CustomerPayment WHERE objectId=:objectId ORDER BY date DESC, id DESC")
+    fun customerPayments(objectId: Long): Flow<List<CustomerPayment>>
+
+    @Query("SELECT COALESCE(SUM(amount),0) FROM CustomerPayment WHERE objectId=:objectId AND id!=:excludedId")
+    suspend fun paymentTotal(objectId: Long, excludedId: Long): Long
+
+    @Query("SELECT * FROM CustomerPayment WHERE id=:id")
+    suspend fun paymentById(id: Long): CustomerPayment?
+
+    @Insert
+    suspend fun insertPayment(payment: CustomerPayment): Long
+
+    @Update
+    suspend fun updatePayment(payment: CustomerPayment)
+
+    @Query("DELETE FROM CustomerPayment WHERE id=:id")
+    suspend fun deletePayment(id: Long)
+
+    @Query("""
         SELECT o.id, o.address, c.name AS clientName, o.isCompleted, o.completedAt,
                COALESCE(totals.totalAmount, 0) AS totalAmount,
                COALESCE(days.dayCount, 0) AS dayCount

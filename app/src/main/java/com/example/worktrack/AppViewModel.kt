@@ -34,7 +34,7 @@ class AppViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andro
     private val repo = WorkTrackRepository(WorkTrackDatabase.get(app))
     private val settingsStore = SettingsStore(app)
 
-    val proposalEditor = ProposalEditor(savedStateHandle, repo, viewModelScope)
+    val proposalEditor = ProposalEditor(savedStateHandle, repo, viewModelScope, ProposalDraftStore(app))
     private val mutableSaving = MutableStateFlow(false)
     val isSaving = mutableSaving.asStateFlow()
     private val mutableError = MutableStateFlow<Int?>(null)
@@ -43,6 +43,16 @@ class AppViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andro
         canStart = { !mutableSaving.value && !proposalEditor.state.value.busy },
         onRestored = { proposalEditor.newDraft() })
     fun clearError() { mutableError.value = null }
+    fun objectFinance(objectId: Long) = repo.objectFinance(objectId)
+    fun customerPayments(objectId: Long) = repo.customerPayments(objectId)
+    fun savePayment(id: Long?, objectId: Long, date: Long, amount: Long, notes: String?, onSaved: () -> Unit) = write {
+        repo.savePayment(id, objectId, date, amount, notes)
+        onSaved()
+    }
+    fun deletePayment(id: Long, objectId: Long, onSaved: () -> Unit) = write {
+        repo.deletePayment(id, objectId)
+        onSaved()
+    }
     fun dayCompleted(dayId: Long) = repo.dayCompleted(dayId)
 
     private fun write(action: suspend () -> Unit) {
@@ -177,6 +187,7 @@ class AppViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andro
             val objectInfo = repo.objectById(objectId)
             val client = objectInfo?.let { repo.clientById(it.clientId) }
             val objectDays = repo.workDays(objectId).first()
+            val finance = repo.objectFinance(objectId).first()
             val rows = repo.reportByObject(objectId)
             val photos = repo.photosByObject(objectId)
             val availablePhotoUris = photos.map { it.uri }.filter(::photoUriAvailable).distinct()
@@ -192,6 +203,12 @@ class AppViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andro
             appendLine(text(R.string.report_address_format, objectInfo?.address.orEmpty()))
             appendLine(text(R.string.report_customer_format, client?.name.orEmpty()))
             appendLine(text(R.string.object_total_days_format, total.reportMoney(), objectDays.size))
+            appendLine(text(R.string.finance_work, finance.workAmount.reportMoney()))
+            appendLine(text(R.string.finance_materials, finance.materialAmount.reportMoney()))
+            appendLine(text(R.string.finance_paid, finance.paidAmount.reportMoney()))
+            appendLine(text(if (finance.balance < 0) R.string.finance_credit else R.string.finance_due,
+                (if (finance.balance < 0) -finance.balance else finance.balance).reportMoney()))
+            appendLine(text(R.string.finance_basis))
             appendLine()
             if (objectDays.isEmpty()) {
                 appendLine(text(R.string.empty_entries))

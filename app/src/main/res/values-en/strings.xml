@@ -160,7 +160,7 @@
     <string name="proposal_title">Proposal / Presupuesto</string>
     <string name="proposal_items_format">Services: %1$d · %2$s</string>
 
-    <string name="amount_invalid">Enter a whole euro amount of 0 or more, without decimal separators or a minus sign. The number must fit the supported range.</string>
+    <string name="amount_invalid">Enter euros, for example 12 or 12.50, with up to two decimal places.</string>
     <string name="proposal_invalid">Select an object and enter valid amounts in every line. Check that the total is not too large.</string>
     <string name="operation_failed">The operation could not be completed. Check available storage and try again.</string>
     <string name="object_read_only">This object is completed. Its data is read-only.</string>
@@ -186,4 +186,24 @@
     <string name="backup_too_large">Backup exceeds the supported limits: 512 MB unpacked, 32 MB per photo, 16 MB of records, 10,000 photos and 100,000 rows per table.</string>
     <string name="backup_summary">Backup date: %1$s\nObjects: %2$d\nWork days: %3$d\nProposals: %4$d\nIncluded photos: %5$d\nUnavailable photos: %6$d</string>
     <string name="backup_busy">Wait for the current save to finish, then try again.</string>
+    <string name="draft_autosave">The draft is saved automatically on this device. Tap Save to save the proposal.</string>
+    <string name="draft_discard">Discard draft</string>
+    <string name="draft_restore_failed">Could not restore the draft. Saved proposals are available in the list.</string>
+    <string name="finance_title">Customer balance</string>
+    <string name="finance_basis">Based on recorded work and materials. Proposals are excluded.</string>
+    <string name="finance_work">Work: %1$s</string>
+    <string name="finance_materials">Materials: %1$s</string>
+    <string name="finance_paid">Received: %1$s</string>
+    <string name="finance_due">Amount due: %1$s</string>
+    <string name="finance_credit">Advance / overpayment: %1$s</string>
+    <string name="payment_add">Add payment</string>
+    <string name="payment_empty">No payments yet</string>
+    <string name="payment_show_all">Show all payments</string>
+    <string name="payment_show_less">Collapse history</string>
+    <string name="payment_title">Customer payment</string>
+    <string name="payment_amount">Payment amount, €</string>
+    <string name="payment_positive">Amount must be greater than zero.</string>
+    <string name="payment_delete_title">Delete payment record?</string>
+    <string name="payment_delete_message">The record will be removed and the balance recalculated. This does not refund the customer.</string>
+    <string name="payment_count">Payment records: %1$d</string>
 </resources>

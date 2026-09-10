@@ -377,6 +377,7 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
                     }
                 }
             }
+            item { CustomerPaymentsPanel(vm, objectId) }
             if (days.isEmpty()) item { EmptyText(stringResource(R.string.empty_work_days)) }
             items(days, key = { it.id }) { day ->
                 Card(onClick = { onOpenDay(day.id) }, modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
@@ -919,7 +920,7 @@ private fun AddEntryDialog(
 ) {
     var showNewType by rememberSaveable { mutableStateOf(false) }
     var typeId by rememberSaveable(entry?.id) { mutableLongStateOf(entry?.workTypeId ?: types.firstOrNull()?.id ?: 0L) }
-    var amount by rememberSaveable(entry?.id) { mutableStateOf(entry?.amount?.toString().orEmpty()) }
+    var amount by rememberSaveable(entry?.id) { mutableStateOf(entry?.amount?.amountInput().orEmpty()) }
     var notes by rememberSaveable(entry?.id) { mutableStateOf(entry?.notes.orEmpty()) }
     LaunchedEffect(types) { if (typeId == 0L) typeId = types.firstOrNull()?.id ?: 0L }
     AlertDialog(
@@ -940,7 +941,7 @@ private fun AddEntryDialog(
                 OutlinedTextField(amount, { amount = it }, label = { Text(stringResource(R.string.label_amount)) },
                     isError = amount.isNotEmpty() && parseAmount(amount) == null,
                     supportingText = { if (amount.isNotEmpty() && parseAmount(amount) == null) Text(stringResource(R.string.amount_invalid)) },
-                    enabled = !saving, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                    enabled = !saving, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
                 OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) }, enabled = !saving)
             }
         },
@@ -973,7 +974,7 @@ private fun AddMaterialEntryDialog(
     var materialId by rememberSaveable(entry?.id) {
         mutableLongStateOf(entry?.materialId ?: materials.firstOrNull()?.id ?: 0L)
     }
-    var amount by rememberSaveable(entry?.id) { mutableStateOf(entry?.amount?.toString().orEmpty()) }
+    var amount by rememberSaveable(entry?.id) { mutableStateOf(entry?.amount?.amountInput().orEmpty()) }
     var notes by rememberSaveable(entry?.id) { mutableStateOf(entry?.notes.orEmpty()) }
     var showNewMaterial by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(materials) { if (materialId == 0L) materialId = materials.firstOrNull()?.id ?: 0L }
@@ -999,7 +1000,7 @@ private fun AddMaterialEntryDialog(
                     isError = amount.isNotEmpty() && parseAmount(amount) == null,
                     supportingText = { if (amount.isNotEmpty() && parseAmount(amount) == null) Text(stringResource(R.string.amount_invalid)) },
                     enabled = !saving,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
                 OutlinedTextField(notes, { notes = it }, label = { Text(stringResource(R.string.label_notes)) }, enabled = !saving)
             }
@@ -1132,7 +1133,7 @@ internal fun ConfirmDialog(title: String, message: String, onDismiss: () -> Unit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateButton(label: String, value: Long, onChange: (Long) -> Unit) {
+internal fun DateButton(label: String, value: Long, onChange: (Long) -> Unit) {
     var show by rememberSaveable { mutableStateOf(false) }
     OutlinedButton(onClick = { show = true }, modifier = Modifier.fillMaxWidth()) {
         Text("$label: ${value.formatDate()}")

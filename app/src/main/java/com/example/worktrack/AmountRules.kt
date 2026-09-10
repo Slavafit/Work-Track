@@ -2,12 +2,16 @@ package com.example.worktrack
 
 class InvalidAmountException : IllegalArgumentException("Amount or total is out of range")
 
-/** Existing database amounts are whole euros. Never strip punctuation from money input. */
+/** UI values are euros; database values are integer euro cents. No rounding is allowed. */
 fun parseAmount(input: String): Long? {
     val value = input.trim()
-    if (value.isEmpty() || value.any { it !in '0'..'9' }) return null
-    return value.toLongOrNull()?.takeIf { it >= 0 }
+    if (!Regex("[0-9]+([.,][0-9]{1,2})?").matches(value)) return null
+    return try {
+        java.math.BigDecimal(value.replace(',', '.')).movePointRight(2).longValueExact()
+    } catch (_: ArithmeticException) { null }
 }
+
+fun Long.amountInput(): String = java.math.BigDecimal.valueOf(this, 2).toPlainString()
 
 fun checkedAmountTotal(amounts: Iterable<Long>): Long? {
     var total = 0L

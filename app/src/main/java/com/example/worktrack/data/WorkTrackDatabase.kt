@@ -10,6 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(
     entities = [
         Client::class,
+        CustomerPayment::class,
         WorkObject::class,
         Worker::class,
         WorkType::class,
@@ -23,7 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ProposalItem::class,
         ProposalMaterialItem::class
     ],
-    version = 6,
+    version = 8,
     exportSchema = false
 )
 abstract class WorkTrackDatabase : RoomDatabase() {
@@ -38,8 +39,39 @@ abstract class WorkTrackDatabase : RoomDatabase() {
                     context.applicationContext,
                     WorkTrackDatabase::class.java,
                     "worktrack.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build().also { instance = it }
             }
+
+        internal val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""CREATE TABLE IF NOT EXISTS `CustomerPayment` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `objectId` INTEGER NOT NULL, `date` INTEGER NOT NULL,
+                    `amount` INTEGER NOT NULL, `notes` TEXT,
+                    FOREIGN KEY(`objectId`) REFERENCES `WorkObject`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )""")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_CustomerPayment_objectId` ON `CustomerPayment` (`objectId`)")
+            }
+        }
+
+        internal val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                val tables = listOf("WorkEntry", "WorkMaterialEntry", "ProposalItem", "ProposalMaterialItem")
+                val limit = Long.MAX_VALUE / 100
+                tables.forEach { table ->
+                    db.query("SELECT 1 FROM `$table` WHERE typeof(amount) != 'integer' OR amount < 0 OR amount > $limit LIMIT 1").use {
+                        check(!it.moveToFirst()) { "Amount cannot be converted to euro cents" }
+                    }
+                }
+                db.query("SELECT SUM(amount) FROM (SELECT amount FROM WorkEntry UNION ALL SELECT amount FROM WorkMaterialEntry)").use {
+                    if (it.moveToFirst()) check(it.getLong(0) <= limit) { "Work total exceeds euro cent range" }
+                }
+                db.query("SELECT SUM(amount) FROM (SELECT proposalId, amount FROM ProposalItem UNION ALL SELECT proposalId, amount FROM ProposalMaterialItem) GROUP BY proposalId").use {
+                    while (it.moveToNext()) check(it.getLong(0) <= limit) { "Proposal total exceeds euro cent range" }
+                }
+                tables.forEach { db.execSQL("UPDATE `$it` SET amount = amount * 100") }
+            }
+        }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {

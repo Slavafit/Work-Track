@@ -20,6 +20,84 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class ProposalEditorTest {
+    private fun persistentStore(): ProposalDraftStore {
+        val context = org.robolectric.RuntimeEnvironment.getApplication()
+        context.getSharedPreferences("proposal_draft", 0).edit().clear().commit()
+        return ProposalDraftStore(context)
+    }
+
+    @Test fun `fresh editor without activity state restores incomplete input from local storage`() = runTest {
+        val disk = persistentStore()
+        val editor = ProposalEditor(SavedStateHandle(), Store(), this, disk)
+        editor.selectObject(7)
+        editor.addService(10)
+        editor.updateService(editor.state.value.lines.single().copy(amount = "12,50"))
+        editor.addMaterial(20)
+        val context = org.robolectric.RuntimeEnvironment.getApplication()
+        // Flush pending Android preference writes before checking the on-disk recovery record.
+        assertTrue(context.getSharedPreferences("proposal_draft", 0).edit().commit())
+        val file = java.io.File(context.applicationInfo.dataDir, "shared_prefs/proposal_draft.xml")
+        assertTrue(file.readText().contains("12,50"))
+        val restored = ProposalEditor(SavedStateHandle(), Store(), this, ProposalDraftStore(context))
+        assertEquals(editor.state.value, restored.state.value)
+        assertEquals("", restored.state.value.materialLines.single().amount)
+        assertFalse(restored.state.value.valid)
+    }
+
+    @Test fun `discard tombstone overrides stale activity state`() = runTest {
+        val disk = persistentStore()
+        val handle = SavedStateHandle()
+        val editor = ProposalEditor(handle, Store(), this, disk)
+        editor.selectObject(7)
+        editor.addService(10)
+        val oldState = SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
+        editor.newDraft()
+        val restored = ProposalEditor(oldState, Store(), this, disk)
+        assertEquals(ProposalDraft(), restored.state.value)
+    }
+
+    @Test fun `failed save recovers edits and successful save retains saved proposal id`() = runTest {
+        val disk = persistentStore()
+        val store = Store().apply { failSave = true }
+        val editor = ProposalEditor(SavedStateHandle(), store, this, disk)
+        editor.open(2)
+        advanceUntilIdle()
+        editor.updateService(editor.state.value.lines.single().copy(amount = "700"))
+        editor.save()
+        advanceUntilIdle()
+        val restored = ProposalEditor(SavedStateHandle(), store, this, disk)
+        assertTrue(restored.state.value.dirty)
+        assertFalse(restored.state.value.busy)
+        assertEquals("700", restored.state.value.lines.single().amount)
+        store.failSave = false
+        restored.save()
+        advanceUntilIdle()
+        val saved = ProposalEditor(SavedStateHandle(), store, this, disk)
+        assertEquals(2L, saved.state.value.proposalId)
+        assertFalse(saved.state.value.dirty)
+        assertEquals(70000L, store.saved.single().amount)
+    }
+
+    @Test fun `deletion clears persistent selected proposal`() = runTest {
+        val disk = persistentStore()
+        val editor = ProposalEditor(SavedStateHandle(), Store(), this, disk)
+        editor.open(2)
+        advanceUntilIdle()
+        editor.delete(2)
+        advanceUntilIdle()
+        assertEquals(ProposalDraft(), ProposalEditor(SavedStateHandle(), Store(), this, disk).state.value)
+    }
+
+    @Test fun `corrupt recovery record reports error without crashing`() = runTest {
+        val disk = persistentStore()
+        org.robolectric.RuntimeEnvironment.getApplication().getSharedPreferences("proposal_draft", 0)
+            .edit().putString("snapshot", "broken").commit()
+        val restored = ProposalEditor(SavedStateHandle(), Store(), this, disk)
+        assertEquals(R.string.draft_restore_failed, restored.state.value.error)
+        restored.newDraft()
+        assertEquals(ProposalDraft(), disk.read())
+    }
+
     @Test fun `default activity factory restores the editor after activity state recreation`() {
         val first = Robolectric.buildActivity(ComponentActivity::class.java).setup()
         val vm = ViewModelProvider(first.get())[AppViewModel::class.java]
@@ -69,7 +147,7 @@ class ProposalEditorTest {
         val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
         val restored = ProposalEditor(restoredHandle, Store(), this)
         assertEquals(editor.state.value, restored.state.value)
-        assertEquals(168L, restored.state.value.total)
+        assertEquals(16800L, restored.state.value.total)
         assertTrue(restored.state.value.dirty)
     }
 
@@ -80,8 +158,8 @@ class ProposalEditorTest {
         editor.open(2)
         advanceUntilIdle()
         assertEquals(2L, editor.state.value.proposalId)
-        assertEquals("200", editor.state.value.lines.single().amount)
-        assertEquals("100", editor.state.value.materialLines.single().amount)
+        assertEquals("2.00", editor.state.value.lines.single().amount)
+        assertEquals("1.00", editor.state.value.materialLines.single().amount)
         assertFalse(editor.state.value.loading)
     }
 
@@ -108,6 +186,8 @@ class ProposalEditorTest {
         assertEquals(1, store.saves)
         assertEquals(10L, store.saved.single().workTypeId)
         assertEquals(20L, store.savedMaterials.single().materialId)
+        assertEquals(200L, store.saved.single().amount)
+        assertEquals(100L, store.savedMaterials.single().amount)
         assertFalse(editor.state.value.dirty)
     }
 
@@ -139,7 +219,7 @@ class ProposalEditorTest {
         store.failSave = false
         editor.save()
         advanceUntilIdle()
-        assertEquals(500L, store.saved.single().amount)
+        assertEquals(50000L, store.saved.single().amount)
         assertFalse(editor.state.value.dirty)
     }
 

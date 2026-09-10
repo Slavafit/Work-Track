@@ -88,7 +88,12 @@ internal fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
             if (draft.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             draft.error?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
             if (readOnly) Text(stringResource(R.string.object_read_only), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (draft.dirty) Text(stringResource(R.string.draft_unsaved), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (draft.dirty) {
+                Text(stringResource(R.string.draft_autosave), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedButton(onClick = { open(0) }, enabled = !draft.busy) {
+                    Text(stringResource(R.string.draft_discard))
+                }
+            }
         }
         item {
             Card(Modifier.fillMaxWidth()) {
@@ -223,7 +228,7 @@ private fun ProposalLineCard(
                     enabled = editable,
                     isError = parseAmount(line.amount) == null,
                     supportingText = { if (parseAmount(line.amount) == null) Text(stringResource(R.string.amount_invalid)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -271,7 +276,7 @@ private fun ProposalMaterialLineCard(
                     enabled = editable,
                     isError = parseAmount(line.amount) == null,
                     supportingText = { if (parseAmount(line.amount) == null) Text(stringResource(R.string.amount_invalid)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
