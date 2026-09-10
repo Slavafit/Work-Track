@@ -71,61 +71,6 @@ fun AboutScreen(
     }
     LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            SettingsCard { com.example.worktrack.backup.BackupPanel(vm.backup) }
-        }
-        item {
-            SettingsCard {
-                Text("WorkTrack", style = MaterialTheme.typography.headlineMedium)
-                Text(stringResource(id = R.string.app_version, BuildConfig.VERSION_NAME), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(stringResource(id = R.string.developer), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(
-                    onClick = { uriHandler.openUri("https://t.me/Slavafit") },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(id = R.string.developer_contacts))
-                }
-            }
-        }
-        item {
-            SettingsCard(verticalGap = 6.dp) {
-                SectionTitle(stringResource(R.string.section_license))
-                Text(licenseState.title(), style = MaterialTheme.typography.bodyLarge)
-                Text(licenseState.detail(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    text = licenseEmail?.let { stringResource(R.string.license_email_format, it) }
-                        ?: stringResource(R.string.license_email_missing),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        item {
-            SettingsCard {
-                SectionTitle(stringResource(R.string.section_company))
-                OutlinedTextField(
-                    value = companyName,
-                    onValueChange = {
-                        companyName = it
-                        vm.setCompanyName(it)
-                    },
-                    label = { Text(stringResource(R.string.label_company_name)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
-        }
-        item {
-            SettingsCard {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    SectionTitle(stringResource(R.string.section_directories))
-                }
-                DirectoryRow(Icons.Outlined.People, stringResource(R.string.tab_workers), onOpenWorkers)
-                DirectoryRow(Icons.Outlined.Construction, stringResource(R.string.tab_types), onOpenTypes)
-                DirectoryRow(Icons.Outlined.Inventory2, stringResource(R.string.tab_materials), onOpenMaterials)
-            }
-        }
-        item {
             SettingsCard {
                 SectionTitle(stringResource(R.string.section_theme))
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -170,6 +115,61 @@ fun AboutScreen(
                             }
                         )
                     }
+                }
+            }
+        }
+        item {
+            SettingsCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    SectionTitle(stringResource(R.string.section_directories))
+                }
+                DirectoryRow(Icons.Outlined.People, stringResource(R.string.tab_workers), onOpenWorkers)
+                DirectoryRow(Icons.Outlined.Construction, stringResource(R.string.tab_types), onOpenTypes)
+                DirectoryRow(Icons.Outlined.Inventory2, stringResource(R.string.tab_materials), onOpenMaterials)
+            }
+        }
+        item {
+            SettingsCard {
+                SectionTitle(stringResource(R.string.section_company))
+                OutlinedTextField(
+                    value = companyName,
+                    onValueChange = {
+                        companyName = it
+                        vm.setCompanyName(it)
+                    },
+                    label = { Text(stringResource(R.string.label_company_name)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+        }
+        item {
+            SettingsCard { com.example.worktrack.backup.BackupPanel(vm.backup) }
+        }
+        item {
+            SettingsCard(verticalGap = 6.dp) {
+                SectionTitle(stringResource(R.string.section_license))
+                Text(licenseState.title(), style = MaterialTheme.typography.bodyLarge)
+                Text(licenseState.detail(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = licenseEmail?.let { stringResource(R.string.license_email_format, it) }
+                        ?: stringResource(R.string.license_email_missing),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        item {
+            SettingsCard {
+                Text("WorkTrack", style = MaterialTheme.typography.headlineMedium)
+                Text(stringResource(id = R.string.app_version, BuildConfig.VERSION_NAME), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(id = R.string.developer), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(
+                    onClick = { uriHandler.openUri("https://t.me/Slavafit") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(id = R.string.developer_contacts))
                 }
             }
         }
