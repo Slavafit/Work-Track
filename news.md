@@ -1,5 +1,11 @@
 # News
 
+## Version 2.24
+
+- Added deletion of an unnecessary work day with a confirmation dialog.
+- Deleting a day removes its services, materials, worker links, and photo links while keeping device photos and object payments.
+- Kept completed objects protected from work day deletion.
+
 ## Version 2.23
 
 - Fixed a crash when changing the application language after copying a work day.

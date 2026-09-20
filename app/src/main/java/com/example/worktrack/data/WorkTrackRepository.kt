@@ -75,6 +75,12 @@ class WorkTrackRepository(private val db: WorkTrackDatabase) : ProposalStore {
         id
     }
 
+    suspend fun deleteDay(dayId: Long) = db.withTransaction {
+        val day = requireNotNull(dao.dayById(dayId))
+        requireEditableObject(day.objectId)
+        dao.deleteDayById(dayId)
+    }
+
     fun dayCompleted(dayId: Long) = dao.dayCompleted(dayId)
 
     val objects = dao.objectSummaries()

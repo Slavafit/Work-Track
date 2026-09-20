@@ -71,6 +71,8 @@
     <string name="confirm_delete_entry_message">Esta acción no se puede deshacer.</string>
     <string name="confirm_delete_photo_title">¿Eliminar enlace a la foto?</string>
     <string name="confirm_delete_photo_message">La foto seguirá en el dispositivo. Solo se eliminará el enlace de la app.</string>
+    <string name="confirm_delete_day_title">¿Eliminar el día de trabajo?</string>
+    <string name="confirm_delete_day_message">Se eliminarán los servicios, materiales y enlaces de fotos de este día. Las fotos permanecerán en el dispositivo. Esta acción no se puede deshacer.</string>
     <string name="report_tab_date">Fecha</string>
     <string name="report_tab_worker">Trabajador</string>
     <string name="report_tab_object">Objeto</string>

@@ -50,6 +50,10 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
         canStart = { !mutableSaving.value && !proposalEditor.state.value.busy },
         onRestored = { proposalEditor.newDraft() })
     fun copyDay(sourceId: Long, date: Long, onCopied: (Long) -> Unit) = write { onCopied(repo.copyDay(sourceId, date)) }
+    fun deleteDay(dayId: Long, onDeleted: () -> Unit) = write {
+        repo.deleteDay(dayId)
+        onDeleted()
+    }
     fun clearError() { mutableError.value = null }
     fun clientObjectCount(objectId: Long) = repo.clientObjectCount(objectId)
     fun editObjectDetails(objectId: Long, address: String, name: String, phone: String, updateShared: Boolean, onSaved: () -> Unit) = write {

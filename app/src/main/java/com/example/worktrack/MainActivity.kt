@@ -422,6 +422,7 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
 @Composable
 private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues, onBack: () -> Unit, onCopied: (Long) -> Unit) {
     var showCopy by rememberSaveable(dayId) { mutableStateOf(false) }
+    var confirmDeleteDay by rememberSaveable(dayId) { mutableStateOf(false) }
     val completedFlow = remember(dayId) { vm.dayCompleted(dayId) }
     val completed by completedFlow.collectAsState(initial = null)
     val saving by vm.isSaving.collectAsState()
@@ -466,7 +467,16 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
             item {
                 OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 Spacer(Modifier.height(12.dp))
-                OutlinedButton(onClick = { showCopy = true }, enabled = editable) { Text(stringResource(R.string.day_copy)) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { showCopy = true }, enabled = editable, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.day_copy), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    OutlinedButton(onClick = { confirmDeleteDay = true }, enabled = editable, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Outlined.Delete, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.action_delete), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
                 if (entries.any { it.isAmountPending } || materialEntries.any { it.isAmountPending }) Text(stringResource(R.string.pending_amounts_warning), color = MaterialTheme.colorScheme.error)
                 if (completed == true) Text(stringResource(R.string.object_read_only))
                 Text(
@@ -500,6 +510,16 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
         }
     }
     if (showCopy) CopyDayDialog(saving, { showCopy = false }) { date -> vm.copyDay(dayId, date) { showCopy = false; onCopied(it) } }
+    if (confirmDeleteDay) ConfirmDialog(
+        stringResource(R.string.confirm_delete_day_title),
+        stringResource(R.string.confirm_delete_day_message),
+        onDismiss = { confirmDeleteDay = false }
+    ) {
+        vm.deleteDay(dayId) {
+            confirmDeleteDay = false
+            onBack()
+        }
+    }
     entryWorker?.let { worker ->
         AddEntryDialog(
         worker = worker,

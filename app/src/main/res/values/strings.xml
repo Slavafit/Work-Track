@@ -73,6 +73,8 @@
     <string name="confirm_delete_entry_message">Действие нельзя отменить.</string>
     <string name="confirm_delete_photo_title">Удалить ссылку на фото?</string>
     <string name="confirm_delete_photo_message">Фото на устройстве не удалится, будет удалена только ссылка из приложения.</string>
+    <string name="confirm_delete_day_title">Удалить рабочий день?</string>
+    <string name="confirm_delete_day_message">Услуги, материалы и ссылки на фотографии этого дня будут удалены. Сами фотографии на устройстве останутся. Действие нельзя отменить.</string>
     <string name="report_tab_date">Дата</string>
     <string name="report_tab_worker">Работник</string>
     <string name="report_tab_object">Объект</string>

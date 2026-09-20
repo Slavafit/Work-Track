@@ -73,6 +73,23 @@ class WorkTrackRepositoryTest {
         assertEquals(1, repo.workDays(objectId).first().size)
     }
 
+    @Test fun `delete day removes its dependent work data but keeps object payments`() = runBlocking {
+        repo.addEntry(dayId, workerId, typeId, 1250, null)
+        repo.addMaterialEntry(dayId, workerId, materialId, 500, null)
+        repo.addDayPhoto(dayId, "content://test/photo")
+        repo.savePayment(null, objectId, 1000, 250, null)
+
+        repo.deleteDay(dayId)
+
+        assertNull(dao.dayById(dayId))
+        assertTrue(dao.entries(dayId).first().isEmpty())
+        assertTrue(dao.materialEntries(dayId).first().isEmpty())
+        assertTrue(dao.dayPhotos(dayId).first().isEmpty())
+        assertTrue(dao.dayWorkerIds(dayId).first().isEmpty())
+        assertEquals(1, repo.customerPayments(objectId).first().size)
+        assertEquals(0L, repo.objectFinance(objectId).first().totalAmount)
+    }
+
     @Test fun `object contact edit is isolated unless shared update is explicit`() = runBlocking {
         val clientId = repo.objectById(objectId)!!.clientId
         val other = repo.createObject("Other", clientId, "ignored", null)
@@ -121,6 +138,7 @@ class WorkTrackRepositoryTest {
         repo.completeObject(objectId)
         val actions: List<suspend () -> Unit> = listOf(
             { repo.createDay(objectId, 2000, setOf(workerId), null) },
+            { repo.deleteDay(dayId) },
             { repo.addEntry(dayId, workerId, typeId, 1, null) },
             { repo.updateEntry(entry, dayId, workerId, typeId, 1, null) },
             { repo.deleteEntry(entry) },

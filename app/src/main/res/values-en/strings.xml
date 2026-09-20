@@ -71,6 +71,8 @@
     <string name="confirm_delete_entry_message">This action cannot be undone.</string>
     <string name="confirm_delete_photo_title">Delete photo link?</string>
     <string name="confirm_delete_photo_message">The photo will stay on the device. Only the app link will be removed.</string>
+    <string name="confirm_delete_day_title">Delete work day?</string>
+    <string name="confirm_delete_day_message">Services, materials, and photo links for this day will be deleted. Photos will remain on the device. This action cannot be undone.</string>
     <string name="report_tab_date">Date</string>
     <string name="report_tab_worker">Worker</string>
     <string name="report_tab_object">Object</string>

@@ -306,6 +306,9 @@ interface WorkTrackDao {
     @Query("DELETE FROM WorkDayPhoto WHERE id = :id")
     suspend fun deleteDayPhotoById(id: Long)
 
+    @Query("DELETE FROM WorkDay WHERE id = :id")
+    suspend fun deleteDayById(id: Long)
+
     @Query("DELETE FROM ProposalItem WHERE proposalId = :proposalId")
     suspend fun deleteProposalItems(proposalId: Long)
 
