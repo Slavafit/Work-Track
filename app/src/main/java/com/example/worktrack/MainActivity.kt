@@ -107,8 +107,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             val vm: AppViewModel = viewModel()
             val settings by vm.settings.collectAsState()
-            val localizedContext = LocalContext.current.withLanguage(settings.language)
-            val localizedConfiguration = localizedContext.resources.configuration
+            val baseContext = LocalContext.current
+            val localizedContext = remember(baseContext, settings.language) {
+                baseContext.withLanguage(settings.language)
+            }
+            val localizedConfiguration = remember(localizedContext) {
+                Configuration(localizedContext.resources.configuration)
+            }
             val dark = when (settings.themeMode) {
                 ThemeMode.System -> androidx.compose.foundation.isSystemInDarkTheme()
                 ThemeMode.Light -> false
@@ -121,7 +126,7 @@ class MainActivity : ComponentActivity() {
                 MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
                     Surface(Modifier.fillMaxSize()) {
                         LicenseGate {
-                            WorkTrackApp(vm)
+                            WorkTrackApp(vm, onLanguageSaved = { this@MainActivity.recreate() })
                         }
                     }
                 }
@@ -160,7 +165,7 @@ private enum class SettingsSection(@StringRes val titleRes: Int) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WorkTrackApp(vm: AppViewModel) {
+private fun WorkTrackApp(vm: AppViewModel, onLanguageSaved: () -> Unit) {
     com.example.worktrack.backup.BackupDialogs(vm.backup)
     var tab by rememberSaveable { mutableStateOf(MainTab.Objects) }
     var settingsSection by rememberSaveable { mutableStateOf<SettingsSection?>(null) }
@@ -228,7 +233,8 @@ private fun WorkTrackApp(vm: AppViewModel) {
                 padding = padding,
                 onOpenWorkers = { settingsSection = SettingsSection.Workers },
                 onOpenTypes = { settingsSection = SettingsSection.Types },
-                onOpenMaterials = { settingsSection = SettingsSection.Materials }
+                onOpenMaterials = { settingsSection = SettingsSection.Materials },
+                onLanguageSaved = onLanguageSaved
             )
         }
     }

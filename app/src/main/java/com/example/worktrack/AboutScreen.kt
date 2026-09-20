@@ -57,6 +57,7 @@ fun AboutScreen(
     onOpenWorkers: () -> Unit,
     onOpenTypes: () -> Unit,
     onOpenMaterials: () -> Unit,
+    onLanguageSaved: () -> Unit,
     licenseViewModel: LicenseViewModel = viewModel()
 ) {
     val settings by vm.settings.collectAsState()
@@ -103,7 +104,9 @@ fun AboutScreen(
                     LanguageMode.entries.forEachIndexed { index, lang ->
                         SegmentedButton(
                             selected = settings.language == lang,
-                            onClick = { vm.setLanguage(lang) },
+                            onClick = {
+                                if (settings.language != lang) vm.setLanguage(lang, onLanguageSaved)
+                            },
                             shape = SegmentedButtonDefaults.itemShape(index, LanguageMode.entries.size),
                             modifier = Modifier.weight(1f),
                             label = {

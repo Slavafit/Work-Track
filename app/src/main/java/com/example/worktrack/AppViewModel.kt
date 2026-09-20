@@ -171,7 +171,10 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
     fun deleteDayPhoto(id: Long) = write { repo.deleteDayPhoto(id) }
     fun completeObject(objectId: Long) = write { repo.completeObject(objectId) }
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { settingsStore.setTheme(mode) }
-    fun setLanguage(language: LanguageMode) = viewModelScope.launch { settingsStore.setLanguage(language) }
+    fun setLanguage(language: LanguageMode, onSaved: () -> Unit = {}) = viewModelScope.launch {
+        settingsStore.setLanguage(language)
+        onSaved()
+    }
     fun setCompanyName(name: String) = viewModelScope.launch { settingsStore.setCompanyName(name) }
 
     private fun text(id: Int, vararg args: Any): String {

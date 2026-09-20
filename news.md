@@ -1,5 +1,10 @@
 # News
 
+## Version 2.23
+
+- Fixed a crash when changing the application language after copying a work day.
+- Made language changes recreate the screen safely after the setting is saved.
+
 ## Version 2.22
 
 - Added copying a work day to a selected date in the same active object, preserving workers and service/material rows without their amounts.
