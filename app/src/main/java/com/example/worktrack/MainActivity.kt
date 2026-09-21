@@ -1,6 +1,7 @@
 package com.example.worktrack
 
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
@@ -136,7 +137,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private fun Context.withLanguage(language: LanguageMode): Context {
+internal fun Context.withLanguage(language: LanguageMode): Context {
     val locale = when (language) {
         LanguageMode.System -> return this
         LanguageMode.RU -> Locale("ru")
@@ -145,7 +146,17 @@ private fun Context.withLanguage(language: LanguageMode): Context {
     }
     val config = Configuration(resources.configuration)
     config.setLocales(LocaleList(locale))
-    return createConfigurationContext(config)
+    val localized = createConfigurationContext(config)
+    return LocalizedActivityContext(this, localized)
+}
+
+/** Keeps Activity owners available to launchers and share intents while exposing localized resources. */
+private class LocalizedActivityContext(
+    base: Context,
+    private val localized: Context
+) : ContextWrapper(base) {
+    override fun getResources() = localized.resources
+    override fun getAssets() = localized.assets
 }
 
 private fun Context.canOpenUri(uri: String): Boolean =

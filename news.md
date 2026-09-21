@@ -2,6 +2,7 @@
 
 ## Version 2.25
 
+- Fixed a crash when opening a work day, choosing photos or sharing after selecting an application language.
 - Added read-only access to objects, work days, proposals and reports when a license expires or its online check temporarily fails.
 - Kept report sharing and backup export available while data creation, editing, deletion and backup restore are blocked.
 - Added distinct expired-license, invalid-license and network-error banners with a retry action in Russian, English and Spanish.

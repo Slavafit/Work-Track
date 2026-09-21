@@ -3,6 +3,7 @@ package com.example.worktrack
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelProvider
 import androidx.activity.ComponentActivity
+import android.content.ContextWrapper
 import android.os.Bundle
 import com.example.worktrack.data.*
 import kotlinx.coroutines.NonCancellable
@@ -151,6 +152,25 @@ class ProposalEditorTest {
 
         assertEquals(R.string.license_read_only_write_blocked, vm.operationError.value)
         assertFalse(vm.isSaving.value)
+        activity.pause().stop().destroy()
+    }
+
+    @Test fun `localized context keeps the activity as its base context`() {
+        val activity = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+
+        LanguageMode.entries.filterNot { it == LanguageMode.System }.forEach { language ->
+            val localized = activity.get().withLanguage(language)
+            assertTrue(localized is ContextWrapper)
+            assertSame(activity.get(), (localized as ContextWrapper).baseContext)
+            val expectedTag = when (language) {
+                LanguageMode.RU -> "ru"
+                LanguageMode.EN -> "en"
+                LanguageMode.ES -> "es"
+                LanguageMode.System -> error("filtered")
+            }
+            assertEquals(expectedTag, localized.resources.configuration.locales[0].language)
+        }
+
         activity.pause().stop().destroy()
     }
 
