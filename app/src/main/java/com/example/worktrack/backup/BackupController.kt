@@ -3,6 +3,7 @@ package com.example.worktrack.backup
 import android.content.Context
 import android.net.Uri
 import com.example.worktrack.R
+import com.example.worktrack.Diagnostics
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -108,6 +109,7 @@ class BackupController(
     fun clearMessage() { mutableState.value = state.value.copy(message = null, result = null) }
 
     private fun failure(e: Exception) {
+        Diagnostics.record("backup", e)
         mutableState.value = state.value.copy(message = when (e) {
             is BackupLimitException -> R.string.backup_too_large
             is InvalidBackupException -> R.string.backup_invalid

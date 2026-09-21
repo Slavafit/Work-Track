@@ -167,6 +167,11 @@
     <string name="amount_invalid">Enter euros, for example 12 or 12.50, with up to two decimal places.</string>
     <string name="proposal_invalid">Select an object and enter valid amounts in every line. Check that the total is not too large.</string>
     <string name="operation_failed">The operation could not be completed. Check available storage and try again.</string>
+    <string name="report_failed">The report could not be created. Try again or send diagnostics from Settings.</string>
+    <string name="section_diagnostics">Diagnostics</string>
+    <string name="diagnostics_description">The file contains the app version, device model and technical error details without tokens, phone numbers or recorded data.</string>
+    <string name="diagnostics_send">Send diagnostics</string>
+    <string name="diagnostics_failed">The diagnostics file could not be prepared.</string>
     <string name="object_read_only">This object is completed. Its data is read-only.</string>
     <string name="draft_unsaved">Unsaved changes</string>
     <string name="discard_draft_title">Discard changes?</string>
@@ -254,6 +259,7 @@
     <string name="help_company">Enter your name or organization for proposals and object reports. The field saves automatically and may be left blank.</string>
     <string name="help_license">This section shows access status and the linked email. If access has expired or activation fails, use the developer contact at the bottom of Settings.</string>
     <string name="help_backup">Creating a backup saves recorded data, payments and available photos to a ZIP file. Choose where to store it. Drafts, settings and the license are excluded from manual backups.\n\nBefore restoring, the app checks the archive and shows its contents. Confirmation replaces all current data rather than merging it. Settings and the license remain unchanged.\n\nOlder backups may lack payments or some photos: check the contents before confirming.</string>
+    <string name="help_diagnostics">If the app behaves incorrectly, send this file to the developer. It contains only technical details: app version, Android, device model, error type and code location.\n\nError messages, phone numbers, addresses, notes, license tokens and database contents are not recorded. Old events are removed automatically.</string>
     <string name="license_read_only_expired">The license has expired. Data and reports are available in read-only mode.</string>
     <string name="license_read_only_network">The license could not be checked online. Data and reports are available in read-only mode.</string>
     <string name="license_read_only_invalid">The license is invalid. Data and reports are available in read-only mode.</string>

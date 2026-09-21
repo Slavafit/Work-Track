@@ -90,6 +90,7 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                Diagnostics.record("data_write", e)
                 mutableError.value = when (e) {
                     is ClosedObjectException -> R.string.object_read_only
                     is InvalidAmountException -> R.string.amount_total_invalid
@@ -209,7 +210,10 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
     fun shareObjectReport(objectId: Long, from: Long? = null, to: Long? = null, share: (String, List<String>) -> Unit) = viewModelScope.launch {
         runCatching {
             buildObjectReportShare(objectId, from, to)
-        }.onSuccess { share(it.text, it.photoUris) }.onFailure { share(reportError(it), emptyList()) }
+        }.onSuccess { share(it.text, it.photoUris) }.onFailure {
+            Diagnostics.record("report_object", it)
+            share(reportError(), emptyList())
+        }
     }
 
     private suspend fun buildObjectReportShare(objectId: Long, from: Long?, to: Long?): ObjectReportShare {
@@ -301,7 +305,10 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
                 items.forEach { appendLine(" - ${it.workerName}: ${it.workTypeName}, ${if (it.isAmountPending) text(R.string.amount_pending) else it.amount.reportMoney()}") }
             }
             }
-        }.onSuccess(share).onFailure { share(reportError(it)) }
+        }.onSuccess(share).onFailure {
+            Diagnostics.record("report_date", it)
+            share(reportError())
+        }
     }
 
     fun shareWorkerReport(workerId: Long, from: Long, to: Long, share: (String) -> Unit) = viewModelScope.launch {
@@ -322,11 +329,13 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
                 items.forEach { appendLine(" - ${it.objectAddress}: ${it.workTypeName}, ${if (it.isAmountPending) text(R.string.amount_pending) else it.amount.reportMoney()}") }
             }
             }
-        }.onSuccess(share).onFailure { share(reportError(it)) }
+        }.onSuccess(share).onFailure {
+            Diagnostics.record("report_worker", it)
+            share(reportError())
+        }
     }
 
-    private fun reportError(error: Throwable): String =
-        "Report error: ${error.message ?: error::class.java.simpleName}"
+    private fun reportError(): String = text(R.string.report_failed)
 
     private fun photoUriAvailable(uri: String): Boolean {
         val app = getApplication<Application>()

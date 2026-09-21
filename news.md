@@ -1,5 +1,12 @@
 # News
 
+## Version 2.27
+
+- Added a privacy-safe local error journal with automatic capture of unhandled and recoverable failures.
+- Added diagnostics export from Settings with app, Android and device information plus sanitized stack traces.
+- Limited diagnostics to 50 events, 30 days and 128 KB, excluding exception messages and application data.
+- Replaced technical report errors with a localized recovery message.
+
 ## Version 2.26
 
 - Added explicit object and work-day viewing actions in license read-only mode.

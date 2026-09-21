@@ -167,6 +167,11 @@
     <string name="amount_invalid">Introduce euros, por ejemplo 12 o 12,50, con un máximo de dos decimales.</string>
     <string name="proposal_invalid">Selecciona una obra e introduce importes válidos en todas las líneas. Comprueba que el total no sea demasiado grande.</string>
     <string name="operation_failed">No se pudo completar la operación. Comprueba el espacio disponible e inténtalo de nuevo.</string>
+    <string name="report_failed">No se pudo crear el informe. Inténtalo de nuevo o envía el diagnóstico desde Ajustes.</string>
+    <string name="section_diagnostics">Diagnóstico</string>
+    <string name="diagnostics_description">El archivo contiene la versión de la aplicación, el modelo del dispositivo y datos técnicos del error, sin tokens, teléfonos ni datos registrados.</string>
+    <string name="diagnostics_send">Enviar diagnóstico</string>
+    <string name="diagnostics_failed">No se pudo preparar el archivo de diagnóstico.</string>
     <string name="object_read_only">Esta obra está finalizada. Sus datos son de solo lectura.</string>
     <string name="draft_unsaved">Cambios sin guardar</string>
     <string name="discard_draft_title">¿Descartar los cambios?</string>
@@ -254,6 +259,7 @@
     <string name="help_company">Indica tu nombre o el de tu organización para las propuestas e informes de obra. El campo se guarda automáticamente y puede quedar vacío.</string>
     <string name="help_license">Aquí se muestran el estado de acceso y el correo vinculado. Si el acceso ha caducado o falla la activación, utiliza el contacto del desarrollador al final de Ajustes.</string>
     <string name="help_backup">La copia guarda los datos registrados, pagos y fotos disponibles en un ZIP. Elige dónde guardarlo. Los borradores, ajustes y la licencia no se incluyen en la copia manual.\n\nAntes de restaurar, la aplicación comprueba el archivo y muestra su contenido. Al confirmar se sustituyen todos los datos actuales, no se combinan. Los ajustes y la licencia se mantienen.\n\nLas copias antiguas pueden no contener pagos o algunas fotos: comprueba el contenido antes de confirmar.</string>
+    <string name="help_diagnostics">Si la aplicación funciona de forma incorrecta, envía este archivo al desarrollador. Solo contiene datos técnicos: versión, Android, modelo del dispositivo, tipo de error y ubicación en el código.\n\nNo se guardan mensajes de error, teléfonos, direcciones, notas, tokens de licencia ni contenido de la base de datos. Los eventos antiguos se eliminan automáticamente.</string>
     <string name="license_read_only_expired">La licencia ha caducado. Los datos y los informes están disponibles en modo de solo lectura.</string>
     <string name="license_read_only_network">No se pudo comprobar la licencia por Internet. Los datos y los informes están disponibles en modo de solo lectura.</string>
     <string name="license_read_only_invalid">La licencia no es válida. Los datos y los informes están disponibles en modo de solo lectura.</string>

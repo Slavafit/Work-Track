@@ -103,7 +103,8 @@ class ProposalEditor(
                 ))
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Diagnostics.record("proposal_load", e)
                 if (request == generation) publish(state.value.copy(loading = false, error = R.string.operation_failed))
             }
         }
@@ -130,6 +131,7 @@ class ProposalEditor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                Diagnostics.record("proposal_save", e)
                 publish(draft.copy(error = errorMessage(e)))
             }
         }
@@ -150,6 +152,7 @@ class ProposalEditor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                Diagnostics.record("proposal_delete", e)
                 publish(draft.copy(error = errorMessage(e)))
             }
         }

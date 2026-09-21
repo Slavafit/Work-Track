@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -67,7 +68,9 @@ fun AboutScreen(
     val licenseEmail by licenseViewModel.email.collectAsState()
     val licenseChecking by licenseViewModel.checking.collectAsState()
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
     var companyName by remember { mutableStateOf(settings.companyName) }
+    var diagnosticsError by remember { mutableStateOf(false) }
     LaunchedEffect(settings.companyName) {
         if (companyName.isBlank() && settings.companyName.isNotBlank()) {
             companyName = settings.companyName
@@ -154,6 +157,23 @@ fun AboutScreen(
         }
         item {
             SettingsCard { com.example.worktrack.backup.BackupPanel(vm.backup) }
+        }
+        item {
+            SettingsCard {
+                HelpHeading(R.string.section_diagnostics, R.string.help_diagnostics)
+                Text(stringResource(R.string.diagnostics_description), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedButton(
+                    onClick = {
+                        diagnosticsError = runCatching { Diagnostics.share(context) }.isFailure
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.diagnostics_send))
+                }
+                if (diagnosticsError) {
+                    Text(stringResource(R.string.diagnostics_failed), color = MaterialTheme.colorScheme.error)
+                }
+            }
         }
         item {
             SettingsCard(verticalGap = 6.dp) {
