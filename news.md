@@ -1,5 +1,11 @@
 # News
 
+## Version 2.28
+
+- Added photo thumbnails to work days with background decoding and a bounded memory cache.
+- Sampled large images before display to reduce memory use and keep the work-day screen responsive.
+- Replaced raw photo URIs with localized loading, available and unavailable states.
+
 ## Version 2.27
 
 - Added a privacy-safe local error journal with automatic capture of unhandled and recoverable failures.

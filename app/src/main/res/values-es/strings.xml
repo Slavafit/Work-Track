@@ -102,6 +102,7 @@
     <string name="photos_count_format">Fotos: %1$d</string>
     <string name="photo_status_available">Foto disponible</string>
     <string name="photo_status_missing">Foto no disponible</string>
+    <string name="photo_status_loading">Cargando miniatura…</string>
     <string name="dialog_new_object">Nuevo objeto</string>
     <string name="dialog_new_client">Nuevo cliente</string>
     <string name="dialog_new_work_day">Nuevo día de trabajo</string>
@@ -249,7 +250,7 @@
     <string name="help_report_worker">Elige un trabajador y un período y comparte el informe. Se incluyen por completo las fechas inicial y final.\n\nEl informe muestra los servicios y materiales asociados al trabajador en las distintas obras. Son costes para el cliente, no salarios ni pagos al trabajador.</string>
     <string name="help_report_object">Elige una obra. Mantén Todo el período o desactívalo y selecciona las fechas. Se comparten texto y fotos disponibles de los días seleccionados.\n\nTrabajos, materiales y pagos se muestran por separado. El saldo inicial incluye registros y anticipos anteriores; el saldo final incluye datos hasta el fin del período. Un valor positivo está pendiente de pago; uno negativo es un anticipo o exceso de pago.\n\nLas propuestas no se incluyen en los cargos. Si faltan importes, el informe advierte que el saldo es provisional.</string>
     <string name="help_payments">Registra un pago realmente recibido: fecha, importe positivo y una nota opcional. Se admiten pagos parciales y anticipos, también después de completar la obra.\n\nSaldo = trabajos registrados + materiales − pagos. No se basa en propuestas ni en el precio acordado del encargo completo.\n\nCorrige un registro o elimínalo tras confirmar. Eliminarlo no devuelve dinero al cliente.</string>
-    <string name="help_photos">Añade fotos mediante el selector de archivos del sistema. Las fotos disponibles pueden compartirse con el informe de la obra.\n\nSi se elimina el archivo original o se pierde el acceso, la foto aparece como no disponible. Quitarla del día elimina el registro, no el archivo original de la galería.</string>
+    <string name="help_photos">Añade fotos mediante el selector de archivos del sistema. Los días muestran miniaturas reducidas; las fotos disponibles pueden compartirse con el informe de la obra.\n\nSi se elimina el archivo original o se pierde el acceso, la foto aparece como no disponible. Quitarla del día elimina el registro, no el archivo original de la galería.</string>
     <string name="help_workers">Añade trabajadores para seleccionarlos al crear un día. Pulsa una tarjeta para editar nombre, teléfono o estado activo.\n\nLos trabajadores inactivos permanecen en los registros anteriores, pero no se ofrecen al crear un día nuevo.</string>
     <string name="help_types">Añade nombres de servicios o tareas habituales. El precio se introduce por separado en el día de trabajo o la propuesta.\n\nPulsa una tarjeta para renombrar u ocultar un servicio. El nuevo nombre se refleja en registros vinculados; ocultarlo no borra el historial.</string>
     <string name="help_materials">Añade nombres de materiales y consumibles habituales. Introduce el importe al añadir el material a un día o propuesta.\n\nPuedes renombrar u ocultar las tarjetas. Los registros anteriores se conservan y reflejan los cambios de nombre.</string>

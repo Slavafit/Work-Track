@@ -102,6 +102,7 @@
     <string name="photos_count_format">Photos: %1$d</string>
     <string name="photo_status_available">Photo available</string>
     <string name="photo_status_missing">Photo unavailable</string>
+    <string name="photo_status_loading">Loading thumbnail…</string>
     <string name="dialog_new_object">New object</string>
     <string name="dialog_new_client">New client</string>
     <string name="dialog_new_work_day">New work day</string>
@@ -249,7 +250,7 @@
     <string name="help_report_worker">Choose a worker and a period, then share the report. Both boundary dates are included in full.\n\nThe report lists services and materials associated with this worker across objects. These are costs to the customer, not wages or worker payouts.</string>
     <string name="help_report_object">Choose an object. Keep All dates enabled, or turn it off and select a period. Sharing includes text and available photos from the selected days.\n\nWork, materials and payments are shown separately. The opening balance includes earlier records and advances; the closing balance includes data through the end of the period. A positive value is due, and a negative value is an advance or overpayment.\n\nProposals are excluded from charges. Missing amounts make the balance provisional, as noted in the report.</string>
     <string name="help_payments">Record a payment actually received: date, a positive amount and an optional note. Partial payments and advances are supported, including after object completion.\n\nBalance = recorded work + materials − payments. It is not based on proposals or the agreed price of the entire job.\n\nEdit an incorrect record or delete it after confirmation. Deleting a record does not refund the customer.</string>
-    <string name="help_photos">Add photos using the system file picker. Available photos can be shared with the object report.\n\nIf the original file is deleted or access is lost, the photo is marked unavailable. Removing it from a day removes the record, not the original gallery file.</string>
+    <string name="help_photos">Add photos using the system file picker. Work days show reduced thumbnails; available photos can be shared with the object report.\n\nIf the original file is deleted or access is lost, the photo is marked unavailable. Removing it from a day removes the record, not the original gallery file.</string>
     <string name="help_workers">Add workers to select them when creating a work day. Tap a card to edit the name, phone or active status.\n\nInactive workers remain in existing records but are not offered when creating a new day.</string>
     <string name="help_types">Add names of recurring services or tasks. Enter the price separately in a work day or proposal.\n\nTap a card to rename or hide a service. Renaming is reflected in linked records; hiding does not delete history.</string>
     <string name="help_materials">Add names of materials and supplies you reuse. Enter an amount when adding a material to a day or proposal.\n\nCards can be renamed or hidden. Existing records are retained and reflect name changes.</string>

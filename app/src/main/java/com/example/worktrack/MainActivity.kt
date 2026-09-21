@@ -159,9 +159,6 @@ private class LocalizedActivityContext(
     override fun getAssets() = localized.assets
 }
 
-private fun Context.canOpenUri(uri: String): Boolean =
-    runCatching { contentResolver.openInputStream(Uri.parse(uri))?.use { true } == true }.getOrDefault(false)
-
 private enum class MainTab(@StringRes val titleRes: Int, @StringRes val navLabelRes: Int, val icon: ImageVector) {
     Objects(R.string.tab_objects, R.string.nav_objects, Icons.Outlined.Work),
     Proposal(R.string.tab_proposal, R.string.nav_proposal, Icons.Outlined.Assessment),
@@ -739,7 +736,6 @@ private fun DayPhotosCard(
     onAdd: () -> Unit,
     onDelete: (Long) -> Unit
 ) {
-    val context = LocalContext.current
     Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -757,15 +753,26 @@ private fun DayPhotosCard(
                 Text(stringResource(R.string.empty_photos), color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 photos.forEach { photo ->
-                    val available = context.canOpenUri(photo.uri)
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    val thumbnail by rememberPhotoThumbnail(photo.uri)
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        PhotoThumbnail(thumbnail)
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
-                                if (available) stringResource(R.string.photo_status_available) else stringResource(R.string.photo_status_missing),
+                                when (thumbnail) {
+                                    PhotoThumbnailState.Loading -> stringResource(R.string.photo_status_loading)
+                                    PhotoThumbnailState.Unavailable -> stringResource(R.string.photo_status_missing)
+                                    is PhotoThumbnailState.Ready -> stringResource(R.string.photo_status_available)
+                                },
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (available) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                color = if (thumbnail is PhotoThumbnailState.Unavailable) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                             )
-                            Text(photo.uri, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            photo.note?.takeIf { it.isNotBlank() }?.let {
+                                Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
                         }
                         IconButton(onClick = { onDelete(photo.id) }, enabled = editable) {
                             Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete))
