@@ -2,6 +2,8 @@
 
 ## Version 2.26
 
+- Added explicit object and work-day viewing actions in license read-only mode.
+- Added the application name to license activation and verification requests.
 - Fixed localized help text after switching the application language.
 - Preserved and displayed the server expiration date for active licenses.
 - Replaced the 24-hour license cache with verification on launch and every return to the application.

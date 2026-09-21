@@ -56,6 +56,7 @@
     <string name="action_ok">ОК</string>
     <string name="action_share">Поделиться</string>
     <string name="action_check_again">Проверить снова</string>
+    <string name="action_view">Просмотреть</string>
     <string name="action_retry">Повторить</string>
     <string name="action_pick_contact">Выбрать из контактов</string>
     <string name="action_select">Выбрать</string>

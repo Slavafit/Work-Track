@@ -54,6 +54,7 @@
     <string name="action_ok">OK</string>
     <string name="action_share">Share</string>
     <string name="action_check_again">Check again</string>
+    <string name="action_view">View</string>
     <string name="action_retry">Retry</string>
     <string name="action_pick_contact">Pick from contacts</string>
     <string name="action_select">Select</string>

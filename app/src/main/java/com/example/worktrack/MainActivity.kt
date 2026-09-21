@@ -302,10 +302,10 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
             val active = visible.filterNot { it.isCompleted }
             val completed = visible.filter { it.isCompleted }
             if (active.isEmpty() && completed.isEmpty()) item { EmptyText(stringResource(if (objects.isEmpty()) R.string.empty_objects else R.string.object_search_empty)) }
-            items(active, key = { it.id }) { ObjectCard(it, onOpen) }
+            items(active, key = { it.id }) { ObjectCard(it, readOnly = !canWrite, onOpen = onOpen) }
             if (completed.isNotEmpty()) {
                 item { SectionTitle(stringResource(R.string.section_completed)) }
-                items(completed, key = { it.id }) { ObjectCard(it, onOpen) }
+                items(completed, key = { it.id }) { ObjectCard(it, readOnly = !canWrite, onOpen = onOpen) }
             }
         }
         if (canWrite) ExtendedFloatingActionButton(
@@ -321,7 +321,7 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
 }
 
 @Composable
-private fun ObjectCard(item: ObjectSummary, onOpen: (Long) -> Unit) {
+private fun ObjectCard(item: ObjectSummary, readOnly: Boolean, onOpen: (Long) -> Unit) {
     Card(
         onClick = { onOpen(item.id) },
         modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(16.dp)),
@@ -392,6 +392,14 @@ private fun ObjectCard(item: ObjectSummary, onOpen: (Long) -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            if (readOnly) {
+                OutlinedButton(
+                    onClick = { onOpen(item.id) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.action_view))
+                }
+            }
         }
     }
 }
@@ -454,6 +462,14 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
                         Text(day.date.formatDate(), style = MaterialTheme.typography.titleMedium)
                         Text(stringResource(R.string.day_counts_format, day.workerCount, day.entryCount))
                         Text(stringResource(R.string.total_format, day.totalAmount.money()), fontWeight = FontWeight.SemiBold)
+                        if (!canWrite) {
+                            OutlinedButton(
+                                onClick = { onOpenDay(day.id) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(stringResource(R.string.action_view))
+                            }
+                        }
                     }
                 }
             }

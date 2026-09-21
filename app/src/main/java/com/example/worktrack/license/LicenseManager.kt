@@ -21,6 +21,7 @@ val Context.licenseDataStore: DataStore<Preferences> by preferencesDataStore(nam
 object LicenseManager {
     private const val BASE_URL = "https://license-server.slavafit.workers.dev"
     private const val APP_ID = "worktrack"
+    private const val APP_NAME = "WorkTrack"
 
     private val KEY_TOKEN = stringPreferencesKey("license_token")
     private val KEY_EMAIL = stringPreferencesKey("license_email")
@@ -35,6 +36,7 @@ object LicenseManager {
                 put("email", email)
                 put("device_id", deviceId)
                 put("app_id", APP_ID)
+                put("app_name", APP_NAME)
             }
             val response = post("$BASE_URL/activate", body)
             val ok = response.optBoolean("ok", false)
@@ -80,6 +82,7 @@ object LicenseManager {
                 put("token", token)
                 put("device_id", getDeviceId(context))
                 put("app_id", APP_ID)
+                put("app_name", APP_NAME)
             }
             val response = post("$BASE_URL/verify", body)
             val valid = response.optBoolean("valid", false)
