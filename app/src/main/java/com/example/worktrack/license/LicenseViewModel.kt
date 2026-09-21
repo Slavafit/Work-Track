@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class LicenseViewModel(app: Application) : AndroidViewModel(app) {
@@ -12,24 +13,39 @@ class LicenseViewModel(app: Application) : AndroidViewModel(app) {
     val state: StateFlow<LicenseState> = _state
     private val _email = MutableStateFlow<String?>(null)
     val email: StateFlow<String?> = _email
+    private val _checking = MutableStateFlow(false)
+    val checking: StateFlow<Boolean> = _checking
+    private var verifyJob: Job? = null
+    private var verifyGeneration = 0L
 
     init {
-        verify(forceRefresh = false)
+        verify(showLoading = true)
     }
 
-    fun checkLicense() = verify(forceRefresh = true)
+    fun checkLicense() = verify(showLoading = false)
 
-    private fun verify(forceRefresh: Boolean) {
-        viewModelScope.launch {
-            _state.value = LicenseState.Loading
-            _state.value = when (val result = LicenseManager.verify(getApplication(), forceRefresh)) {
-                is VerifyResult.Active -> LicenseState.Active
-                is VerifyResult.Trial -> LicenseState.Trial(result.expiresAt)
-                is VerifyResult.NeedActivation -> LicenseState.NeedActivation
-                is VerifyResult.Invalid -> LicenseState.Invalid(result.reason, result.expiresAt)
-                is VerifyResult.Error -> LicenseState.Error(result.message)
+    fun refreshOnResume() {
+        if (_state.value !is LicenseState.Loading) verify(showLoading = false)
+    }
+
+    private fun verify(showLoading: Boolean) {
+        val request = ++verifyGeneration
+        verifyJob?.cancel()
+        verifyJob = viewModelScope.launch {
+            _checking.value = true
+            if (showLoading) _state.value = LicenseState.Loading
+            try {
+                _state.value = when (val result = LicenseManager.verify(getApplication())) {
+                    is VerifyResult.Active -> LicenseState.Active(result.expiresAt)
+                    is VerifyResult.Trial -> LicenseState.Trial(result.expiresAt)
+                    is VerifyResult.NeedActivation -> LicenseState.NeedActivation
+                    is VerifyResult.Invalid -> LicenseState.Invalid(result.reason, result.expiresAt)
+                    is VerifyResult.Error -> LicenseState.Error(result.message)
+                }
+                _email.value = LicenseManager.savedEmail(getApplication())
+            } finally {
+                if (request == verifyGeneration) _checking.value = false
             }
-            _email.value = LicenseManager.savedEmail(getApplication())
         }
     }
 
@@ -37,7 +53,7 @@ class LicenseViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _state.value = LicenseState.Loading
             _state.value = when (val result = LicenseManager.activate(getApplication(), email)) {
-                is ActivateResult.Active -> LicenseState.Active
+                is ActivateResult.Active -> LicenseState.Active(result.expiresAt)
                 is ActivateResult.Trial -> LicenseState.Trial(result.expiresAt)
                 is ActivateResult.Pending -> LicenseState.Pending(result.message)
                 is ActivateResult.TrialExpired -> LicenseState.Invalid("trial_expired")
@@ -53,7 +69,7 @@ class LicenseViewModel(app: Application) : AndroidViewModel(app) {
 
 sealed class LicenseState {
     data object Loading : LicenseState()
-    data object Active : LicenseState()
+    data class Active(val expiresAt: Long) : LicenseState()
     data class Trial(val expiresAt: Long) : LicenseState()
     data class Pending(val message: String) : LicenseState()
     data object NeedActivation : LicenseState()

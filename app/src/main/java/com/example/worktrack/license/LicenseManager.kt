@@ -44,8 +44,8 @@ object LicenseManager {
 
             if (ok && token.isNotEmpty()) {
                 saveState(context, email, token, status, expiresAt)
-                when (val local = localCheck(status, expiresAt)) {
-                    is VerifyResult.Active -> ActivateResult.Active
+                when (val local = localLicenseResult(status, expiresAt)) {
+                    is VerifyResult.Active -> ActivateResult.Active(local.expiresAt)
                     is VerifyResult.Trial -> ActivateResult.Trial(local.expiresAt)
                     is VerifyResult.Invalid -> if (local.reason == "trial_expired") ActivateResult.TrialExpired else ActivateResult.Error(local.reason)
                     is VerifyResult.NeedActivation -> ActivateResult.Error("invalid")
@@ -66,16 +66,14 @@ object LicenseManager {
         }
     }
 
-    suspend fun verify(context: Context, forceRefresh: Boolean = false): VerifyResult {
+    suspend fun verify(context: Context): VerifyResult {
         val prefs = context.licenseDataStore.data.first()
         val token = prefs[KEY_TOKEN] ?: ""
         val status = prefs[KEY_STATUS] ?: ""
         val email = prefs[KEY_EMAIL] ?: ""
         val expiresAt = prefs[KEY_EXPIRES_AT] ?: 0L
-        val checkedAt = prefs[KEY_CHECKED_AT] ?: 0L
 
         if (email.isEmpty() || token.isEmpty()) return VerifyResult.NeedActivation
-        if (shouldUseLicenseCache(forceRefresh, checkedAt, System.currentTimeMillis())) return localCheck(status, expiresAt)
 
         return try {
             val body = JSONObject().apply {
@@ -90,7 +88,7 @@ object LicenseManager {
 
             if (valid) {
                 saveState(context, email, token, newStatus, newExpires)
-                localCheck(newStatus, newExpires)
+                localLicenseResult(newStatus, newExpires)
             } else {
                 val reason = normalizeReason(response.optString("reason", response.optString("status", "invalid")))
                 saveState(context, email, token, reason, newExpires)
@@ -99,7 +97,12 @@ object LicenseManager {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            VerifyResult.Error(e.message ?: "Network error")
+            val local = localLicenseResult(status, expiresAt)
+            if (local is VerifyResult.Invalid && local.reason in setOf("expired", "trial_expired")) {
+                local
+            } else {
+                VerifyResult.Error(e.message ?: "Network error")
+            }
         }
     }
 
@@ -113,28 +116,7 @@ object LicenseManager {
     fun getDeviceId(context: Context): String =
         Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
 
-    private fun localCheck(status: String, expiresAt: Long): VerifyResult {
-        val normalizedStatus = normalizeReason(status)
-        val nowSec = System.currentTimeMillis() / 1000
-        return when {
-            normalizedStatus == "trial" && expiresAt > 0 && expiresAt < nowSec -> VerifyResult.Invalid("trial_expired", expiresAt)
-            normalizedStatus == "trial" -> VerifyResult.Trial(expiresAt)
-            normalizedStatus == "active" && expiresAt > 0 && expiresAt < nowSec -> VerifyResult.Invalid("expired", expiresAt)
-            normalizedStatus == "active" -> VerifyResult.Active
-            normalizedStatus == "expired" || normalizedStatus == "trial_expired" -> VerifyResult.Invalid(normalizedStatus, expiresAt)
-            else -> VerifyResult.Invalid(normalizedStatus.ifBlank { "invalid" }, expiresAt)
-        }
-    }
-
-    private fun normalizeReason(value: String): String {
-        val clean = value.trim().lowercase()
-        return when {
-            clean == "license_expired" || clean == "subscription_expired" -> "expired"
-            clean.contains("trial") && clean.contains("expired") -> "trial_expired"
-            clean.contains("expired") -> "expired"
-            else -> clean
-        }
-    }
+    private fun normalizeReason(value: String): String = normalizeLicenseReason(value)
 
     private suspend fun saveState(context: Context, email: String, token: String, status: String, expiresAt: Long) {
         context.licenseDataStore.edit { prefs ->
@@ -164,8 +146,34 @@ object LicenseManager {
     }
 }
 
+internal fun localLicenseResult(
+    status: String,
+    expiresAt: Long,
+    nowSeconds: Long = System.currentTimeMillis() / 1000
+): VerifyResult {
+    val normalizedStatus = normalizeLicenseReason(status)
+    return when {
+        normalizedStatus == "trial" && expiresAt > 0 && expiresAt <= nowSeconds -> VerifyResult.Invalid("trial_expired", expiresAt)
+        normalizedStatus == "trial" -> VerifyResult.Trial(expiresAt)
+        normalizedStatus == "active" && expiresAt > 0 && expiresAt <= nowSeconds -> VerifyResult.Invalid("expired", expiresAt)
+        normalizedStatus == "active" -> VerifyResult.Active(expiresAt)
+        normalizedStatus == "expired" || normalizedStatus == "trial_expired" -> VerifyResult.Invalid(normalizedStatus, expiresAt)
+        else -> VerifyResult.Invalid(normalizedStatus.ifBlank { "invalid" }, expiresAt)
+    }
+}
+
+private fun normalizeLicenseReason(value: String): String {
+    val clean = value.trim().lowercase()
+    return when {
+        clean == "license_expired" || clean == "subscription_expired" -> "expired"
+        clean.contains("trial") && clean.contains("expired") -> "trial_expired"
+        clean.contains("expired") -> "expired"
+        else -> clean
+    }
+}
+
 sealed class ActivateResult {
-    data object Active : ActivateResult()
+    data class Active(val expiresAt: Long) : ActivateResult()
     data class Trial(val expiresAt: Long) : ActivateResult()
     data class Pending(val message: String) : ActivateResult()
     data object TrialExpired : ActivateResult()
@@ -173,7 +181,7 @@ sealed class ActivateResult {
 }
 
 sealed class VerifyResult {
-    data object Active : VerifyResult()
+    data class Active(val expiresAt: Long) : VerifyResult()
     data class Trial(val expiresAt: Long) : VerifyResult()
     data object NeedActivation : VerifyResult()
     data class Invalid(val reason: String, val expiresAt: Long = 0L) : VerifyResult()

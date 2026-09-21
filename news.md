@@ -1,5 +1,12 @@
 # News
 
+## Version 2.26
+
+- Fixed localized help text after switching the application language.
+- Preserved and displayed the server expiration date for active licenses.
+- Replaced the 24-hour license cache with verification on launch and every return to the application.
+- Added a visible license check indicator and manual retry action in Settings.
+
 ## Version 2.25
 
 - Fixed a crash when opening a work day, choosing photos or sharing after selecting an application language.

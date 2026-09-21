@@ -158,7 +158,12 @@ class ProposalEditorTest {
     @Test fun `localized context keeps the activity as its base context`() {
         val activity = Robolectric.buildActivity(ComponentActivity::class.java).setup()
 
-        LanguageMode.entries.filterNot { it == LanguageMode.System }.forEach { language ->
+        val expectedHelp = mapOf(
+            LanguageMode.RU to ("Понятно" to "У каждого исполнителя"),
+            LanguageMode.EN to ("Got it" to "Add services and materials"),
+            LanguageMode.ES to ("Entendido" to "Añade servicios y materiales")
+        )
+        expectedHelp.forEach { (language, helpText) ->
             val localized = activity.get().withLanguage(language)
             assertTrue(localized is ContextWrapper)
             assertSame(activity.get(), (localized as ContextWrapper).baseContext)
@@ -169,6 +174,8 @@ class ProposalEditorTest {
                 LanguageMode.System -> error("filtered")
             }
             assertEquals(expectedTag, localized.resources.configuration.locales[0].language)
+            assertEquals(helpText.first, localized.getString(R.string.help_understood))
+            assertTrue(localized.getString(R.string.help_work_day).startsWith(helpText.second))
         }
 
         activity.pause().stop().destroy()

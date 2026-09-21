@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -64,6 +65,7 @@ fun AboutScreen(
     val settings by vm.settings.collectAsState()
     val licenseState by licenseViewModel.state.collectAsState()
     val licenseEmail by licenseViewModel.email.collectAsState()
+    val licenseChecking by licenseViewModel.checking.collectAsState()
     val uriHandler = LocalUriHandler.current
     var companyName by remember { mutableStateOf(settings.companyName) }
     LaunchedEffect(settings.companyName) {
@@ -163,6 +165,14 @@ fun AboutScreen(
                         ?: stringResource(R.string.license_email_missing),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (licenseChecking) LinearProgressIndicator(Modifier.fillMaxWidth())
+                OutlinedButton(
+                    onClick = licenseViewModel::checkLicense,
+                    enabled = !licenseChecking,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(if (licenseChecking) R.string.license_status_checking else R.string.action_check_again))
+                }
             }
         }
         item {
@@ -248,7 +258,15 @@ private fun LicenseState.title(): String = when (this) {
 
 @Composable
 private fun LicenseState.detail(): String = when (this) {
-    is LicenseState.Active -> stringResource(R.string.license_active_detail)
+    is LicenseState.Active -> if (expiresAt > 0) {
+        stringResource(
+            R.string.license_active_until_format,
+            (expiresAt * 1000L).formatDate(),
+            daysLeft(expiresAt)
+        )
+    } else {
+        stringResource(R.string.license_active_detail)
+    }
     is LicenseState.Trial -> stringResource(R.string.license_trial_days_format, daysLeft(expiresAt))
     is LicenseState.Pending -> stringResource(R.string.license_pending_detail)
     is LicenseState.NeedActivation -> stringResource(R.string.license_need_activation_detail)
