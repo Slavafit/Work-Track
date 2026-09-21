@@ -40,14 +40,18 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
     fun resetObjectSearch() { setObjectSearch(""); setObjectStatus("all"); setObjectsWithBalance(false) }
     private val repo = WorkTrackRepository(WorkTrackDatabase.get(app))
     private val settingsStore = SettingsStore(app)
+    private val mutableReadOnly = MutableStateFlow(false)
+    val readOnly = mutableReadOnly.asStateFlow()
+    fun setReadOnly(value: Boolean) { mutableReadOnly.value = value }
 
-    val proposalEditor = ProposalEditor(savedStateHandle, repo, viewModelScope, ProposalDraftStore(app))
+    val proposalEditor = ProposalEditor(savedStateHandle, repo, viewModelScope, ProposalDraftStore(app)) { !mutableReadOnly.value }
     private val mutableSaving = MutableStateFlow(false)
     val isSaving = mutableSaving.asStateFlow()
     private val mutableError = MutableStateFlow<Int?>(null)
     val operationError = mutableError.asStateFlow()
     val backup = BackupController(app, BackupService(app, WorkTrackDatabase.get(app)), viewModelScope,
         canStart = { !mutableSaving.value && !proposalEditor.state.value.busy },
+        canRestore = { !mutableReadOnly.value },
         onRestored = { proposalEditor.newDraft() })
     fun copyDay(sourceId: Long, date: Long, onCopied: (Long) -> Unit) = write { onCopied(repo.copyDay(sourceId, date)) }
     fun deleteDay(dayId: Long, onDeleted: () -> Unit) = write {
@@ -74,6 +78,10 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
     fun dayCompleted(dayId: Long) = repo.dayCompleted(dayId)
 
     private fun write(action: suspend () -> Unit) {
+        if (mutableReadOnly.value) {
+            mutableError.value = R.string.license_read_only_write_blocked
+            return
+        }
         if (mutableSaving.value || backup.state.value.busy || backup.state.value.preview != null) return
         mutableSaving.value = true
         viewModelScope.launch {
@@ -179,7 +187,7 @@ class AppViewModel(app: Application, private val savedStateHandle: SavedStateHan
         settingsStore.setLanguage(language)
         onSaved()
     }
-    fun setCompanyName(name: String) = viewModelScope.launch { settingsStore.setCompanyName(name) }
+    fun setCompanyName(name: String) = write { settingsStore.setCompanyName(name) }
 
     private fun text(id: Int, vararg args: Any): String {
         val app = getApplication<Application>()

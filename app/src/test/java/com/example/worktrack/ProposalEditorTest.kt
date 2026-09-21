@@ -88,6 +88,25 @@ class ProposalEditorTest {
         assertEquals(ProposalDraft(), ProposalEditor(SavedStateHandle(), Store(), this, disk).state.value)
     }
 
+    @Test fun `read only editor opens saved proposals but blocks changes`() = runTest {
+        val store = Store()
+        val editor = ProposalEditor(SavedStateHandle(), store, this, canWrite = { false })
+        editor.open(2)
+        advanceUntilIdle()
+
+        assertEquals(2L, editor.state.value.proposalId)
+        val originalAmount = editor.state.value.lines.single().amount
+        editor.updateService(editor.state.value.lines.single().copy(amount = "900"))
+        editor.save()
+        editor.delete(2)
+        advanceUntilIdle()
+
+        assertEquals(originalAmount, editor.state.value.lines.single().amount)
+        assertEquals(0, store.saves)
+        assertEquals(0, store.deletes)
+        assertEquals(R.string.license_read_only_write_blocked, editor.state.value.error)
+    }
+
     @Test fun `corrupt recovery record reports error without crashing`() = runTest {
         val disk = persistentStore()
         org.robolectric.RuntimeEnvironment.getApplication().getSharedPreferences("proposal_draft", 0)
@@ -123,10 +142,23 @@ class ProposalEditorTest {
         second.pause().stop().destroy()
     }
 
+    @Test fun `read only view model rejects data writes before reaching the repository`() {
+        val activity = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+        val vm = ViewModelProvider(activity.get())[AppViewModel::class.java]
+        vm.setReadOnly(true)
+
+        vm.createObject("Address", null, "Customer", null)
+
+        assertEquals(R.string.license_read_only_write_blocked, vm.operationError.value)
+        assertFalse(vm.isSaving.value)
+        activity.pause().stop().destroy()
+    }
+
     private class Store : ProposalStore {
         var saved: List<ProposalItem> = emptyList()
         var savedMaterials: List<ProposalMaterialItem> = emptyList()
         var saves = 0
+        var deletes = 0
         var failSave = false
         var failDelete = false
         override suspend fun proposalSnapshot(id: Long): ProposalSnapshot {
@@ -143,7 +175,10 @@ class ProposalEditorTest {
             savedMaterials = materialItems
             return id ?: 5L
         }
-        override suspend fun deleteProposal(id: Long) { if (failDelete) error("disk failure") }
+        override suspend fun deleteProposal(id: Long) {
+            deletes++
+            if (failDelete) error("disk failure")
+        }
     }
 
     @Test fun `saved state restores unsaved services and materials without reloading database`() = runTest {

@@ -27,6 +27,7 @@ class LicenseViewModel(app: Application) : AndroidViewModel(app) {
                 is VerifyResult.Trial -> LicenseState.Trial(result.expiresAt)
                 is VerifyResult.NeedActivation -> LicenseState.NeedActivation
                 is VerifyResult.Invalid -> LicenseState.Invalid(result.reason, result.expiresAt)
+                is VerifyResult.Error -> LicenseState.Error(result.message)
             }
             _email.value = LicenseManager.savedEmail(getApplication())
         }
@@ -58,4 +59,16 @@ sealed class LicenseState {
     data object NeedActivation : LicenseState()
     data class Invalid(val reason: String, val expiresAt: Long = 0L) : LicenseState()
     data class Error(val message: String) : LicenseState()
+}
+
+enum class LicenseAccessMode { FULL, EXPIRED_READ_ONLY, NETWORK_READ_ONLY, INVALID_READ_ONLY, BLOCKED }
+
+fun LicenseState.accessMode(): LicenseAccessMode = when (this) {
+    is LicenseState.Active, is LicenseState.Trial -> LicenseAccessMode.FULL
+    is LicenseState.Invalid -> when (reason) {
+        "expired", "trial_expired" -> LicenseAccessMode.EXPIRED_READ_ONLY
+        else -> LicenseAccessMode.INVALID_READ_ONLY
+    }
+    is LicenseState.Error -> LicenseAccessMode.NETWORK_READ_ONLY
+    is LicenseState.Loading, is LicenseState.Pending, is LicenseState.NeedActivation -> LicenseAccessMode.BLOCKED
 }

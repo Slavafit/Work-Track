@@ -49,6 +49,7 @@ object LicenseManager {
                     is VerifyResult.Trial -> ActivateResult.Trial(local.expiresAt)
                     is VerifyResult.Invalid -> if (local.reason == "trial_expired") ActivateResult.TrialExpired else ActivateResult.Error(local.reason)
                     is VerifyResult.NeedActivation -> ActivateResult.Error("invalid")
+                    is VerifyResult.Error -> ActivateResult.Error(local.message)
                 }
             } else if (status == "pending") {
                 ActivateResult.Pending(response.optString("message", "License request received. Contact developer to activate."))
@@ -97,8 +98,8 @@ object LicenseManager {
             }
         } catch (e: CancellationException) {
             throw e
-        } catch (_: Exception) {
-            localCheck(status, expiresAt)
+        } catch (e: Exception) {
+            VerifyResult.Error(e.message ?: "Network error")
         }
     }
 
@@ -176,4 +177,5 @@ sealed class VerifyResult {
     data class Trial(val expiresAt: Long) : VerifyResult()
     data object NeedActivation : VerifyResult()
     data class Invalid(val reason: String, val expiresAt: Long = 0L) : VerifyResult()
+    data class Error(val message: String) : VerifyResult()
 }

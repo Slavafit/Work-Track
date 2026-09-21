@@ -25,6 +25,7 @@ class BackupController(
     private val service: BackupService,
     private val scope: CoroutineScope,
     private val canStart: () -> Boolean,
+    private val canRestore: () -> Boolean = { true },
     private val onRestored: () -> Unit
 ) {
     private val preferences = context.getSharedPreferences("backup", Context.MODE_PRIVATE)
@@ -82,6 +83,12 @@ class BackupController(
 
     fun confirmRestore() {
         val backup = prepared ?: return
+        if (!canRestore()) {
+            mutableState.value = state.value.copy(message = R.string.license_read_only_write_blocked, preview = null)
+            prepared = null
+            scope.launch(Dispatchers.IO) { backup.close() }
+            return
+        }
         if (state.value.busy || !canStart()) return
         mutableState.value = state.value.copy(busy = true, preview = null)
         scope.launch {

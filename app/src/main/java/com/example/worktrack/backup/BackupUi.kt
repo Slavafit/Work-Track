@@ -13,10 +13,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.example.worktrack.R
 import com.example.worktrack.formatDate
+import com.example.worktrack.LocalWriteAllowed
 import java.time.LocalDate
 
 @Composable
 fun BackupPanel(controller: BackupController) {
+    val canWrite = LocalWriteAllowed.current
     val state by controller.state.collectAsState()
     val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         uri?.let(controller::export)
@@ -24,15 +26,16 @@ fun BackupPanel(controller: BackupController) {
     val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(controller::inspect)
     }
-    Text(stringResource(R.string.backup_title), style = MaterialTheme.typography.titleMedium)
+    com.example.worktrack.HelpHeading(R.string.backup_title, R.string.help_backup)
     Text(stringResource(R.string.backup_description), color = MaterialTheme.colorScheme.onSurfaceVariant)
     if (state.lastExportAt > 0) Text(stringResource(R.string.backup_last_export, state.lastExportAt.formatDate()))
     Button(onClick = { exportPicker.launch("WorkTrack-${LocalDate.now()}.zip") }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.backup_export))
     }
-    OutlinedButton(onClick = { importPicker.launch(arrayOf("application/zip", "application/octet-stream")) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+    OutlinedButton(onClick = { importPicker.launch(arrayOf("application/zip", "application/octet-stream")) }, enabled = !state.busy && canWrite, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.backup_import))
     }
+    if (!canWrite) Text(stringResource(R.string.backup_restore_read_only), color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 /** Activity-level dialogs keep navigation and writes blocked throughout restore preparation/commit. */

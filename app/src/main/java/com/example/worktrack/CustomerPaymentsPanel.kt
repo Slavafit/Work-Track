@@ -15,6 +15,7 @@ import com.example.worktrack.data.CustomerPayment
 
 @Composable
 internal fun CustomerPaymentsPanel(vm: AppViewModel, objectId: Long) {
+    val canWrite = LocalWriteAllowed.current
     val pending by remember(objectId) { vm.pendingAmounts(objectId) }.collectAsState(initial = 0)
     val finance by remember(objectId) { vm.objectFinance(objectId) }.collectAsState(initial = null)
     val payments by remember(objectId) { vm.customerPayments(objectId) }.collectAsState(initial = emptyList())
@@ -24,7 +25,7 @@ internal fun CustomerPaymentsPanel(vm: AppViewModel, objectId: Long) {
     var showAll by rememberSaveable(objectId) { mutableStateOf(false) }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.finance_title), style = MaterialTheme.typography.titleMedium)
+            HelpHeading(R.string.finance_title, R.string.help_payments)
             if (pending > 0) Text(stringResource(R.string.pending_amounts_warning), color = MaterialTheme.colorScheme.error)
             Text(stringResource(R.string.finance_basis), style = MaterialTheme.typography.bodySmall)
             finance?.let {
@@ -35,15 +36,15 @@ internal fun CustomerPaymentsPanel(vm: AppViewModel, objectId: Long) {
                 Text(stringResource(if (it.balance < 0) R.string.finance_credit else R.string.finance_due,
                     (if (it.balance < 0) -it.balance else it.balance).money()), style = MaterialTheme.typography.titleMedium)
             }
-            Button(onClick = { editingId = 0 }, enabled = !saving) { Text(stringResource(R.string.payment_add)) }
+            Button(onClick = { editingId = 0 }, enabled = !saving && canWrite) { Text(stringResource(R.string.payment_add)) }
             if (payments.isEmpty()) Text(stringResource(R.string.payment_empty))
             (if (showAll) payments else payments.take(5)).forEach { payment ->
                 HorizontalDivider()
                 Text("${payment.date.formatDate()} · ${payment.amount.money()}")
                 payment.notes?.let { Text(it) }
                 Row {
-                    TextButton(onClick = { editingId = payment.id }, enabled = !saving) { Text(stringResource(R.string.action_edit)) }
-                    TextButton(onClick = { deletingId = payment.id }, enabled = !saving) { Text(stringResource(R.string.action_delete)) }
+                    TextButton(onClick = { editingId = payment.id }, enabled = !saving && canWrite) { Text(stringResource(R.string.action_edit)) }
+                    TextButton(onClick = { deletingId = payment.id }, enabled = !saving && canWrite) { Text(stringResource(R.string.action_delete)) }
                 }
             }
             if (payments.size > 5) TextButton(onClick = { showAll = !showAll }) {

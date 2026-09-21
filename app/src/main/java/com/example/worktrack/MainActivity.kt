@@ -99,6 +99,7 @@ import com.example.worktrack.data.WorkType
 import com.example.worktrack.data.WorkDayPhoto
 import com.example.worktrack.data.Worker
 import com.example.worktrack.license.LicenseGate
+import com.example.worktrack.license.LicenseAccessMode
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -125,8 +126,8 @@ class MainActivity : ComponentActivity() {
             ) {
                 MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
                     Surface(Modifier.fillMaxSize()) {
-                        LicenseGate {
-                            WorkTrackApp(vm, onLanguageSaved = { this@MainActivity.recreate() })
+                        LicenseGate { accessMode, retryLicense ->
+                            WorkTrackApp(vm, accessMode, retryLicense, onLanguageSaved = { this@MainActivity.recreate() })
                         }
                     }
                 }
@@ -165,7 +166,15 @@ private enum class SettingsSection(@StringRes val titleRes: Int) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WorkTrackApp(vm: AppViewModel, onLanguageSaved: () -> Unit) {
+private fun WorkTrackApp(
+    vm: AppViewModel,
+    accessMode: LicenseAccessMode,
+    retryLicense: () -> Unit,
+    onLanguageSaved: () -> Unit
+) {
+    val readOnly = accessMode != LicenseAccessMode.FULL
+    LaunchedEffect(readOnly) { vm.setReadOnly(readOnly) }
+    CompositionLocalProvider(LocalWriteAllowed provides !readOnly) {
     com.example.worktrack.backup.BackupDialogs(vm.backup)
     var tab by rememberSaveable { mutableStateOf(MainTab.Objects) }
     var settingsSection by rememberSaveable { mutableStateOf<SettingsSection?>(null) }
@@ -194,7 +203,12 @@ private fun WorkTrackApp(vm: AppViewModel, onLanguageSaved: () -> Unit) {
     }
 
     Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) }) },
+        topBar = {
+            Column {
+                CenterAlignedTopAppBar(title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) })
+                if (readOnly) ReadOnlyBanner(accessMode, retryLicense)
+            }
+        },
         bottomBar = {
             if (objectId == 0L && dayId == 0L) NavigationBar {
                 MainTab.entries.forEach { item ->
@@ -238,10 +252,31 @@ private fun WorkTrackApp(vm: AppViewModel, onLanguageSaved: () -> Unit) {
             )
         }
     }
+    }
+}
+
+@Composable
+private fun ReadOnlyBanner(accessMode: LicenseAccessMode, retryLicense: () -> Unit) {
+    val message = when (accessMode) {
+        LicenseAccessMode.EXPIRED_READ_ONLY -> R.string.license_read_only_expired
+        LicenseAccessMode.NETWORK_READ_ONLY -> R.string.license_read_only_network
+        LicenseAccessMode.INVALID_READ_ONLY -> R.string.license_read_only_invalid
+        else -> return
+    }
+    Surface(color = MaterialTheme.colorScheme.tertiaryContainer) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(stringResource(message), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+            TextButton(onClick = retryLicense) { Text(stringResource(R.string.action_check_again)) }
+        }
+    }
 }
 
 @Composable
 private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Long) -> Unit) {
+    val canWrite = LocalWriteAllowed.current
     val objects by vm.objects.collectAsState()
     val clients by vm.clients.collectAsState()
     val query by vm.objectSearch.collectAsState()
@@ -251,6 +286,7 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
     var showCreate by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            item { HelpHeading(R.string.tab_objects, R.string.help_objects) }
             item { ObjectSearchControls(query, status, withBalance, visible.size, vm) }
             val active = visible.filterNot { it.isCompleted }
             val completed = visible.filter { it.isCompleted }
@@ -261,7 +297,7 @@ private fun ObjectsScreen(vm: AppViewModel, padding: PaddingValues, onOpen: (Lon
                 items(completed, key = { it.id }) { ObjectCard(it, onOpen) }
             }
         }
-        ExtendedFloatingActionButton(
+        if (canWrite) ExtendedFloatingActionButton(
             onClick = { showCreate = true },
             icon = { Icon(Icons.Outlined.Add, null) },
             text = { Text(stringResource(R.string.title_object)) },
@@ -351,6 +387,7 @@ private fun ObjectCard(item: ObjectSummary, onOpen: (Long) -> Unit) {
 
 @Composable
 private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: PaddingValues, onBack: () -> Unit, onOpenDay: (Long) -> Unit) {
+    val canWrite = LocalWriteAllowed.current
     val objects by vm.objects.collectAsState()
     val daysFlow = remember(objectId) { vm.workDays(objectId) }
     val days by daysFlow.collectAsState(initial = emptyList())
@@ -366,16 +403,19 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
                 Spacer(Modifier.height(12.dp))
                 Card(modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(obj?.address.orEmpty(), style = MaterialTheme.typography.titleLarge)
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(obj?.address.orEmpty(), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                            HelpButton(R.string.title_object, R.string.help_object_details)
+                        }
                         Text(stringResource(R.string.customer_format, obj?.clientName.orEmpty()))
-                        OutlinedButton(onClick = { vm.clearError(); showEdit = true }, enabled = obj != null) {
+                        OutlinedButton(onClick = { vm.clearError(); showEdit = true }, enabled = canWrite && obj != null) {
                             Text(stringResource(R.string.action_edit))
                         }
                         Text(stringResource(R.string.total_format, obj?.totalAmount?.money().orEmpty()), fontWeight = FontWeight.SemiBold)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = { showCreateDay = true },
-                                enabled = obj?.isCompleted == false,
+                                enabled = canWrite && obj?.isCompleted == false,
                                 modifier = Modifier.weight(1f)
                             ) { Text(stringResource(R.string.action_add_day), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                             OutlinedButton(
@@ -388,7 +428,7 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
                             }
                         }
                         if (obj?.isCompleted != true) {
-                            OutlinedButton(onClick = { confirmComplete = true }, modifier = Modifier.fillMaxWidth()) {
+                            OutlinedButton(onClick = { confirmComplete = true }, enabled = canWrite, modifier = Modifier.fillMaxWidth()) {
                                 Text(stringResource(R.string.action_complete_object), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
@@ -421,12 +461,13 @@ private fun ObjectDetailsScreen(vm: AppViewModel, objectId: Long, padding: Paddi
 
 @Composable
 private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues, onBack: () -> Unit, onCopied: (Long) -> Unit) {
+    val canWrite = LocalWriteAllowed.current
     var showCopy by rememberSaveable(dayId) { mutableStateOf(false) }
     var confirmDeleteDay by rememberSaveable(dayId) { mutableStateOf(false) }
     val completedFlow = remember(dayId) { vm.dayCompleted(dayId) }
     val completed by completedFlow.collectAsState(initial = null)
     val saving by vm.isSaving.collectAsState()
-    val editable = completed == false && !saving
+    val editable = canWrite && completed == false && !saving
     val entriesFlow = remember(dayId) { vm.entries(dayId) }
     val materialEntriesFlow = remember(dayId) { vm.materialEntries(dayId) }
     val workerIdsFlow = remember(dayId) { vm.dayWorkerIds(dayId) }
@@ -466,6 +507,7 @@ private fun WorkDayScreen(vm: AppViewModel, dayId: Long, padding: PaddingValues,
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
                 OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
+                HelpHeading(R.string.title_work_day, R.string.help_work_day)
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { showCopy = true }, enabled = editable, modifier = Modifier.weight(1f)) {
@@ -675,7 +717,7 @@ private fun DayPhotosCard(
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.section_photos), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    HelpHeading(R.string.section_photos, R.string.help_photos)
                     Text(stringResource(R.string.photos_count_format, photos.size), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Button(onClick = onAdd, enabled = editable) {
@@ -710,15 +752,17 @@ private fun DayPhotosCard(
 
 @Composable
 private fun WorkersScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -> Unit) {
+    val canWrite = LocalWriteAllowed.current
     val workers by vm.workers.collectAsState()
     var editing by remember { mutableStateOf<Worker?>(null) }
     var showAdd by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) } }
+            item { HelpHeading(R.string.tab_workers, R.string.help_workers) }
             if (workers.isEmpty()) item { EmptyText(stringResource(R.string.empty_workers)) }
             items(workers, key = { it.id }) { worker ->
-                Card(onClick = { editing = worker }, modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
+                Card(onClick = { if (canWrite) editing = worker }, modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
                     ListItem(
                         headlineContent = { Text(worker.name) },
                         supportingContent = { Text(worker.phone.orEmpty()) },
@@ -727,7 +771,7 @@ private fun WorkersScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -
                 }
             }
         }
-        FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+        if (canWrite) FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
             Icon(Icons.Outlined.Add, stringResource(R.string.action_add))
         }
     }
@@ -745,15 +789,17 @@ private fun WorkersScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -
 
 @Composable
 private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -> Unit) {
+    val canWrite = LocalWriteAllowed.current
     val types by vm.workTypes.collectAsState()
     var editing by remember { mutableStateOf<WorkType?>(null) }
     var showAdd by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) } }
+            item { HelpHeading(R.string.tab_types, R.string.help_types) }
             if (types.isEmpty()) item { EmptyText(stringResource(R.string.empty_work_types)) }
             items(types, key = { it.id }) { type ->
-                Card(onClick = { editing = type }, modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
+                Card(onClick = { if (canWrite) editing = type }, modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
                     ListItem(
                         headlineContent = { Text(type.name) },
                         trailingContent = { Text(if (type.isActive) stringResource(R.string.status_active) else stringResource(R.string.status_hidden)) }
@@ -761,7 +807,7 @@ private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues, onBack: ()
                 }
             }
         }
-        FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+        if (canWrite) FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
             Icon(Icons.Outlined.Add, stringResource(R.string.action_add))
         }
     }
@@ -779,15 +825,17 @@ private fun WorkTypesScreen(vm: AppViewModel, padding: PaddingValues, onBack: ()
 
 @Composable
 private fun MaterialsScreen(vm: AppViewModel, padding: PaddingValues, onBack: () -> Unit) {
+    val canWrite = LocalWriteAllowed.current
     val materials by vm.materials.collectAsState()
     var editing by remember { mutableStateOf<Material?>(null) }
     var showAdd by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) } }
+            item { HelpHeading(R.string.tab_materials, R.string.help_materials) }
             if (materials.isEmpty()) item { EmptyText(stringResource(R.string.empty_materials)) }
             items(materials, key = { it.id }) { material ->
-                Card(onClick = { editing = material }, modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
+                Card(onClick = { if (canWrite) editing = material }, modifier = Modifier.fillMaxWidth().appCardEffect(RoundedCornerShape(8.dp)), shape = RoundedCornerShape(8.dp)) {
                     ListItem(
                         headlineContent = { Text(material.name) },
                         trailingContent = { Text(if (material.isActive) stringResource(R.string.status_active) else stringResource(R.string.status_hidden)) }
@@ -795,7 +843,7 @@ private fun MaterialsScreen(vm: AppViewModel, padding: PaddingValues, onBack: ()
                 }
             }
         }
-        FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+        if (canWrite) FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
             Icon(Icons.Outlined.Add, stringResource(R.string.action_add))
         }
     }
@@ -831,6 +879,11 @@ private fun ReportsScreen(vm: AppViewModel, padding: PaddingValues) {
             }
         }
         Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            HelpHeading(R.string.tab_reports, when (tab) {
+                0 -> R.string.help_report_date
+                1 -> R.string.help_report_worker
+                else -> R.string.help_report_object
+            })
             when (tab) {
                 0 -> {
                     DateButton(stringResource(R.string.label_date), date) { date = it }

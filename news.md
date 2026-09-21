@@ -1,6 +1,17 @@
 # News
 
+## Version 2.25
+
+- Added read-only access to objects, work days, proposals and reports when a license expires or its online check temporarily fails.
+- Kept report sharing and backup export available while data creation, editing, deletion and backup restore are blocked.
+- Added distinct expired-license, invalid-license and network-error banners with a retry action in Russian, English and Spanish.
+- Enforced read-only restrictions in the data, proposal and backup layers as well as in the interface.
+
 ## Version 2.24
+
+- Added question-mark help buttons to objects, work days, proposals, reports, payments, photos, directories and settings sections.
+- Added contextual instructions in Russian, English and Spanish, including separate help for each report type.
+- Made help dialogs scrollable and buttons accessible with localized section names.
 
 - Added deletion of an unnecessary work day with a confirmation dialog.
 - Deleting a day removes its services, materials, worker links, and photo links while keeping device photos and object payments.

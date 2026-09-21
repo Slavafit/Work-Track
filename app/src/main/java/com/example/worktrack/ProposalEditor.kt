@@ -40,7 +40,8 @@ class ProposalEditor(
     private val savedState: SavedStateHandle,
     private val store: ProposalStore,
     private val scope: CoroutineScope,
-    private val draftStore: ProposalDraftStore? = null
+    private val draftStore: ProposalDraftStore? = null,
+    private val canWrite: () -> Boolean = { true }
 ) {
     private val mutableState = MutableStateFlow(draftStore?.read() ?: restore(savedState[KEY]))
     val state = mutableState.asStateFlow()
@@ -60,6 +61,10 @@ class ProposalEditor(
     }
 
     private fun edit(change: (ProposalDraft) -> ProposalDraft) {
+        if (!canWrite()) {
+            publish(state.value.copy(error = R.string.license_read_only_write_blocked))
+            return
+        }
         if (!state.value.busy) publish(change(state.value).copy(dirty = true, error = null))
     }
 
@@ -72,6 +77,10 @@ class ProposalEditor(
     fun removeMaterial(id: Long) = edit { it.copy(materialLines = it.materialLines.filterNot { line -> line.id == id }) }
 
     fun newDraft() {
+        if (!canWrite()) {
+            publish(state.value.copy(error = R.string.license_read_only_write_blocked))
+            return
+        }
         if (state.value.saving) return
         generation++
         loadJob?.cancel()
@@ -102,6 +111,10 @@ class ProposalEditor(
 
     fun save() {
         val draft = state.value
+        if (!canWrite()) {
+            publish(draft.copy(error = R.string.license_read_only_write_blocked))
+            return
+        }
         if (draft.busy) return
         if (!draft.valid) {
             publish(draft.copy(error = R.string.proposal_invalid))
@@ -123,6 +136,10 @@ class ProposalEditor(
     }
 
     fun delete(id: Long) {
+        if (!canWrite()) {
+            publish(state.value.copy(error = R.string.license_read_only_write_blocked))
+            return
+        }
         if (state.value.busy) return
         val draft = state.value
         publish(draft.copy(saving = true, error = null))

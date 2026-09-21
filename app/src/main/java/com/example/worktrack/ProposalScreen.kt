@@ -46,6 +46,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 @Composable
 internal fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
     val editor = vm.proposalEditor
+    val canWrite = LocalWriteAllowed.current
     val draft by editor.state.collectAsState()
     val objects by vm.objects.collectAsState()
     val types by vm.workTypes.collectAsState()
@@ -56,7 +57,7 @@ internal fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
     val selectedObject = objects.firstOrNull { it.id == draft.objectId }
     val originalObject = proposals.firstOrNull { it.id == draft.proposalId }?.let { p -> objects.firstOrNull { it.id == p.objectId } }
     val readOnly = selectedObject?.isCompleted == true || originalObject?.isCompleted == true
-    val editable = !draft.busy && !readOnly
+    val editable = canWrite && !draft.busy && !readOnly
     val referencesAvailable = draft.lines.all { line -> types.any { it.id == line.workTypeId } } &&
         draft.materialLines.all { line -> materials.any { it.id == line.materialId } }
     val valid = draft.valid && referencesAvailable && selectedObject != null && !draft.busy
@@ -72,17 +73,18 @@ internal fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
     }
 
     LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { HelpHeading(R.string.tab_proposal, R.string.help_proposal) }
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.section_saved_proposals), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                OutlinedButton(onClick = { open(0) }, enabled = !draft.saving) { Text(stringResource(R.string.action_new_proposal)) }
+                OutlinedButton(onClick = { open(0) }, enabled = canWrite && !draft.saving) { Text(stringResource(R.string.action_new_proposal)) }
             }
         }
         items(proposals, key = { "saved-${it.id}" }) { proposal ->
             ProposalSummaryCard(proposal, draft.proposalId == proposal.id,
                 onOpen = { if (proposal.id != draft.proposalId || !draft.dirty) open(proposal.id) },
                 onDelete = { if (!draft.busy) pendingDelete = proposal.id },
-                deleteEnabled = !draft.busy && objects.firstOrNull { it.id == proposal.objectId }?.isCompleted == false)
+                deleteEnabled = canWrite && !draft.busy && objects.firstOrNull { it.id == proposal.objectId }?.isCompleted == false)
         }
         item {
             if (draft.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -90,7 +92,7 @@ internal fun ProposalScreen(vm: AppViewModel, padding: PaddingValues) {
             if (readOnly) Text(stringResource(R.string.object_read_only), color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (draft.dirty) {
                 Text(stringResource(R.string.draft_autosave), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedButton(onClick = { open(0) }, enabled = !draft.busy) {
+                OutlinedButton(onClick = { open(0) }, enabled = canWrite && !draft.busy) {
                     Text(stringResource(R.string.draft_discard))
                 }
             }

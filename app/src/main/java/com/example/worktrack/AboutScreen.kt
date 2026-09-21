@@ -60,6 +60,7 @@ fun AboutScreen(
     onLanguageSaved: () -> Unit,
     licenseViewModel: LicenseViewModel = viewModel()
 ) {
+    val canWrite = LocalWriteAllowed.current
     val settings by vm.settings.collectAsState()
     val licenseState by licenseViewModel.state.collectAsState()
     val licenseEmail by licenseViewModel.email.collectAsState()
@@ -73,7 +74,7 @@ fun AboutScreen(
     LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             SettingsCard {
-                SectionTitle(stringResource(R.string.section_theme))
+                HelpHeading(R.string.section_theme, R.string.help_theme)
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     ThemeMode.entries.forEachIndexed { index, mode ->
                         SegmentedButton(
@@ -99,7 +100,7 @@ fun AboutScreen(
         }
         item {
             SettingsCard {
-                SectionTitle(stringResource(R.string.section_language))
+                HelpHeading(R.string.section_language, R.string.help_language)
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     LanguageMode.entries.forEachIndexed { index, lang ->
                         SegmentedButton(
@@ -126,7 +127,7 @@ fun AboutScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    SectionTitle(stringResource(R.string.section_directories))
+                    HelpHeading(R.string.section_directories, R.string.help_directories)
                 }
                 DirectoryRow(Icons.Outlined.People, stringResource(R.string.tab_workers), onOpenWorkers)
                 DirectoryRow(Icons.Outlined.Construction, stringResource(R.string.tab_types), onOpenTypes)
@@ -135,7 +136,7 @@ fun AboutScreen(
         }
         item {
             SettingsCard {
-                SectionTitle(stringResource(R.string.section_company))
+                HelpHeading(R.string.section_company, R.string.help_company)
                 OutlinedTextField(
                     value = companyName,
                     onValueChange = {
@@ -144,7 +145,8 @@ fun AboutScreen(
                     },
                     label = { Text(stringResource(R.string.label_company_name)) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    enabled = canWrite
                 )
             }
         }
@@ -153,7 +155,7 @@ fun AboutScreen(
         }
         item {
             SettingsCard(verticalGap = 6.dp) {
-                SectionTitle(stringResource(R.string.section_license))
+                HelpHeading(R.string.section_license, R.string.help_license)
                 Text(licenseState.title(), style = MaterialTheme.typography.bodyLarge)
                 Text(licenseState.detail(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
